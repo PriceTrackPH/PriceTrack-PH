@@ -25,11 +25,27 @@
 }
 
 /* Extension preview brand-color cleanup. */
+.extension-section .extension-grid {
+  grid-template-columns: minmax(0, 1fr) 535px !important;
+}
+
 .extension-section .extension-preview {
+  width: 535px !important;
+  height: 345px !important;
+  min-height: 345px !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  justify-self: end !important;
   background: #d9dde3 !important;
 }
 
 .extension-section .preview-card {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
   background: #ffffff !important;
   color: #201b57 !important;
 }
@@ -153,6 +169,25 @@
 
 html[data-theme="dark"] .support-section {
   background: #171a1a;
+}
+
+@media (max-width: 860px) {
+  .extension-section .extension-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .extension-section .extension-preview {
+    width: min(535px, 100%) !important;
+    height: auto !important;
+    min-height: 345px !important;
+    justify-self: center !important;
+  }
+
+  .extension-section .preview-card {
+    position: static !important;
+    transform: none !important;
+    margin: 28px auto 0 !important;
+  }
 }
 
 @media (max-width: 760px) {
