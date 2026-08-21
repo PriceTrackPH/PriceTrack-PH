@@ -3,9 +3,10 @@
   --old-muted: #696780;
   --old-line: #dcddec;
   --old-green: #009f7c;
+  --old-index-green: #00dfb0;
   --old-cream: #effffb;
-  --old-footer: #f5f5fb;
-  --old-purple-section: #201a64;
+  --old-footer: #f0f0f8;
+  --old-purple-section: #1d194b;
   --content-width: 1160px;
 }
 
@@ -40,7 +41,6 @@ body {
   margin-right: auto !important;
 }
 
-/* Old live-site typography/colors */
 .brand,
 .hero-inner h1,
 .product-details h2,
@@ -48,7 +48,6 @@ body {
 .price-verdict strong,
 .stats-grid strong,
 .history-heading h3,
-.extension-copy h2,
 .trust-section h2,
 .trust-columns h3,
 .support-card h3,
@@ -76,12 +75,11 @@ body {
 
 .section-label,
 .eyebrow,
-.trust-columns article > span,
 .green-value {
   color: var(--old-green) !important;
 }
 
-/* Extension block from old page */
+/* Old live purple section. */
 .extension-section {
   background: var(--old-purple-section) !important;
 }
@@ -96,7 +94,7 @@ body {
   color: #d6d2e8 !important;
 }
 
-/* Built on trust: old proportions */
+/* Built on trust — measured against the old live screenshot. */
 .trust-section {
   padding: 78px 0 0 !important;
   background: #fff !important;
@@ -104,7 +102,8 @@ body {
 
 .trust-section h2 {
   margin: 14px 0 0 !important;
-  font-size: 42px !important;
+  color: var(--old-ink) !important;
+  font-size: 43px !important;
   line-height: 1.06 !important;
   letter-spacing: -0.035em !important;
   font-weight: 400 !important;
@@ -120,33 +119,38 @@ body {
   border-top: 1px solid var(--old-line) !important;
 }
 
+/* Old 01 / 02 / 03 are brighter, larger and lighter than the reconstruction. */
 .trust-columns article > span {
-  font-size: 11px !important;
-  font-style: italic;
-  font-weight: 700 !important;
+  color: var(--old-index-green) !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  font-style: italic !important;
+  font-weight: 400 !important;
 }
 
 .trust-columns h3 {
-  margin: 18px 0 10px !important;
-  font-size: 16px !important;
+  margin: 19px 0 10px !important;
+  color: var(--old-ink) !important;
+  font-size: 18px !important;
   line-height: 1.2 !important;
   font-weight: 400 !important;
 }
 
 .trust-columns p {
-  max-width: 330px !important;
+  max-width: 340px !important;
   margin: 0 !important;
-  font-size: 12px !important;
+  color: var(--old-muted) !important;
+  font-size: 13px !important;
   line-height: 1.55 !important;
 }
 
-/* Keep the tracker free card: screenshot + live-site shell */
+/* Keep the tracker free — old screenshot is ~175 rendered px tall at the same browser zoom. */
 .support-card {
   width: 100% !important;
-  min-height: 176px !important;
+  min-height: 219px !important;
   box-sizing: border-box !important;
   margin-top: 72px !important;
-  padding: 42px 48px !important;
+  padding: 52px 60px !important;
   border: 0 !important;
   border-radius: 12px !important;
   background: var(--old-cream) !important;
@@ -159,45 +163,49 @@ body {
 }
 
 .support-card .section-label {
-  font-size: 10px !important;
+  color: var(--old-green) !important;
+  font-size: 11px !important;
   letter-spacing: .17em !important;
   font-weight: 800 !important;
 }
 
 .support-card h3 {
-  margin: 13px 0 8px !important;
-  font-size: 30px !important;
+  margin: 14px 0 9px !important;
+  color: var(--old-ink) !important;
+  font-size: 34px !important;
   line-height: 1.12 !important;
   letter-spacing: -0.025em !important;
   font-weight: 400 !important;
 }
 
 .support-card p {
-  font-size: 13px !important;
+  margin: 0 !important;
+  color: var(--old-muted) !important;
+  font-size: 14px !important;
   line-height: 1.5 !important;
 }
 
 .support-card button {
   flex: 0 0 auto !important;
-  min-width: 220px !important;
-  min-height: 48px !important;
-  padding: 0 22px !important;
+  min-width: 274px !important;
+  min-height: 60px !important;
+  padding: 0 24px !important;
   border: 1px solid var(--old-ink) !important;
   border-radius: 7px !important;
   background: transparent !important;
   color: var(--old-ink) !important;
-  font-size: 13px !important;
+  font-size: 14px !important;
   font-weight: 700 !important;
 }
 
-/* Footer: same structure as old live page. No 100vw, no negative margins. */
+/* Footer — old live site uses a normal full-width block, not 100vw. */
 .full-footer {
   width: 100% !important;
   max-width: none !important;
-  min-height: 170px !important;
+  min-height: 214px !important;
   box-sizing: border-box !important;
   margin: 30px 0 0 !important;
-  padding: 40px 0 28px !important;
+  padding: 50px 0 34px !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: var(--old-footer) !important;
@@ -206,7 +214,7 @@ body {
 .full-footer > .section-shell {
   display: grid !important;
   grid-template-columns: 1fr !important;
-  gap: 22px !important;
+  gap: 26px !important;
 }
 
 .footer-main {
@@ -218,14 +226,16 @@ body {
 
 .footer-main strong {
   display: block !important;
-  font-size: 17px !important;
+  color: var(--old-ink) !important;
+  font-size: 18px !important;
   line-height: 1 !important;
   font-weight: 700 !important;
 }
 
 .footer-main small {
   display: block !important;
-  margin-top: 5px !important;
+  margin-top: 6px !important;
+  color: var(--old-muted) !important;
   font-size: 10px !important;
   line-height: 1.35 !important;
 }
@@ -236,15 +246,18 @@ body {
   align-items: center !important;
 }
 
+/* Verified directly in the old site's DevTools: 14px. */
 .footer-main a {
-  font-size: 10px !important;
+  color: var(--old-muted) !important;
+  font-size: 14px !important;
   text-decoration: none !important;
 }
 
 .footer-disclaimer {
   margin: 0 !important;
-  padding-top: 17px !important;
+  padding-top: 18px !important;
   border-top: 1px solid var(--old-line) !important;
+  color: var(--old-muted) !important;
   font-size: 8px !important;
   line-height: 1.4 !important;
 }
@@ -308,16 +321,22 @@ html[data-theme="dark"] .footer-disclaimer {
 
   .support-card {
     min-height: 0 !important;
-    padding: 30px 24px !important;
+    padding: 32px 24px !important;
   }
 
   .support-card h3 {
-    font-size: 25px !important;
+    font-size: 27px !important;
   }
 
   .support-card button {
     width: 100% !important;
     min-width: 0 !important;
+    min-height: 50px !important;
+  }
+
+  .full-footer {
+    min-height: 0 !important;
+    padding: 38px 0 30px !important;
   }
 
   .footer-main {
