@@ -1,0 +1,233 @@
+.report-loading {
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e7e7ef;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #7a7988;
+  box-shadow: 0 22px 58px rgba(35, 30, 84, .055);
+  font-size: 13px;
+}
+
+/* Original lower-page visual language: airy white trust section, pale mint support card, soft lavender footer. */
+.trust-section {
+  background: #ffffff !important;
+  padding: 70px 0 0 !important;
+}
+
+.trust-section .section-label {
+  color: #0aa57f !important;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  letter-spacing: .17em !important;
+}
+
+.trust-section h2 {
+  margin: 16px 0 0 !important;
+  color: #211b5c !important;
+  font-size: 39px !important;
+  line-height: 1.08 !important;
+  letter-spacing: -.035em !important;
+  font-weight: 500 !important;
+}
+
+.trust-columns {
+  margin-top: 38px !important;
+  gap: 22px !important;
+}
+
+.trust-columns article {
+  padding-top: 17px !important;
+  border-top-color: #e3e4ec !important;
+}
+
+.trust-columns article > span {
+  color: #11b98d !important;
+  font-size: 10px !important;
+  font-style: italic;
+  font-weight: 800 !important;
+}
+
+.trust-columns h3 {
+  margin: 16px 0 8px !important;
+  color: #242056 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+.trust-columns p {
+  max-width: 310px !important;
+  color: #787888 !important;
+  font-size: 10px !important;
+  line-height: 1.65 !important;
+}
+
+.support-card {
+  min-height: 150px;
+  margin-top: 66px !important;
+  padding: 32px 40px !important;
+  border: 1px solid #dff4ef;
+  border-radius: 12px !important;
+  background: #eafaf6 !important;
+  color: #211b5c !important;
+  box-shadow: none !important;
+}
+
+.support-card .section-label {
+  color: #0aa57f !important;
+}
+
+.support-card h3 {
+  margin: 11px 0 7px !important;
+  color: #211b5c !important;
+  font-size: 25px !important;
+  line-height: 1.15 !important;
+  font-weight: 500 !important;
+  letter-spacing: -.025em;
+}
+
+.support-card p {
+  margin: 0 !important;
+  color: #777889 !important;
+  font-size: 11px !important;
+  line-height: 1.55 !important;
+}
+
+.support-card button {
+  min-height: 42px !important;
+  padding: 0 18px !important;
+  border: 1px solid #29235f !important;
+  border-radius: 7px !important;
+  background: rgba(255, 255, 255, .42) !important;
+  color: #29235f !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.full-footer {
+  min-height: 140px;
+  margin-top: 28px;
+  padding: 36px 0 28px !important;
+  border-top: 0 !important;
+  background: #f5f5fb !important;
+}
+
+.footer-main {
+  align-items: center !important;
+}
+
+.footer-main strong {
+  color: #242056 !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+}
+
+.footer-main strong span {
+  color: #10b889 !important;
+}
+
+.footer-main small {
+  margin-top: 5px !important;
+  color: #7c7c8b !important;
+  font-size: 9px !important;
+}
+
+.footer-main nav {
+  gap: 21px !important;
+}
+
+.footer-main a {
+  color: #777789 !important;
+  font-size: 9px !important;
+}
+
+.footer-disclaimer {
+  margin-top: 22px !important;
+  padding-top: 15px !important;
+  border-top-color: #dedfe8 !important;
+  color: #9494a1 !important;
+  font-size: 7px !important;
+}
+
+html[data-theme="dark"] .report-loading {
+  border-color: #383b3d;
+  background: #1c1f20;
+  color: #aaa69c;
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .trust-section {
+  background: #171a1a !important;
+}
+
+html[data-theme="dark"] .trust-section h2,
+html[data-theme="dark"] .trust-columns h3 {
+  color: #ebe8df !important;
+}
+
+html[data-theme="dark"] .trust-columns article {
+  border-top-color: #343839 !important;
+}
+
+html[data-theme="dark"] .trust-columns p {
+  color: #aaa69c !important;
+}
+
+html[data-theme="dark"] .support-card {
+  border-color: #0c6958;
+  background: #075c4c !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .support-card h3 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .support-card p {
+  color: #bad9d1 !important;
+}
+
+html[data-theme="dark"] .support-card button {
+  border-color: rgba(255,255,255,.38) !important;
+  background: transparent !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .full-footer {
+  background: #1b1e1f !important;
+}
+
+html[data-theme="dark"] .footer-main strong {
+  color: #ebe8df !important;
+}
+
+html[data-theme="dark"] .footer-main small,
+html[data-theme="dark"] .footer-main a,
+html[data-theme="dark"] .footer-disclaimer {
+  color: #aaa69c !important;
+}
+
+html[data-theme="dark"] .footer-disclaimer {
+  border-top-color: #35393a !important;
+}
+
+@media (max-width: 760px) {
+  .trust-section {
+    padding-top: 56px !important;
+  }
+
+  .trust-section h2 {
+    font-size: 34px !important;
+  }
+
+  .support-card {
+    min-height: 0;
+    padding: 28px 24px !important;
+  }
+
+  .full-footer {
+    min-height: 0;
+  }
+}
