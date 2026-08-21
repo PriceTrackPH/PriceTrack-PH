@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -16,11 +16,39 @@ type Variation = Tables<"product_variations">;
 type Observation = Tables<"price_observations">;
 type RangeKey = "7D" | "30D" | "90D" | "ALL";
 
+type ChartPoint = {
+  price: number;
+  timestamp: number;
+  label: string;
+  fullDate: string;
+};
+
 const peso = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
-  maximumFractionDigits: 2,
+  maximumFractionDigits: 0,
 });
+
+const sampleHistory: ChartPoint[] = [
+  [0, 699],
+  [4, 689],
+  [8, 679],
+  [12, 649],
+  [16, 699],
+  [20, 679],
+  [24, 679],
+  [27, 699],
+  [29, 699],
+].map(([daysAgo, price]) => {
+  const timestamp = Date.now() - Number(daysAgo) * 86_400_000;
+  const date = new Date(timestamp);
+  return {
+    price: Number(price),
+    timestamp,
+    label: date.toLocaleDateString("en-PH", { month: "short", day: "numeric" }),
+    fullDate: date.toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }),
+  };
+}).sort((a, b) => a.timestamp - b.timestamp);
 
 function parseShopeeUrl(value: string) {
   const url = new URL(value.trim());
@@ -45,21 +73,10 @@ function App() {
   const [product, setProduct] = useState<Product | null>(null);
   const [variations, setVariations] = useState<Variation[]>([]);
   const [observations, setObservations] = useState<Observation[]>([]);
-  const [recentProducts, setRecentProducts] = useState<Product[]>([]);
   const [selectedVariationId, setSelectedVariationId] = useState<number | null>(null);
   const [range, setRange] = useState<RangeKey>("30D");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!supabase) return;
-    supabase
-      .from("products")
-      .select("*")
-      .order("last_seen_at", { ascending: false })
-      .limit(6)
-      .then(({ data }) => setRecentProducts(data ?? []));
-  }, []);
 
   async function loadProduct(shopId: string, productId: string) {
     if (!supabase) throw new Error("Supabase is not configured yet.");
@@ -121,19 +138,6 @@ function App() {
     }
   }
 
-  async function openRecent(item: Product) {
-    setQuery(item.product_url);
-    setLoading(true);
-    setError(null);
-    try {
-      await loadProduct(item.external_shop_id, item.external_product_id);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to load this product.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   const selectedVariation = variations.find((item) => item.id === selectedVariationId) ?? null;
 
   const selectedHistory = useMemo(() => {
@@ -146,22 +150,7 @@ function App() {
     });
   }, [observations, range, selectedVariationId]);
 
-  const stats = useMemo(() => {
-    if (!selectedHistory.length) return null;
-    const prices = selectedHistory.map((row) => Number(row.price));
-    let changes = 0;
-    for (let index = 1; index < prices.length; index += 1) {
-      if (prices[index] !== prices[index - 1]) changes += 1;
-    }
-    return {
-      latest: prices[prices.length - 1],
-      low: Math.min(...prices),
-      high: Math.max(...prices),
-      changes,
-    };
-  }, [selectedHistory]);
-
-  const chartData = selectedHistory.map((row) => ({
+  const liveChartData: ChartPoint[] = selectedHistory.map((row) => ({
     price: Number(row.price),
     timestamp: Date.parse(row.observed_at),
     label: new Date(row.observed_at).toLocaleDateString("en-PH", {
@@ -174,156 +163,267 @@ function App() {
     }),
   }));
 
+  const isSample = !product;
+  const chartData = isSample ? sampleHistory : liveChartData;
+  const reportVariationName = isSample ? "Black" : selectedVariation?.name ?? "Default";
+
+  const reportStats = useMemo(() => {
+    if (!chartData.length) return null;
+    const prices = chartData.map((row) => row.price);
+    const latest = prices[prices.length - 1];
+    const low = Math.min(...prices);
+    const high = Math.max(...prices);
+    const average = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+    return {
+      latest,
+      low,
+      high,
+      average,
+      observations: prices.length,
+      aboveLow: Math.max(0, latest - low),
+    };
+  }, [chartData]);
+
+  const axisDomain = useMemo<[number, number]>(() => {
+    if (!chartData.length) return [0, 100];
+    const prices = chartData.map((row) => row.price);
+    const low = Math.min(...prices);
+    const high = Math.max(...prices);
+    const spread = Math.max(1, high - low);
+    const padding = Math.max(spread * 0.22, high * 0.025, 1);
+    return [Math.max(0, Math.floor(low - padding)), Math.ceil(high + padding)];
+  }, [chartData]);
+
+  const verdict = useMemo(() => {
+    if (!reportStats) return { label: "PRICE STATUS", title: "No history yet", detail: "Waiting for recorded observations." };
+    if (reportStats.latest <= reportStats.low * 1.05) {
+      return {
+        label: "GOOD PRICE",
+        title: "Near its lowest",
+        detail: reportStats.aboveLow === 0
+          ? "At the recorded low."
+          : `${peso.format(reportStats.aboveLow)} above the recorded low.`,
+      };
+    }
+    if (reportStats.latest <= reportStats.average) {
+      return {
+        label: "GOOD PRICE",
+        title: "Below average",
+        detail: `${peso.format(reportStats.average - reportStats.latest)} below the selected-period average.`,
+      };
+    }
+    return {
+      label: "CHECK PRICE",
+      title: "Above average",
+      detail: `${peso.format(reportStats.latest - reportStats.average)} above the selected-period average.`,
+    };
+  }, [reportStats]);
+
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div className="brand-mark">P</div>
-        <div>
-          <strong>PriceTrack PH</strong>
-          <span>Shopee Beta</span>
-        </div>
-      </header>
-
       <main>
-        <section className="hero">
-          <div className="eyebrow">PRICE HISTORY, BY VARIATION</div>
-          <h1>Check what a Shopee product really costs over time.</h1>
-          <p>
-            Paste a Shopee Philippines product link. The chart keeps each variation separate so different
-            models are never mistaken for one product changing price.
-          </p>
-
-          <form className="search-box" onSubmit={handleSubmit}>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Paste a Shopee product link"
-              aria-label="Shopee product link"
-            />
-            <button disabled={loading || !query.trim()}>{loading ? "Checking…" : "Check price"}</button>
-          </form>
-
-          {!hasSupabaseConfig && (
-            <div className="notice">
-              Local setup needed: copy <code>.env.example</code> to <code>.env.local</code> and add the
-              Supabase publishable key.
-            </div>
-          )}
-          {error && <div className="error">{error}</div>}
-        </section>
-
-        {product ? (
-          <section className="report card">
-            <div className="product-row">
-              {product.image_url ? <img src={product.image_url} alt="" /> : <div className="image-fallback">P</div>}
-              <div className="product-copy">
-                <div className="platform-pill">{product.platform}</div>
-                <h2>{product.name}</h2>
-                <p>{product.shop_name || "Shopee seller"}</p>
-              </div>
-              <a href={product.product_url} target="_blank" rel="noreferrer">View product ↗</a>
-            </div>
-
-            <div className="controls-row">
-              <label>
-                <span>Variation</span>
-                <select
-                  value={selectedVariationId ?? ""}
-                  onChange={(event) => setSelectedVariationId(Number(event.target.value))}
-                >
-                  {variations.map((variation) => (
-                    <option key={variation.id} value={variation.id}>
-                      {variation.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="range-tabs" aria-label="Price history range">
-                {(["7D", "30D", "90D", "ALL"] as RangeKey[]).map((item) => (
-                  <button key={item} className={range === item ? "active" : ""} onClick={() => setRange(item)}>
-                    {item}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <p className="variation-note">
-              The extension records all detected variations automatically. This selector only chooses which
-              variation's history you want to view.
+        <section className="hero-band">
+          <div className="hero-inner">
+            <div className="eyebrow">— &nbsp; INDEPENDENT PRICE TRACKER</div>
+            <h1>
+              Know if the Shopee<br />
+              sale is <em>really</em> a sale.
+            </h1>
+            <p>
+              Paste any Shopee product link to see today's price, its recorded low and high, and
+              how the price changed over time.
             </p>
 
-            {stats ? (
-              <>
-                <div className="stats-grid">
-                  <div><span>Latest</span><strong>{peso.format(stats.latest)}</strong></div>
-                  <div><span>Lowest</span><strong>{peso.format(stats.low)}</strong></div>
-                  <div><span>Highest</span><strong>{peso.format(stats.high)}</strong></div>
-                  <div><span>Price changes</span><strong>{stats.changes}</strong></div>
-                </div>
+            <form className="search-box" onSubmit={handleSubmit}>
+              <span className="link-mark">◇</span>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Paste a Shopee product link..."
+                aria-label="Shopee product link"
+              />
+              <button disabled={loading || !query.trim()}>
+                {loading ? "Checking…" : "Check price"}
+                {!loading && <span aria-hidden="true">→</span>}
+              </button>
+            </form>
 
-                <div className="chart-wrap">
-                  <div className="chart-heading">
-                    <div>
-                      <span>Price history</span>
-                      <strong>{selectedVariation?.name ?? "Variation"}</strong>
-                    </div>
-                    <span>{selectedHistory.length} observation{selectedHistory.length === 1 ? "" : "s"}</span>
+            <div className="trust-row" aria-label="PriceTrack promises">
+              <span>✓ No sign-up needed</span>
+              <span>✓ Public prices only</span>
+              <span>✓ Transparent tracking</span>
+            </div>
+
+            {!hasSupabaseConfig && (
+              <div className="notice">
+                Local setup needed: add your Supabase publishable key to <code>.env.local</code>.
+              </div>
+            )}
+            {error && <div className="error">{error}</div>}
+          </div>
+        </section>
+
+        <section className="report-section">
+          <div className="section-label">{isSample ? "SAMPLE PRODUCT REPORT" : "PRODUCT REPORT"}</div>
+
+          <div className="report-card">
+            <div className="report-top">
+              <div className="product-summary">
+                {isSample ? (
+                  <div className="sample-image" aria-label="Sample earbuds illustration">
+                    <span />
+                    <span />
+                    <small>SAMPLE</small>
                   </div>
-                  <ResponsiveContainer width="100%" height={330}>
-                    <LineChart data={chartData} margin={{ top: 16, right: 18, bottom: 8, left: 4 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="label" tickMargin={10} minTickGap={24} />
+                ) : product.image_url ? (
+                  <img className="product-image" src={product.image_url} alt="" />
+                ) : (
+                  <div className="product-image-fallback">P</div>
+                )}
+
+                <div className="product-details">
+                  <div className="market-line">
+                    <span className="shopee-mark">S</span>
+                    SHOPEE PH · {isSample ? "Sample Store" : product.shop_name || "Shopee seller"}
+                  </div>
+                  <h2>{isSample ? "Wireless Bluetooth Earbuds with Charging Case" : product.name}</h2>
+
+                  {isSample ? (
+                    <div className="variation-line">Variation: Black · Public listed price</div>
+                  ) : (
+                    <div className="variation-control">
+                      <label htmlFor="variation">Variation:</label>
+                      <select
+                        id="variation"
+                        value={selectedVariationId ?? ""}
+                        onChange={(event) => setSelectedVariationId(Number(event.target.value))}
+                      >
+                        {variations.map((variation) => (
+                          <option key={variation.id} value={variation.id}>
+                            {variation.name}
+                          </option>
+                        ))}
+                      </select>
+                      <span>· Public listed price</span>
+                    </div>
+                  )}
+
+                  <div className="current-price-row">
+                    <strong>{reportStats ? peso.format(reportStats.latest) : "—"}</strong>
+                    {isSample && <span className="sample-badge">SAMPLE DATA</span>}
+                  </div>
+                  <p>{isSample ? "Example report until extension data arrives" : "Latest recorded observation for this variation"}</p>
+                </div>
+              </div>
+
+              <div className="price-verdict">
+                <span>{verdict.label}</span>
+                <strong>{verdict.title}</strong>
+                <p>{verdict.detail}</p>
+                {!isSample && product && (
+                  <a href={product.product_url} target="_blank" rel="noreferrer">View on Shopee ↗</a>
+                )}
+              </div>
+            </div>
+
+            <div className="stats-grid">
+              <div>
+                <span>LOWEST IN {range === "ALL" ? "HISTORY" : range}</span>
+                <strong className="green-value">{reportStats ? peso.format(reportStats.low) : "—"}</strong>
+                <small>Selected period</small>
+              </div>
+              <div>
+                <span>HIGHEST IN {range === "ALL" ? "HISTORY" : range}</span>
+                <strong>{reportStats ? peso.format(reportStats.high) : "—"}</strong>
+                <small>Selected period</small>
+              </div>
+              <div>
+                <span>AVERAGE PRICE</span>
+                <strong>{reportStats ? peso.format(reportStats.average) : "—"}</strong>
+                <small>{range === "ALL" ? "All recorded data" : `Last ${range.replace("D", "")} days`}</small>
+              </div>
+              <div>
+                <span>OBSERVATIONS</span>
+                <strong>{reportStats?.observations ?? 0}</strong>
+                <small>Verified records</small>
+              </div>
+            </div>
+
+            <div className="history-panel">
+              <div className="history-heading">
+                <div>
+                  <h3>Price history</h3>
+                  <p>Public listed price · {reportVariationName} variation</p>
+                </div>
+                <div className="range-tabs" aria-label="Price history range">
+                  {(["7D", "30D", "90D", "ALL"] as RangeKey[]).map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      className={range === item ? "active" : ""}
+                      onClick={() => setRange(item)}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {chartData.length ? (
+                <div className="chart-wrap">
+                  <ResponsiveContainer width="100%" height={340}>
+                    <LineChart data={chartData} margin={{ top: 18, right: 24, bottom: 8, left: 6 }}>
+                      <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e9eceb" />
+                      <XAxis
+                        dataKey="label"
+                        tickMargin={12}
+                        minTickGap={28}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#777887", fontSize: 12 }}
+                      />
                       <YAxis
-                        width={74}
-                        domain={["auto", "auto"]}
+                        width={72}
+                        domain={axisDomain}
+                        axisLine={false}
+                        tickLine={false}
                         tickFormatter={(value) => `₱${Number(value).toLocaleString("en-PH")}`}
+                        tick={{ fill: "#777887", fontSize: 12 }}
                       />
                       <Tooltip
-                        formatter={(value) => [peso.format(Number(value)), selectedVariation?.name ?? "Price"]}
+                        formatter={(value) => [peso.format(Number(value)), reportVariationName]}
                         labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate ?? ""}
+                        contentStyle={{ borderRadius: 10, border: "1px solid #dddfea" }}
                       />
                       <Line
                         type="monotone"
                         dataKey="price"
-                        stroke="#ee4d2d"
+                        stroke="#13c89a"
                         strokeWidth={3}
-                        dot={{ r: 4 }}
-                        activeDot={{ r: 6 }}
+                        dot={{ r: 3, fill: "#13c89a", strokeWidth: 0 }}
+                        activeDot={{ r: 6, fill: "#ffffff", stroke: "#13c89a", strokeWidth: 3 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </>
-            ) : (
-              <div className="empty-state">No observations for this variation in the selected range yet.</div>
-            )}
-          </section>
-        ) : (
-          recentProducts.length > 0 && (
-            <section className="recent-section">
-              <div className="section-heading">
-                <div>
-                  <span>RECENTLY RECORDED</span>
-                  <h2>Products already in PriceTrack</h2>
-                </div>
-              </div>
-              <div className="recent-grid">
-                {recentProducts.map((item) => (
-                  <button key={item.id} className="recent-card" onClick={() => openRecent(item)}>
-                    {item.image_url ? <img src={item.image_url} alt="" /> : <div className="mini-fallback">P</div>}
-                    <span>{item.shop_name || "Shopee"}</span>
-                    <strong>{item.name}</strong>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )
-        )}
+              ) : (
+                <div className="empty-state">No observations for this variation in the selected range yet.</div>
+              )}
+            </div>
+          </div>
+
+          {!isSample && variations.length <= 1 && (
+            <div className="legacy-note">
+              This older record currently has only one saved “Default” variation. Once the updated extension
+              submits Shopee model IDs, each variation will appear separately here.
+            </div>
+          )}
+        </section>
       </main>
 
       <footer>
         <strong>PriceTrack PH</strong>
-        <span>Historical prices are observations collected by the browser extension.</span>
+        <span>Independent historical price observations from public marketplace pages.</span>
       </footer>
     </div>
   );
