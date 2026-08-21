@@ -23,6 +23,11 @@ type ChartPoint = {
   fullDate: string;
 };
 
+type OutboundLink = {
+  url: string;
+  isAffiliate: boolean;
+};
+
 const peso = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
@@ -66,6 +71,52 @@ function latestObservation(rows: Observation[], variationId: number) {
   return rows
     .filter((row) => row.variation_id === variationId)
     .sort((a, b) => Date.parse(b.observed_at) - Date.parse(a.observed_at))[0];
+}
+
+function safeHttpsUrl(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveOutboundLink(product: Product | null): OutboundLink | null {
+  if (!product) return null;
+
+  const metadata = product.metadata;
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+    const record = metadata as Record<string, unknown>;
+    const affiliateCandidates = [
+      record.affiliate_url,
+      record.affiliateUrl,
+      record.affiliate_link,
+      record.affiliateLink,
+    ];
+
+    if (record.affiliate && typeof record.affiliate === "object" && !Array.isArray(record.affiliate)) {
+      const affiliate = record.affiliate as Record<string, unknown>;
+      affiliateCandidates.push(affiliate.url, affiliate.href, affiliate.link);
+    }
+
+    for (const candidate of affiliateCandidates) {
+      const url = safeHttpsUrl(candidate);
+      if (url) return { url, isAffiliate: true };
+    }
+  }
+
+  const directUrl = safeHttpsUrl(product.product_url);
+  return directUrl ? { url: directUrl, isAffiliate: false } : null;
+}
+
+function countPriceChanges(points: ChartPoint[]) {
+  let changes = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    if (points[index].price !== points[index - 1].price) changes += 1;
+  }
+  return changes;
 }
 
 function App() {
@@ -166,6 +217,8 @@ function App() {
   const isSample = !product;
   const chartData = isSample ? sampleHistory : liveChartData;
   const reportVariationName = isSample ? "Black" : selectedVariation?.name ?? "Default";
+  const outboundLink = resolveOutboundLink(product);
+  const priceChanges = countPriceChanges(chartData);
 
   const reportStats = useMemo(() => {
     if (!chartData.length) return null;
@@ -220,7 +273,7 @@ function App() {
   }, [reportStats]);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" id="top">
       <main>
         <section className="hero-band">
           <div className="hero-inner">
@@ -248,6 +301,12 @@ function App() {
               </button>
             </form>
 
+            {!isSample && (
+              <div className="found-status" role="status">
+                Found {priceChanges} price change{priceChanges === 1 ? "" : "s"}.
+              </div>
+            )}
+
             <div className="trust-row" aria-label="PriceTrack promises">
               <span>✓ No sign-up needed</span>
               <span>✓ Public prices only</span>
@@ -264,7 +323,9 @@ function App() {
         </section>
 
         <section className="report-section">
-          <div className="section-label">{isSample ? "SAMPLE PRODUCT REPORT" : "PRODUCT REPORT"}</div>
+          <div className="section-label">
+            {isSample ? "SAMPLE PRODUCT REPORT" : "DATABASE PRODUCT REPORT"}
+          </div>
 
           <div className="report-card">
             <div className="report-top">
@@ -310,9 +371,15 @@ function App() {
 
                   <div className="current-price-row">
                     <strong>{reportStats ? peso.format(reportStats.latest) : "—"}</strong>
-                    {isSample && <span className="sample-badge">SAMPLE DATA</span>}
+                    <span className={isSample ? "sample-badge" : "sample-badge live-badge"}>
+                      {isSample ? "SAMPLE DATA" : "LIVE DATABASE"}
+                    </span>
                   </div>
-                  <p>{isSample ? "Example report until extension data arrives" : "Latest recorded observation for this variation"}</p>
+                  <p>
+                    {isSample
+                      ? "Example report until extension data arrives"
+                      : `${priceChanges} recorded price change${priceChanges === 1 ? "" : "s"}`}
+                  </p>
                 </div>
               </div>
 
@@ -320,9 +387,6 @@ function App() {
                 <span>{verdict.label}</span>
                 <strong>{verdict.title}</strong>
                 <p>{verdict.detail}</p>
-                {!isSample && product && (
-                  <a href={product.product_url} target="_blank" rel="noreferrer">View on Shopee ↗</a>
-                )}
               </div>
             </div>
 
@@ -409,15 +473,31 @@ function App() {
               ) : (
                 <div className="empty-state">No observations for this variation in the selected range yet.</div>
               )}
+
+              {!isSample && product && (
+                <div className="report-actions-wrap">
+                  <div className="report-actions">
+                    <a className="track-price-button" href="#extension">☆ Track price</a>
+                    {outboundLink && (
+                      <a
+                        className="shopee-outbound-button"
+                        href={outboundLink.url}
+                        target="_blank"
+                        rel={outboundLink.isAffiliate ? "sponsored noopener noreferrer" : "noopener noreferrer"}
+                      >
+                        View on Shopee ↗
+                      </a>
+                    )}
+                  </div>
+                  <p className={outboundLink?.isAffiliate ? "outbound-disclosure affiliate" : "outbound-disclosure"}>
+                    {outboundLink?.isAffiliate
+                      ? "Affiliate link — PriceTrack PH may earn a commission at no extra cost to you."
+                      : "No hidden redirects. Direct Shopee link; affiliate links are clearly labeled before you click."}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
-
-          {!isSample && variations.length <= 1 && (
-            <div className="legacy-note">
-              This older record currently has only one saved “Default” variation. Once the updated extension
-              submits Shopee model IDs, each variation will appear separately here.
-            </div>
-          )}
         </section>
       </main>
 
