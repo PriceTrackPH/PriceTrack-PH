@@ -5,9 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="PriceTrack PH - Shopee and Lazada price history tracker" />
     <title>PriceTrack PH</title>
+    <script>
+      (() => {
+        const saved = localStorage.getItem("pricetrack-theme");
+        const preferred = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = saved || preferred;
+      })();
+    </script>
   </head>
   <body>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a class="brand" href="#top">PriceTrack <span>PH</span></a>
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="#top">How it works</a>
+          <a href="#extension">Extension</a>
+          <a href="#support">Support us</a>
+        </nav>
+        <div class="header-actions">
+          <div class="theme-switch" aria-label="Theme">
+            <button type="button" data-theme-choice="light" aria-pressed="false">☀ Light</button>
+            <button type="button" data-theme-choice="dark" aria-pressed="false">☾ Dark</button>
+          </div>
+          <span class="beta-pill">SHOPEE BETA</span>
+        </div>
+      </div>
+    </header>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      (() => {
+        const buttons = document.querySelectorAll("[data-theme-choice]");
+        const apply = (theme) => {
+          document.documentElement.dataset.theme = theme;
+          localStorage.setItem("pricetrack-theme", theme);
+          buttons.forEach((button) => {
+            button.setAttribute("aria-pressed", String(button.dataset.themeChoice === theme));
+          });
+        };
+
+        buttons.forEach((button) => {
+          button.addEventListener("click", () => apply(button.dataset.themeChoice));
+        });
+
+        apply(document.documentElement.dataset.theme || "light");
+      })();
+    </script>
   </body>
 </html>
