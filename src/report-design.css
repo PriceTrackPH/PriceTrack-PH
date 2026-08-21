@@ -1,0 +1,296 @@
+:root {
+  --report-ink: #1d194b;
+  --report-muted: #777486;
+  --report-soft-muted: #9693a0;
+  --report-border: #e6e7f0;
+  --report-stat-bg: #f8f8f5;
+  --report-tab-bg: #f3f3f0;
+  --report-grid: #ececf1;
+  --report-shadow: 0 16px 42px rgba(29, 25, 75, .06), 0 2px 8px rgba(29, 25, 75, .025);
+}
+
+html[data-theme="dark"] {
+  --report-ink: #ebe7dc;
+  --report-muted: #aaa69c;
+  --report-soft-muted: #85827a;
+  --report-border: #35383a;
+  --report-stat-bg: #1c1c17;
+  --report-tab-bg: #242624;
+  --report-grid: #333638;
+  --report-shadow: 0 18px 50px rgba(0, 0, 0, .22);
+}
+
+/*
+ * Database report visual spec.
+ * Kept separate from layout/fidelity rules so the report can evolve without
+ * changing the rest of the landing page or future Lazada-specific sections.
+ */
+.report-card {
+  background: var(--surface) !important;
+  border: 1px solid var(--report-border) !important;
+  border-radius: 13px !important;
+  box-shadow: var(--report-shadow) !important;
+}
+
+.report-top {
+  gap: 34px !important;
+  padding: 24px 24px 26px !important;
+}
+
+.product-summary {
+  gap: 18px !important;
+}
+
+.product-image,
+.product-image-fallback,
+.sample-image {
+  width: 124px !important;
+  height: 124px !important;
+  border-radius: 10px !important;
+}
+
+.market-line {
+  margin-bottom: 7px !important;
+  color: var(--report-muted) !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: .11em !important;
+}
+
+.product-details h2 {
+  max-width: 610px !important;
+  color: var(--report-ink) !important;
+  font-size: 19px !important;
+  line-height: 1.28 !important;
+  font-weight: 400 !important;
+  letter-spacing: -.012em !important;
+}
+
+.variation-line,
+.variation-control {
+  margin-top: 6px !important;
+  color: var(--report-muted) !important;
+  font-size: 10px !important;
+}
+
+.variation-control select {
+  min-height: 25px !important;
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+  border-color: var(--report-border) !important;
+  border-radius: 5px !important;
+  color: var(--report-ink) !important;
+  font-size: 10px !important;
+}
+
+.current-price-row {
+  margin-top: 15px !important;
+  gap: 9px !important;
+}
+
+.current-price-row strong {
+  color: var(--report-ink) !important;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  letter-spacing: -.025em !important;
+}
+
+.sample-badge,
+.live-badge {
+  padding: 5px 8px !important;
+  font-size: 8px !important;
+  letter-spacing: .08em !important;
+}
+
+.product-details > p {
+  margin-top: 7px !important;
+  color: var(--report-soft-muted) !important;
+  font-size: 9px !important;
+}
+
+.price-verdict {
+  min-width: 196px !important;
+  padding-left: 24px !important;
+  border-color: var(--report-border) !important;
+}
+
+.price-verdict > span {
+  color: #00a47d !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  letter-spacing: .14em !important;
+}
+
+.price-verdict strong {
+  margin-top: 7px !important;
+  color: var(--report-ink) !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
+}
+
+.price-verdict p {
+  margin-top: 6px !important;
+  color: var(--report-muted) !important;
+  font-size: 9px !important;
+}
+
+.stats-grid {
+  border-color: var(--report-border) !important;
+}
+
+.stats-grid > div {
+  padding: 22px 22px 20px !important;
+  background: var(--report-stat-bg) !important;
+}
+
+.stats-grid > div + div {
+  border-color: var(--report-border) !important;
+}
+
+.stats-grid span {
+  color: var(--report-muted) !important;
+  font-size: 8px !important;
+  font-weight: 850 !important;
+  letter-spacing: .13em !important;
+}
+
+.stats-grid strong {
+  margin-top: 10px !important;
+  color: var(--report-ink) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+
+.stats-grid .green-value {
+  color: #00a57e !important;
+}
+
+.stats-grid small {
+  margin-top: 7px !important;
+  color: var(--report-soft-muted) !important;
+  font-size: 8px !important;
+}
+
+.history-panel {
+  padding: 23px 24px 14px !important;
+}
+
+.history-heading h3 {
+  color: var(--report-ink) !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+}
+
+.history-heading p {
+  margin-top: 5px !important;
+  color: var(--report-muted) !important;
+  font-size: 9px !important;
+}
+
+.range-tabs {
+  padding: 3px !important;
+  background: var(--report-tab-bg) !important;
+  border-radius: 7px !important;
+}
+
+.range-tabs button {
+  min-width: 34px !important;
+  min-height: 25px !important;
+  padding: 5px 7px !important;
+  color: var(--report-muted) !important;
+  font-size: 8px !important;
+}
+
+.range-tabs button.active {
+  background: var(--surface) !important;
+  color: var(--report-ink) !important;
+  box-shadow: 0 1px 4px rgba(29, 25, 75, .10) !important;
+}
+
+.chart-wrap {
+  margin-top: 15px !important;
+}
+
+/* The old report used a noticeably more compact plot than the first GitHub reconstruction. */
+.chart-wrap .recharts-responsive-container {
+  height: 255px !important;
+}
+
+.recharts-cartesian-grid line {
+  stroke: var(--report-grid) !important;
+}
+
+.recharts-cartesian-axis-tick-value {
+  fill: var(--report-muted) !important;
+  font-size: 9px !important;
+}
+
+.report-actions-wrap {
+  margin-top: 5px !important;
+  padding-top: 14px !important;
+  border-color: var(--report-border) !important;
+}
+
+.report-actions {
+  gap: 8px !important;
+}
+
+.track-price-button,
+.shopee-outbound-button {
+  min-height: 38px !important;
+  padding: 0 15px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+}
+
+.track-price-button {
+  border-color: var(--report-border) !important;
+  color: var(--report-ink) !important;
+}
+
+.outbound-disclosure {
+  margin-top: 6px !important;
+  color: var(--report-soft-muted) !important;
+  font-size: 8px !important;
+}
+
+@media (max-width: 860px) {
+  .report-top {
+    padding: 22px !important;
+  }
+
+  .product-image,
+  .product-image-fallback,
+  .sample-image {
+    width: 110px !important;
+    height: 110px !important;
+  }
+
+  .price-verdict {
+    padding-top: 18px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .history-panel {
+    padding: 20px 18px 14px !important;
+  }
+
+  .chart-wrap .recharts-responsive-container {
+    height: 235px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .report-top {
+    padding: 18px !important;
+  }
+
+  .product-details h2 {
+    font-size: 18px !important;
+  }
+
+  .stats-grid > div {
+    padding: 18px !important;
+  }
+}
