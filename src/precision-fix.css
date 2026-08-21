@@ -19,7 +19,7 @@
 }
 
 .support-section .support-card p {
-  font-size: 15px !important;
+  font-size: 17px !important;
   line-height: 1.5 !important;
 }
 
@@ -27,7 +27,7 @@
   min-width: 274px !important;
   min-height: 60px !important;
   padding: 0 26px !important;
-  font-size: 16px !important;
+  font-size: 18px !important;
   line-height: 1 !important;
   font-weight: 700 !important;
 }
@@ -42,6 +42,10 @@
   font-size: 20px !important;
   line-height: 1 !important;
   font-weight: 700 !important;
+}
+
+.footer-main strong span {
+  font-weight: 800 !important;
 }
 
 .footer-main small {
@@ -76,14 +80,14 @@ html[data-theme="dark"] .support-section {
   }
 
   .support-section .support-card p {
-    font-size: 14px !important;
+    font-size: 16px !important;
   }
 
   .support-section .support-card button {
     width: 100% !important;
     min-width: 0 !important;
     min-height: 52px !important;
-    font-size: 15px !important;
+    font-size: 17px !important;
   }
 
   .footer-main strong {
