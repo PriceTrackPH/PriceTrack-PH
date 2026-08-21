@@ -62,8 +62,8 @@
 }
 
 .extension-section .preview-card .detected-box {
-  height: 60px !important;
-  min-height: 60px !important;
+  height: 80px !important;
+  min-height: 80px !important;
   box-sizing: border-box !important;
   background: #e9fffa !important;
   border-color: #32efc2 !important;
@@ -74,12 +74,17 @@
   color: #32efc2 !important;
 }
 
+.extension-section .preview-card .detected-box strong {
+  font-size: 13px !important;
+}
+
 .extension-section .preview-card button {
   height: 50px !important;
   min-height: 50px !important;
   box-sizing: border-box !important;
   background: #201b57 !important;
   color: #ffffff !important;
+  font-size: 13px !important;
 }
 
 .extension-section .preview-card > small,
