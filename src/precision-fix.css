@@ -39,11 +39,14 @@
 }
 
 .full-footer > .section-shell {
-  gap: 24px !important;
+  min-height: 136px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
 }
 
 .footer-main {
-  align-items: center !important;
+  align-items: start !important;
 }
 
 .footer-main strong {
@@ -68,6 +71,7 @@
 }
 
 .footer-disclaimer {
+  margin-top: auto !important;
   padding-top: 16px !important;
   font-size: 11px !important;
   line-height: 1.45 !important;
@@ -99,6 +103,10 @@ html[data-theme="dark"] .support-section {
     font-size: 19px !important;
   }
 
+  .full-footer > .section-shell {
+    min-height: 0 !important;
+  }
+
   .footer-main {
     align-items: start !important;
   }
@@ -116,6 +124,7 @@ html[data-theme="dark"] .support-section {
   }
 
   .footer-disclaimer {
+    margin-top: 26px !important;
     font-size: 10px !important;
   }
 }
