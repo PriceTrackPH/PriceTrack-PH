@@ -1,5 +1,14 @@
 /* Final old-live-site alignment: only support spacing and footer typography. */
 
+/* Final extension typography override. Loaded after fidelity.css so these sizes win. */
+.extension-section .extension-copy p {
+  font-size: 22px !important;
+}
+
+.extension-section .steps-list li {
+  font-size: 20px !important;
+}
+
 .trust-section {
   padding-bottom: 0 !important;
 }
