@@ -2,11 +2,11 @@
 
 /* Final extension typography override. Loaded after fidelity.css so these sizes win. */
 .extension-section .extension-copy p {
-  font-size: 22px !important;
+  font-size: 18px !important;
 }
 
 .extension-section .steps-list li {
-  font-size: 20px !important;
+  font-size: 16px !important;
 }
 
 .trust-section {
