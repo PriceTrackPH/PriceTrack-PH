@@ -7,6 +7,7 @@ import "./theme.css";
 import "./site-sections.css";
 import "./fidelity.css";
 import "./report-design.css";
+import "./legacy-sections.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
