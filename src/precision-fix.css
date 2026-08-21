@@ -41,6 +41,7 @@
 }
 
 .extension-section .preview-card {
+  width: min(380px, 90%) !important;
   position: absolute !important;
   top: 50% !important;
   left: 50% !important;
