@@ -1,6 +1,10 @@
 /* Final old-live-site alignment: only support spacing and footer typography. */
 
 /* Final extension typography override. Loaded after fidelity.css so these sizes win. */
+.extension-section .section-label {
+  color: #32efc2 !important;
+}
+
 .extension-section .extension-copy p {
   font-size: 18px !important;
 }
