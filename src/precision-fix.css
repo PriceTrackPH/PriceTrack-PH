@@ -24,6 +24,48 @@
   color: #ffffff !important;
 }
 
+/* Extension preview brand-color cleanup. */
+.extension-section .extension-preview {
+  background: #d9dde3 !important;
+}
+
+.extension-section .preview-card {
+  background: #ffffff !important;
+  color: #201b57 !important;
+}
+
+.extension-section .preview-card > strong {
+  color: #201b57 !important;
+}
+
+.extension-section .preview-card > strong em {
+  color: #32efc2 !important;
+}
+
+.extension-section .preview-card .detected-box {
+  background: #e9fffa !important;
+  border-color: #32efc2 !important;
+  color: #201b57 !important;
+}
+
+.extension-section .preview-card .detected-box b {
+  color: #32efc2 !important;
+}
+
+.extension-section .preview-card button {
+  background: #201b57 !important;
+  color: #ffffff !important;
+}
+
+.extension-section .preview-card > small,
+.extension-section .preview-card .detected-box small {
+  color: #7b8190 !important;
+}
+
+.extension-section .browser-dots span {
+  background: #9aa1ab !important;
+}
+
 .trust-section {
   padding-bottom: 0 !important;
 }
