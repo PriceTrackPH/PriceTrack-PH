@@ -39,7 +39,6 @@
   position: relative !important;
   justify-self: end !important;
   background: #f3f4f1 !important;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, .16) !important;
 }
 
 .extension-section .preview-card {
@@ -53,6 +52,7 @@
   margin: 0 !important;
   background: #ffffff !important;
   color: #201b57 !important;
+  box-shadow: 0 16px 36px rgba(32, 27, 87, .18) !important;
 }
 
 .extension-section .preview-card > strong {
