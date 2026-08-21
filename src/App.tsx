@@ -1,8 +1,8 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -33,27 +33,6 @@ const peso = new Intl.NumberFormat("en-PH", {
   currency: "PHP",
   maximumFractionDigits: 0,
 });
-
-const sampleHistory: ChartPoint[] = [
-  [0, 699],
-  [4, 689],
-  [8, 679],
-  [12, 649],
-  [16, 699],
-  [20, 679],
-  [24, 679],
-  [27, 699],
-  [29, 699],
-].map(([daysAgo, price]) => {
-  const timestamp = Date.now() - Number(daysAgo) * 86_400_000;
-  const date = new Date(timestamp);
-  return {
-    price: Number(price),
-    timestamp,
-    label: date.toLocaleDateString("en-PH", { month: "short", day: "numeric" }),
-    fullDate: date.toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }),
-  };
-}).sort((a, b) => a.timestamp - b.timestamp);
 
 function parseShopeeUrl(value: string) {
   const url = new URL(value.trim());
@@ -119,6 +98,62 @@ function countPriceChanges(points: ChartPoint[]) {
   return changes;
 }
 
+function priceStep(maxPrice: number) {
+  if (maxPrice < 20) return 5;
+  if (maxPrice < 50) return 10;
+  if (maxPrice < 100) return 20;
+  if (maxPrice < 500) return 50;
+  if (maxPrice < 1000) return 100;
+  if (maxPrice < 2500) return 250;
+  if (maxPrice < 5000) return 500;
+  if (maxPrice < 10000) return 1000;
+  const magnitude = 10 ** Math.floor(Math.log10(maxPrice));
+  return magnitude;
+}
+
+function roundedAxis(points: ChartPoint[]) {
+  if (!points.length) return { domain: [0, 100] as [number, number], ticks: [0, 20, 40, 60, 80, 100] };
+
+  const prices = points.map((point) => point.price);
+  const low = Math.min(...prices);
+  const high = Math.max(...prices);
+  let step = priceStep(high);
+
+  const calculateBounds = () => {
+    const min = Math.max(0, Math.floor(low / step) * step - step);
+    const max = Math.ceil(high / step) * step + step;
+    return { min, max };
+  };
+
+  let bounds = calculateBounds();
+  while ((bounds.max - bounds.min) / step + 1 > 7) {
+    step *= 2;
+    bounds = calculateBounds();
+  }
+
+  const ticks: number[] = [];
+  for (let value = bounds.min; value <= bounds.max + step / 2; value += step) {
+    ticks.push(value);
+  }
+
+  return { domain: [bounds.min, bounds.max] as [number, number], ticks };
+}
+
+function toChartPoints(rows: Observation[]) {
+  return rows.map((row) => ({
+    price: Number(row.price),
+    timestamp: Date.parse(row.observed_at),
+    label: new Date(row.observed_at).toLocaleDateString("en-PH", {
+      month: "short",
+      day: "numeric",
+    }),
+    fullDate: new Date(row.observed_at).toLocaleString("en-PH", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }),
+  }));
+}
+
 function App() {
   const [query, setQuery] = useState("");
   const [product, setProduct] = useState<Product | null>(null);
@@ -127,6 +162,8 @@ function App() {
   const [selectedVariationId, setSelectedVariationId] = useState<number | null>(null);
   const [range, setRange] = useState<RangeKey>("30D");
   const [loading, setLoading] = useState(false);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function loadProduct(shopId: string, productId: string) {
@@ -151,8 +188,8 @@ function App() {
 
     if (variationError) throw variationError;
     const modelRows = models ?? [];
-
     const ids = modelRows.map((item) => item.id);
+
     let history: Observation[] = [];
     if (ids.length) {
       const { data, error: observationError } = await supabase
@@ -175,6 +212,41 @@ function App() {
     setSelectedVariationId(defaultVariation?.id ?? modelRows[0]?.id ?? null);
   }
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadFeaturedProduct() {
+      if (!supabase) {
+        setFeaturedLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error: featuredError } = await supabase
+          .from("products")
+          .select("external_shop_id,external_product_id")
+          .eq("platform", "shopee")
+          .order("last_seen_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (featuredError) throw featuredError;
+        if (data && active) {
+          await loadProduct(data.external_shop_id, data.external_product_id);
+        }
+      } catch (cause) {
+        console.error("Unable to load featured product", cause);
+      } finally {
+        if (active) setFeaturedLoading(false);
+      }
+    }
+
+    loadFeaturedProduct();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -182,6 +254,7 @@ function App() {
     try {
       const ids = parseShopeeUrl(query);
       await loadProduct(ids.shopId, ids.productId);
+      setHasSearched(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to load this product.");
     } finally {
@@ -191,34 +264,25 @@ function App() {
 
   const selectedVariation = variations.find((item) => item.id === selectedVariationId) ?? null;
 
-  const selectedHistory = useMemo(() => {
+  const allVariationRows = useMemo(() => {
     if (selectedVariationId == null) return [];
+    return observations.filter((row) => row.variation_id === selectedVariationId);
+  }, [observations, selectedVariationId]);
+
+  const selectedHistory = useMemo(() => {
     const now = Date.now();
     const days = range === "ALL" ? null : Number(range.replace("D", ""));
-    return observations.filter((row) => {
-      if (row.variation_id !== selectedVariationId) return false;
-      return days == null || Date.parse(row.observed_at) >= now - days * 86_400_000;
-    });
-  }, [observations, range, selectedVariationId]);
+    return allVariationRows.filter((row) => (
+      days == null || Date.parse(row.observed_at) >= now - days * 86_400_000
+    ));
+  }, [allVariationRows, range]);
 
-  const liveChartData: ChartPoint[] = selectedHistory.map((row) => ({
-    price: Number(row.price),
-    timestamp: Date.parse(row.observed_at),
-    label: new Date(row.observed_at).toLocaleDateString("en-PH", {
-      month: "short",
-      day: "numeric",
-    }),
-    fullDate: new Date(row.observed_at).toLocaleString("en-PH", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }),
-  }));
-
-  const isSample = !product;
-  const chartData = isSample ? sampleHistory : liveChartData;
-  const reportVariationName = isSample ? "Black" : selectedVariation?.name ?? "Default";
+  const chartData = useMemo(() => toChartPoints(selectedHistory), [selectedHistory]);
+  const allVariationPoints = useMemo(() => toChartPoints(allVariationRows), [allVariationRows]);
+  const reportVariationName = selectedVariation?.name ?? "Default";
   const outboundLink = resolveOutboundLink(product);
-  const priceChanges = countPriceChanges(chartData);
+  const priceChanges = countPriceChanges(allVariationPoints);
+  const axis = useMemo(() => roundedAxis(chartData), [chartData]);
 
   const reportStats = useMemo(() => {
     if (!chartData.length) return null;
@@ -235,16 +299,6 @@ function App() {
       observations: prices.length,
       aboveLow: Math.max(0, latest - low),
     };
-  }, [chartData]);
-
-  const axisDomain = useMemo<[number, number]>(() => {
-    if (!chartData.length) return [0, 100];
-    const prices = chartData.map((row) => row.price);
-    const low = Math.min(...prices);
-    const high = Math.max(...prices);
-    const spread = Math.max(1, high - low);
-    const padding = Math.max(spread * 0.22, high * 0.025, 1);
-    return [Math.max(0, Math.floor(low - padding)), Math.ceil(high + padding)];
   }, [chartData]);
 
   const verdict = useMemo(() => {
@@ -283,7 +337,7 @@ function App() {
               sale is <em>really</em> a sale.
             </h1>
             <p>
-              Paste any Shopee product link to see today's price, its recorded low and high, and
+              Paste any Shopee product link to see today&apos;s price, its recorded low and high, and
               how the price changed over time.
             </p>
 
@@ -301,7 +355,7 @@ function App() {
               </button>
             </form>
 
-            {!isSample && (
+            {hasSearched && (
               <div className="found-status" role="status">
                 Found {priceChanges} price change{priceChanges === 1 ? "" : "s"}.
               </div>
@@ -323,35 +377,27 @@ function App() {
         </section>
 
         <section className="report-section">
-          <div className="section-label">
-            {isSample ? "SAMPLE PRODUCT REPORT" : "DATABASE PRODUCT REPORT"}
-          </div>
+          <div className="section-label">DATABASE PRODUCT REPORT</div>
 
-          <div className="report-card">
-            <div className="report-top">
-              <div className="product-summary">
-                {isSample ? (
-                  <div className="sample-image" aria-label="Sample earbuds illustration">
-                    <span />
-                    <span />
-                    <small>SAMPLE</small>
-                  </div>
-                ) : product.image_url ? (
-                  <img className="product-image" src={product.image_url} alt="" />
-                ) : (
-                  <div className="product-image-fallback">P</div>
-                )}
-
-                <div className="product-details">
-                  <div className="market-line">
-                    <span className="shopee-mark">S</span>
-                    SHOPEE PH · {isSample ? "Sample Store" : product.shop_name || "Shopee seller"}
-                  </div>
-                  <h2>{isSample ? "Wireless Bluetooth Earbuds with Charging Case" : product.name}</h2>
-
-                  {isSample ? (
-                    <div className="variation-line">Variation: Black · Public listed price</div>
+          {featuredLoading && !product ? (
+            <div className="report-loading">Loading a recently tracked product…</div>
+          ) : product ? (
+            <div className="report-card">
+              <div className="report-top">
+                <div className="product-summary">
+                  {product.image_url ? (
+                    <img className="product-image" src={product.image_url} alt="" />
                   ) : (
+                    <div className="product-image-fallback">P</div>
+                  )}
+
+                  <div className="product-details">
+                    <div className="market-line">
+                      <span className="shopee-mark">S</span>
+                      SHOPEE PH · {product.shop_name || "Shopee seller"}
+                    </div>
+                    <h2>{product.name}</h2>
+
                     <div className="variation-control">
                       <label htmlFor="variation">Variation:</label>
                       <select
@@ -367,114 +413,109 @@ function App() {
                       </select>
                       <span>· Public listed price</span>
                     </div>
-                  )}
 
-                  <div className="current-price-row">
-                    <strong>{reportStats ? peso.format(reportStats.latest) : "—"}</strong>
-                    <span className={isSample ? "sample-badge" : "sample-badge live-badge"}>
-                      {isSample ? "SAMPLE DATA" : "LIVE DATABASE"}
-                    </span>
+                    <div className="current-price-row">
+                      <strong>{reportStats ? peso.format(reportStats.latest) : "—"}</strong>
+                      <span className="sample-badge live-badge">LIVE DATABASE</span>
+                    </div>
+                    <p>{priceChanges} recorded price change{priceChanges === 1 ? "" : "s"}</p>
                   </div>
-                  <p>
-                    {isSample
-                      ? "Example report until extension data arrives"
-                      : `${priceChanges} recorded price change${priceChanges === 1 ? "" : "s"}`}
-                  </p>
+                </div>
+
+                <div className="price-verdict">
+                  <span>{verdict.label}</span>
+                  <strong>{verdict.title}</strong>
+                  <p>{verdict.detail}</p>
                 </div>
               </div>
 
-              <div className="price-verdict">
-                <span>{verdict.label}</span>
-                <strong>{verdict.title}</strong>
-                <p>{verdict.detail}</p>
-              </div>
-            </div>
-
-            <div className="stats-grid">
-              <div>
-                <span>LOWEST IN {range === "ALL" ? "HISTORY" : range}</span>
-                <strong className="green-value">{reportStats ? peso.format(reportStats.low) : "—"}</strong>
-                <small>Selected period</small>
-              </div>
-              <div>
-                <span>HIGHEST IN {range === "ALL" ? "HISTORY" : range}</span>
-                <strong>{reportStats ? peso.format(reportStats.high) : "—"}</strong>
-                <small>Selected period</small>
-              </div>
-              <div>
-                <span>AVERAGE PRICE</span>
-                <strong>{reportStats ? peso.format(reportStats.average) : "—"}</strong>
-                <small>{range === "ALL" ? "All recorded data" : `Last ${range.replace("D", "")} days`}</small>
-              </div>
-              <div>
-                <span>OBSERVATIONS</span>
-                <strong>{reportStats?.observations ?? 0}</strong>
-                <small>Verified records</small>
-              </div>
-            </div>
-
-            <div className="history-panel">
-              <div className="history-heading">
+              <div className="stats-grid">
                 <div>
-                  <h3>Price history</h3>
-                  <p>Public listed price · {reportVariationName} variation</p>
+                  <span>LOWEST IN {range === "ALL" ? "HISTORY" : range}</span>
+                  <strong className="green-value">{reportStats ? peso.format(reportStats.low) : "—"}</strong>
+                  <small>Selected period</small>
                 </div>
-                <div className="range-tabs" aria-label="Price history range">
-                  {(["7D", "30D", "90D", "ALL"] as RangeKey[]).map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      className={range === item ? "active" : ""}
-                      onClick={() => setRange(item)}
-                    >
-                      {item}
-                    </button>
-                  ))}
+                <div>
+                  <span>HIGHEST IN {range === "ALL" ? "HISTORY" : range}</span>
+                  <strong>{reportStats ? peso.format(reportStats.high) : "—"}</strong>
+                  <small>Selected period</small>
+                </div>
+                <div>
+                  <span>AVERAGE PRICE</span>
+                  <strong>{reportStats ? peso.format(reportStats.average) : "—"}</strong>
+                  <small>{range === "ALL" ? "All recorded data" : `Last ${range.replace("D", "")} days`}</small>
+                </div>
+                <div>
+                  <span>OBSERVATIONS</span>
+                  <strong>{reportStats?.observations ?? 0}</strong>
+                  <small>Verified records</small>
                 </div>
               </div>
 
-              {chartData.length ? (
-                <div className="chart-wrap">
-                  <ResponsiveContainer width="100%" height={340}>
-                    <LineChart data={chartData} margin={{ top: 18, right: 24, bottom: 8, left: 6 }}>
-                      <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e9eceb" />
-                      <XAxis
-                        dataKey="label"
-                        tickMargin={12}
-                        minTickGap={28}
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: "#777887", fontSize: 12 }}
-                      />
-                      <YAxis
-                        width={72}
-                        domain={axisDomain}
-                        axisLine={false}
-                        tickLine={false}
-                        tickFormatter={(value) => `₱${Number(value).toLocaleString("en-PH")}`}
-                        tick={{ fill: "#777887", fontSize: 12 }}
-                      />
-                      <Tooltip
-                        formatter={(value) => [peso.format(Number(value)), reportVariationName]}
-                        labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate ?? ""}
-                        contentStyle={{ borderRadius: 10, border: "1px solid #dddfea" }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="price"
-                        stroke="#13c89a"
-                        strokeWidth={3}
-                        dot={{ r: 3, fill: "#13c89a", strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: "#ffffff", stroke: "#13c89a", strokeWidth: 3 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+              <div className="history-panel">
+                <div className="history-heading">
+                  <div>
+                    <h3>Price history</h3>
+                    <p>Public listed price · {reportVariationName} variation</p>
+                  </div>
+                  <div className="range-tabs" aria-label="Price history range">
+                    {(["7D", "30D", "90D", "ALL"] as RangeKey[]).map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        className={range === item ? "active" : ""}
+                        onClick={() => setRange(item)}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              ) : (
-                <div className="empty-state">No observations for this variation in the selected range yet.</div>
-              )}
 
-              {!isSample && product && (
+                {chartData.length ? (
+                  <div className="chart-wrap">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <AreaChart data={chartData} margin={{ top: 18, right: 24, bottom: 8, left: 6 }}>
+                        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e9eceb" />
+                        <XAxis
+                          dataKey="label"
+                          tickMargin={12}
+                          minTickGap={28}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: "#777887", fontSize: 12 }}
+                        />
+                        <YAxis
+                          width={72}
+                          domain={axis.domain}
+                          ticks={axis.ticks}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(value) => `₱${Number(value).toLocaleString("en-PH")}`}
+                          tick={{ fill: "#777887", fontSize: 12 }}
+                        />
+                        <Tooltip
+                          formatter={(value) => [peso.format(Number(value)), reportVariationName]}
+                          labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate ?? ""}
+                          contentStyle={{ borderRadius: 10, border: "1px solid #dddfea" }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="price"
+                          stroke="#13c89a"
+                          strokeWidth={3}
+                          fill="#13c89a"
+                          fillOpacity={0.14}
+                          dot={{ r: 3, fill: "#13c89a", strokeWidth: 0 }}
+                          activeDot={{ r: 6, fill: "#ffffff", stroke: "#13c89a", strokeWidth: 3 }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="empty-state">No observations for this variation in the selected range yet.</div>
+                )}
+
                 <div className="report-actions-wrap">
                   <div className="report-actions">
                     <a className="track-price-button" href="#extension">☆ Track price</a>
@@ -495,9 +536,11 @@ function App() {
                       : "No hidden redirects. Direct Shopee link; affiliate links are clearly labeled before you click."}
                   </p>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="report-loading">No tracked products are available yet.</div>
+          )}
         </section>
       </main>
 
