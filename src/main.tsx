@@ -8,6 +8,7 @@ import "./site-sections.css";
 import "./fidelity.css";
 import "./report-design.css";
 import "./legacy-sections.css";
+import "./old-ui-exact.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
