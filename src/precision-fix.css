@@ -34,12 +34,12 @@
 
 .full-footer {
   margin-top: 0 !important;
-  min-height: 214px !important;
-  padding: 44px 0 18px !important;
+  min-height: 0 !important;
+  padding: 24px 0 26px !important;
 }
 
 .full-footer > .section-shell {
-  min-height: 152px !important;
+  min-height: 110px !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 0 !important;
@@ -72,7 +72,7 @@
 
 .footer-disclaimer {
   margin-top: auto !important;
-  padding-top: 16px !important;
+  padding-top: 14px !important;
   font-size: 11px !important;
   line-height: 1.45 !important;
 }
@@ -101,6 +101,10 @@ html[data-theme="dark"] .support-section {
     min-width: 0 !important;
     min-height: 52px !important;
     font-size: 19px !important;
+  }
+
+  .full-footer {
+    padding: 24px 0 !important;
   }
 
   .full-footer > .section-shell {
