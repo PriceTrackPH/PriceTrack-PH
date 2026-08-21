@@ -1,0 +1,87 @@
+/* Final old-live-site alignment: only support spacing and footer typography. */
+
+.trust-section {
+  padding-bottom: 0 !important;
+}
+
+.support-section {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 120px 0 44px;
+  background: #ffffff;
+}
+
+.support-section .support-card {
+  width: min(1160px, calc(100% - 40px)) !important;
+  min-height: 219px !important;
+  margin: 0 auto !important;
+  padding: 52px 60px !important;
+}
+
+.support-section .support-card button {
+  min-width: 274px !important;
+  min-height: 60px !important;
+  padding: 0 26px !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+}
+
+.full-footer {
+  margin-top: 0 !important;
+  min-height: 214px !important;
+  padding: 50px 0 34px !important;
+}
+
+.footer-main strong {
+  font-size: 20px !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+}
+
+.footer-main small {
+  margin-top: 7px !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+.footer-main a {
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+}
+
+.footer-disclaimer {
+  font-size: 9px !important;
+  line-height: 1.4 !important;
+}
+
+html[data-theme="dark"] .support-section {
+  background: #171a1a;
+}
+
+@media (max-width: 760px) {
+  .support-section {
+    padding: 72px 0 32px;
+  }
+
+  .support-section .support-card {
+    width: min(100% - 28px, 1160px) !important;
+    min-height: 0 !important;
+    padding: 30px 24px !important;
+  }
+
+  .support-section .support-card button {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 52px !important;
+    font-size: 15px !important;
+  }
+
+  .footer-main strong {
+    font-size: 18px !important;
+  }
+
+  .footer-main a {
+    font-size: 13px !important;
+  }
+}
