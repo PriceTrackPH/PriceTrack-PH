@@ -19,7 +19,7 @@
 }
 
 .support-section .support-card p {
-  font-size: 17px !important;
+  font-size: 16px !important;
   line-height: 1.5 !important;
 }
 
@@ -27,7 +27,7 @@
   min-width: 274px !important;
   min-height: 60px !important;
   padding: 0 26px !important;
-  font-size: 18px !important;
+  font-size: 20px !important;
   line-height: 1 !important;
   font-weight: 700 !important;
 }
@@ -35,7 +35,15 @@
 .full-footer {
   margin-top: 0 !important;
   min-height: 214px !important;
-  padding: 50px 0 34px !important;
+  padding: 44px 0 34px !important;
+}
+
+.full-footer > .section-shell {
+  gap: 24px !important;
+}
+
+.footer-main {
+  align-items: center !important;
 }
 
 .footer-main strong {
@@ -60,6 +68,7 @@
 }
 
 .footer-disclaimer {
+  padding-top: 16px !important;
   font-size: 11px !important;
   line-height: 1.45 !important;
 }
@@ -80,14 +89,18 @@ html[data-theme="dark"] .support-section {
   }
 
   .support-section .support-card p {
-    font-size: 16px !important;
+    font-size: 15px !important;
   }
 
   .support-section .support-card button {
     width: 100% !important;
     min-width: 0 !important;
     min-height: 52px !important;
-    font-size: 17px !important;
+    font-size: 19px !important;
+  }
+
+  .footer-main {
+    align-items: start !important;
   }
 
   .footer-main strong {
