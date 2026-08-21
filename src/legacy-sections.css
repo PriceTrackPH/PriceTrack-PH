@@ -10,7 +10,7 @@
   font-size: 13px;
 }
 
-/* Original lower-page visual language: airy white trust section, pale mint support card, soft lavender footer. */
+/* Original lower-page visual language: airy white trust section, pale mint support card, full-width soft lavender footer. */
 .trust-section {
   background: #ffffff !important;
   padding: 70px 0 0 !important;
@@ -64,14 +64,20 @@
 }
 
 .support-card {
+  width: 100%;
+  box-sizing: border-box;
   min-height: 150px;
   margin-top: 66px !important;
   padding: 32px 40px !important;
-  border: 1px solid #dff4ef;
+  border: 0 !important;
   border-radius: 12px !important;
   background: #eafaf6 !important;
   color: #211b5c !important;
   box-shadow: none !important;
+}
+
+.support-card > div:first-child {
+  max-width: 650px;
 }
 
 .support-card .section-label {
@@ -95,22 +101,36 @@
 }
 
 .support-card button {
+  flex: 0 0 auto;
+  min-width: 190px;
   min-height: 42px !important;
-  padding: 0 18px !important;
+  padding: 0 20px !important;
   border: 1px solid #29235f !important;
   border-radius: 7px !important;
-  background: rgba(255, 255, 255, .42) !important;
+  background: rgba(255, 255, 255, .48) !important;
   color: #29235f !important;
   font-size: 12px !important;
   font-weight: 800 !important;
 }
 
+/* Full bleed background, centered inner content. */
 .full-footer {
-  min-height: 140px;
-  margin-top: 28px;
-  padding: 36px 0 28px !important;
-  border-top: 0 !important;
+  width: 100vw !important;
+  max-width: none !important;
+  box-sizing: border-box;
+  min-height: 150px;
+  margin-top: 28px !important;
+  margin-left: calc(50% - 50vw) !important;
+  margin-right: calc(50% - 50vw) !important;
+  padding: 40px 0 30px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
   background: #f5f5fb !important;
+}
+
+.full-footer > .section-shell {
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 .footer-main {
@@ -176,7 +196,6 @@ html[data-theme="dark"] .trust-columns p {
 }
 
 html[data-theme="dark"] .support-card {
-  border-color: #0c6958;
   background: #075c4c !important;
   color: #ffffff !important;
 }
@@ -227,7 +246,13 @@ html[data-theme="dark"] .footer-disclaimer {
     padding: 28px 24px !important;
   }
 
+  .support-card button {
+    width: 100%;
+    min-width: 0;
+  }
+
   .full-footer {
     min-height: 0;
+    padding: 32px 0 26px !important;
   }
 }
