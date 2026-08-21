@@ -5,6 +5,7 @@ import SiteSections from "./SiteSections";
 import "./styles.css";
 import "./theme.css";
 import "./site-sections.css";
+import "./fidelity.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
