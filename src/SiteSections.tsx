@@ -62,15 +62,17 @@ function SiteSections() {
               <p>If a purchase link earns commission, you will see the disclosure before clicking it.</p>
             </article>
           </div>
+        </div>
+      </section>
 
-          <div className="support-card" id="support">
-            <div>
-              <div className="section-label">KEEP THE TRACKER FREE</div>
-              <h3>Support independent price tracking.</h3>
-              <p>Donations help pay for daily price checks, storage, and alerts. All core history remains free.</p>
-            </div>
-            <button type="button">♡ Donate to PriceTrack PH</button>
+      <section className="support-section" id="support">
+        <div className="section-shell support-card">
+          <div>
+            <div className="section-label">KEEP THE TRACKER FREE</div>
+            <h3>Support independent price tracking.</h3>
+            <p>Donations help pay for daily price checks, storage, and alerts. All core history remains free.</p>
           </div>
+          <button type="button">♡ Donate to PriceTrack PH</button>
         </div>
       </section>
 
