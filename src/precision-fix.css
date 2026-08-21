@@ -34,7 +34,9 @@
 
 .full-footer {
   margin-top: 0 !important;
-  min-height: 0 !important;
+  height: 210px !important;
+  min-height: 210px !important;
+  box-sizing: border-box !important;
   padding: 24px 0 26px !important;
 }
 
@@ -104,6 +106,8 @@ html[data-theme="dark"] .support-section {
   }
 
   .full-footer {
+    height: auto !important;
+    min-height: 0 !important;
     padding: 24px 0 !important;
   }
 
