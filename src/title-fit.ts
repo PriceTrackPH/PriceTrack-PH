@@ -12,7 +12,7 @@ function fitTitleToTwoLines(title: HTMLElement) {
   title.style.removeProperty("-webkit-box-orient");
   title.style.removeProperty("overflow");
 
-  const baseSize = Number.parseFloat(window.getComputedStyle(title).fontSize) || 21;
+  const baseSize = Number.parseFloat(window.getComputedStyle(title).fontSize) || 22;
   let fontSize = baseSize;
 
   const fitsInTwoLines = () => {
