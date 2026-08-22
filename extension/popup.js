@@ -4,7 +4,7 @@ const title = document.querySelector("#title");
 const detail = document.querySelector("#detail");
 const status = document.querySelector("#status");
 const popupToggle = document.querySelector("#popup-toggle");
-const POPUP_SETTING_KEY = "recordingPopupEnabled";
+const POPUP_SETTING_KEY = "notificationsEnabled";
 let ids;
 let activeTabId;
 let primaryKey;
