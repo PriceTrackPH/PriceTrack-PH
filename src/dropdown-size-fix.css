@@ -20,7 +20,7 @@
   width: 100% !important;
 }
 
-/* Use the same dark PriceTrack dropdown treatment in light mode. */
+/* Light mode: keep the closed picker branded, but let the opened menu blend with the white report card. */
 html:not([data-theme="dark"]) .report-card .variation-picker-button {
   border-color: #4b4388 !important;
   background: #21185f !important;
@@ -37,18 +37,20 @@ html:not([data-theme="dark"]) .report-card .variation-picker-button:focus-visibl
 }
 
 html:not([data-theme="dark"]) .report-card .variation-menu {
-  border-color: #4b4388 !important;
-  background: #1a1c1d !important;
-  box-shadow: 0 16px 38px rgba(33, 24, 95, .24) !important;
+  border-color: #d9d3f7 !important;
+  background: #ffffff !important;
+  box-shadow: 0 14px 30px rgba(33, 24, 95, .14) !important;
+  scrollbar-color: #a9a9b3 #ffffff;
 }
 
 html:not([data-theme="dark"]) .report-card .variation-option {
-  color: #ebe7dc !important;
+  color: #21185f !important;
+  background: transparent !important;
 }
 
 html:not([data-theme="dark"]) .report-card .variation-option:hover,
 html:not([data-theme="dark"]) .report-card .variation-option:focus-visible {
-  background: rgba(50, 239, 194, .11) !important;
+  background: #f2efff !important;
 }
 
 html:not([data-theme="dark"]) .report-card .variation-option.selected {
@@ -57,7 +59,11 @@ html:not([data-theme="dark"]) .report-card .variation-option.selected {
 }
 
 html:not([data-theme="dark"]) .report-card .variation-option small {
-  color: #32efc2 !important;
+  color: #0d9c73 !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option.selected small {
+  color: #8cf1d2 !important;
 }
 
 @media (max-width: 680px) {
