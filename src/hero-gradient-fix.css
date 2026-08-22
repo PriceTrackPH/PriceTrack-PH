@@ -158,7 +158,7 @@
   display: inline-block;
   min-width: 260px;
   max-width: min(430px, 52vw);
-  z-index: 20;
+  z-index: 60;
 }
 
 .report-card .variation-picker-button {
@@ -166,9 +166,9 @@
   min-height: 32px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
-  padding: 5px 10px 5px 12px;
+  padding: 5px 12px;
   border: 1px solid #d9d3f7;
   border-radius: 7px;
   background: #f2efff;
@@ -197,17 +197,10 @@
   white-space: nowrap;
 }
 
-.report-card .variation-chevron {
-  flex: 0 0 auto;
-  color: #13c89a;
-  font-size: 16px;
-  font-weight: 900;
-  line-height: 1;
-  transform: translateY(-1px);
-}
-
-.report-card .variation-picker.open .variation-chevron {
-  transform: rotate(180deg) translateY(1px);
+/* No green arrows/checkmarks inside the variation picker. */
+.report-card .variation-chevron,
+.report-card .variation-check {
+  display: none !important;
 }
 
 .report-card .variation-menu {
@@ -222,14 +215,14 @@
   border-radius: 9px;
   background: #fbfaff;
   box-shadow: 0 14px 34px rgba(33, 24, 95, .18);
-  z-index: 50;
+  z-index: 100;
 }
 
 .report-card .variation-option {
   width: 100%;
   min-height: 34px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 7px 10px;
@@ -272,9 +265,23 @@
   color: #8cf1d2;
 }
 
-.report-card .variation-check {
-  color: #13c89a;
-  font-weight: 900;
+/* Let the custom variation menu float over the stats row instead of being clipped. */
+@media (min-width: 861px) {
+  .report-card .report-top {
+    position: relative !important;
+    z-index: 4 !important;
+    overflow: visible !important;
+  }
+
+  .report-card .product-summary,
+  .report-card .product-details {
+    overflow: visible !important;
+  }
+
+  .report-card .stats-grid {
+    position: relative !important;
+    z-index: 1 !important;
+  }
 }
 
 /* Match out-of-stock status accents to the LIVE DATABASE mint in light mode. */
@@ -385,11 +392,6 @@ html[data-theme="dark"] .report-card .variation-picker-button:focus-visible {
   border-color: #32efc2;
   background: #2a216d;
   box-shadow: 0 0 0 2px rgba(50, 239, 194, .12);
-}
-
-html[data-theme="dark"] .report-card .variation-chevron,
-html[data-theme="dark"] .report-card .variation-check {
-  color: #32efc2;
 }
 
 html[data-theme="dark"] .report-card .variation-menu {
