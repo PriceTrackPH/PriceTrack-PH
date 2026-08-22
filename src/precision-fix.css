@@ -1,5 +1,22 @@
 /* Final old-live-site alignment: only support spacing and footer typography. */
 
+/* Keep the site header frozen at the top while the page scrolls. */
+.site-header {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 9999 !important;
+}
+
+body {
+  padding-top: 58px !important;
+}
+
+html {
+  scroll-padding-top: 70px;
+}
+
 /* Final extension typography override. Loaded after fidelity.css so these sizes win. */
 .extension-section .section-label {
   color: #32efc2 !important;
@@ -205,6 +222,16 @@ html[data-theme="dark"] .support-section {
     position: static !important;
     transform: none !important;
     margin: 28px auto 0 !important;
+  }
+}
+
+@media (max-width: 820px) {
+  body {
+    padding-top: 64px !important;
+  }
+
+  html {
+    scroll-padding-top: 76px;
   }
 }
 
