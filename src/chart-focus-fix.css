@@ -62,12 +62,12 @@
   border-bottom: 0 !important;
 }
 
-/* Keep the divider clearly BELOW Aug 16 / Today. The extra margin accounts for
-   Recharts labels visually extending beneath the chart container. */
+/* Keep the divider clearly BELOW Aug 16 / Today. Increase the visual gap from
+   roughly 30px to 40px, then leave 20px between the divider and the buttons. */
 .report-card .report-actions-wrap {
   position: relative !important;
-  margin-top: 36px !important;
-  padding-top: 14px !important;
+  margin-top: 46px !important;
+  padding-top: 20px !important;
   border-top: 0 !important;
 }
 
