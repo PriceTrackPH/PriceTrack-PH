@@ -16,6 +16,11 @@
     ) !important;
 }
 
+/* Final hero headline size: +1px from the previous desktop range. */
+.hero-inner h1 {
+  font-size: clamp(53px, 5.15vw, 73px) !important;
+}
+
 /* Final hero trust-row text size. */
 .trust-row {
   font-size: 13px !important;
