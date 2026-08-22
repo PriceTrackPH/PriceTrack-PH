@@ -6,6 +6,7 @@ function formatPeso(value) {
 }
 
 const POPUP_SETTING_KEY = "notificationsEnabled";
+const NOTIFICATION_ICON = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABJklEQVR4nO2ZsRXCMAxEDx5LUFCwBivQsQJzsQIdK7AGRQrGgAmcyLLjk537bbBz+lESngIIIYTYLjt2AAun4/WXu2b6vky17fPjtMVTfM660AK8xeesDyugtHjrPgfXrp9nlXCzXB6rnwLIFdCi8MbYb4EBiwesAgYtHrAIGLh4YEnA4MUDgV+DrUgL2MDVB9QBEiAB7ABswgqY3vc6+yzMBcIKAMolWIYioQUAfgnWiVD6Rz3+Dzjfskd84TtgbSSAHYCNBLADsJEAdgA2EsAOwEYC2AHYSAA7ABsJYAdgIwHsAGwkgB2AjQSwA7CRgOQRx4iZijOvOmD2aC9dUJBzuQOiSyjMZ7sFokqokMv+DIgmoVIe3ybMD6fRLoQQQgghRK/8ARRHODu0T1D/AAAAAElFTkSuQmCC";
 const recentNotifications = new Map();
 
 function notificationKey(record) {
@@ -32,7 +33,7 @@ function showRecordingNotification(record = {}) {
 
     chrome.notifications.create(`pricetrack-${Date.now()}`, {
       type: "basic",
-      iconUrl: chrome.runtime.getURL("notification-icon.svg"),
+      iconUrl: NOTIFICATION_ICON,
       title: "PriceTrack PH",
       message,
       priority: 2,
