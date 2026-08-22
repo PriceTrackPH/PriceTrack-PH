@@ -50,8 +50,7 @@
   stroke-width: 2 !important;
 }
 
-/* Add 20px more space ABOVE the X-axis date labels. Moving the whole xAxis
-   wrapper did not affect Recharts reliably, so move the actual tick groups. */
+/* Keep the graph-to-date gap at 20px by moving the actual Recharts tick groups. */
 .report-card .chart-wrap .recharts-xAxis {
   transform: none !important;
 }
@@ -82,13 +81,12 @@
   border-bottom: 0 !important;
 }
 
-/* Keep the date-to-divider spacing at about 20px and the divider-to-buttons gap
-   at 20px after moving the date tick groups down. */
+/* Keep the date-to-divider gap at about 20px and divider-to-buttons at 20px. */
 .report-card .report-actions-wrap {
   width: 100% !important;
   box-sizing: border-box !important;
   position: relative !important;
-  margin-top: 66px !important;
+  margin-top: 46px !important;
   padding-top: 20px !important;
   border-top: 1px solid var(--report-border) !important;
 }
@@ -103,7 +101,7 @@
    the rest of the report, match the old site's stacked full-width actions. */
 @media (max-width: 860px) {
   .report-card .report-actions-wrap {
-    margin-top: 80px !important;
+    margin-top: 60px !important;
   }
 
   .report-card .report-actions {
