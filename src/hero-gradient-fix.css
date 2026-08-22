@@ -101,6 +101,17 @@
   transform: none !important;
 }
 
+/* Use the PriceTrack primary color for marketplace outbound actions. */
+.shopee-outbound-button {
+  background: #21185f !important;
+  border-color: #21185f !important;
+  color: #ffffff !important;
+}
+
+.shopee-outbound-button:hover {
+  filter: brightness(1.08) !important;
+}
+
 /* Dark mode: keep the header readable and make the entire hero dark, including the left side. */
 html[data-theme="dark"] .site-header {
   background: rgba(23, 26, 26, .97) !important;
