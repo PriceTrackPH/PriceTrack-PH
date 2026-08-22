@@ -541,7 +541,21 @@ function App() {
                   <div className="product-details">
                     <div className="market-line">
                       <img className="shopee-mark" src={shopeeLogo} alt="Shopee" />
-                      SHOPEE PH · {product.shop_name || "Shopee seller"}
+                      SHOPEE PH
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          display: "inline-block",
+                          width: 6,
+                          height: 6,
+                          margin: "0 7px",
+                          borderRadius: "50%",
+                          background: "#13c89a",
+                          verticalAlign: "middle",
+                          flex: "0 0 auto",
+                        }}
+                      />
+                      {product.shop_name || "Shopee seller"}
                     </div>
                     <h2>{product.name}</h2>
 
