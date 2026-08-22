@@ -4,10 +4,12 @@ import {
   AreaChart,
   CartesianGrid,
   ResponsiveContainer,
+  Text,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import type { XAxisTickContentProps } from "recharts";
 import type { Tables } from "./database.types";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import shopeeLogo from "./assets/shopee-logo.png";
@@ -59,6 +61,35 @@ function chartDateLabel(value: string) {
   return chartDateKeyFormatter.format(date) === chartDateKeyFormatter.format(today)
     ? "Today"
     : chartDateFormatter.format(date);
+}
+
+function PriceHistoryXAxisTick({
+  x,
+  y,
+  payload,
+  index,
+  visibleTicksCount,
+  verticalAnchor,
+}: XAxisTickContentProps) {
+  const textAnchor = index === 0
+    ? "start"
+    : index === visibleTicksCount - 1
+      ? "end"
+      : "middle";
+
+  return (
+    <Text
+      className="recharts-cartesian-axis-tick-value"
+      x={x}
+      y={y}
+      fill="var(--report-muted)"
+      fontSize={9}
+      textAnchor={textAnchor}
+      verticalAnchor={verticalAnchor}
+    >
+      {payload.value}
+    </Text>
+  );
 }
 
 function parseShopeeUrl(value: string) {
@@ -506,9 +537,12 @@ function App() {
                           dataKey="label"
                           tickMargin={12}
                           minTickGap={28}
+                          interval="preserveStartEnd"
                           axisLine={false}
                           tickLine={false}
-                          tick={{ fill: "#777887", fontSize: 12 }}
+                          tick={(props) => (
+                            <PriceHistoryXAxisTick {...(props as XAxisTickContentProps)} />
+                          )}
                         />
                         <YAxis
                           width={72}
