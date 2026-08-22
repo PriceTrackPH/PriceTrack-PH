@@ -351,6 +351,17 @@ function App() {
   const allVariationPoints = useMemo(() => toChartPoints(allVariationRows), [allVariationRows]);
   const reportVariationName = selectedVariation?.name ?? "Default";
   const hasMultipleVariations = variations.length > 1;
+  const variationPickerWidth = useMemo(() => {
+    if (!variations.length) return undefined;
+
+    const longestLabelLength = variations.reduce((longest, variation) => {
+      const latest = latestByVariationId.get(variation.id);
+      const suffix = latest?.is_in_stock === false ? " — Out of stock" : "";
+      return Math.max(longest, `${variation.name}${suffix}`.length);
+    }, 0);
+
+    return Math.min(430, Math.max(150, Math.ceil(longestLabelLength * 6.6 + 30)));
+  }, [variations, latestByVariationId]);
   const outboundLink = resolveOutboundLink(product);
   const priceChanges = countPriceChanges(allVariationPoints);
   const axis = useMemo(() => roundedAxis(chartData), [chartData]);
@@ -487,6 +498,7 @@ function App() {
                         <span className="variation-label">Variation:</span>
                         <div
                           className={`variation-picker${variationMenuOpen ? " open" : ""}`}
+                          style={{ width: variationPickerWidth }}
                           onBlur={(event) => {
                             const nextTarget = event.relatedTarget;
                             if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
