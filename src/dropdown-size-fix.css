@@ -1,8 +1,9 @@
-/* Closed variation picker width is measured in App.tsx from the longest label.
-   Keep the visible outer padding balanced: 12px on the left of the text and
-   12px on the right of the chevron. The extra right padding only reserves room
-   for the chevron + gap, so it does not steal from the visual right edge. */
+/* Keep the closed variation control at its measured width. Opening the menu must
+   never make the button wider. The menu is absolutely positioned so its own
+   intrinsic width cannot participate in the flex layout. */
 .report-card .variation-picker {
+  position: relative !important;
+  flex: 0 0 auto !important;
   min-width: 0 !important;
   max-width: min(430px, 52vw) !important;
 }
@@ -14,7 +15,7 @@
   max-width: 100% !important;
   box-sizing: border-box !important;
   padding-left: 12px !important;
-  padding-right: 32px !important; /* 12px outer + 12px chevron + 8px gap */
+  padding-right: 32px !important; /* 12px outer + chevron reserve */
   gap: 0 !important;
 }
 
@@ -37,8 +38,13 @@
   pointer-events: none !important;
 }
 
-/* Opened menu sizes independently from the closed button. */
+/* The menu may be wider than the button, but because it is out of normal flow it
+   cannot resize the closed control when clicked. */
 .report-card .variation-menu {
+  position: absolute !important;
+  top: calc(100% + 6px) !important;
+  left: 0 !important;
+  z-index: 1000 !important;
   width: max-content !important;
   min-width: 220px !important;
   max-width: min(510px, 66vw) !important;
