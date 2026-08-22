@@ -8,6 +8,8 @@
   max-width: min(430px, 52vw) !important;
 }
 
+/* The button fills the width measured from the longest variation label.
+   Keep exactly the same horizontal padding on both sides. */
 .report-card .variation-picker-button {
   position: relative !important;
   width: 100% !important;
@@ -15,7 +17,7 @@
   max-width: 100% !important;
   box-sizing: border-box !important;
   padding-left: 12px !important;
-  padding-right: 32px !important; /* 12px outer + chevron reserve */
+  padding-right: 12px !important;
   gap: 0 !important;
 }
 
@@ -38,9 +40,8 @@
   pointer-events: none !important;
 }
 
-/* Restore the older behavior: the CLOSED picker stays compact, while the OPENED
-   menu extends about 78px farther to the right. Because the menu is absolute,
-   this extra width never changes the closed button or surrounding layout. */
+/* The OPENED menu has its own width and scrollbar. It does not participate in
+   the closed button measurement. */
 .report-card .variation-menu {
   position: absolute !important;
   top: calc(100% + 6px) !important;
