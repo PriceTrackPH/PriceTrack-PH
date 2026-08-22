@@ -21,7 +21,7 @@
    color as the graph line. */
 .report-card .chart-wrap circle.recharts-dot,
 .report-card .chart-wrap .recharts-dot {
-  r: 3.5px !important;
+  r: 4px !important;
   opacity: 1 !important;
   fill: #13c89a !important;
   stroke: none !important;
