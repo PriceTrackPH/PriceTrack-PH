@@ -240,7 +240,11 @@ function App() {
       .order("name");
 
     if (variationError) throw variationError;
-    const modelRows = models ?? [];
+    const allModelRows = models ?? [];
+    const realModelRows = allModelRows.filter(
+      (item) => String(item.external_variation_id ?? "").trim().toLowerCase() !== "default",
+    );
+    const modelRows = realModelRows.length ? realModelRows : allModelRows;
     const ids = modelRows.map((item) => item.id);
 
     let history: Observation[] = [];
