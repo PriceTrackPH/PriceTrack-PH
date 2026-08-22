@@ -50,8 +50,7 @@
   stroke-width: 2 !important;
 }
 
-/* Increase only the visual gap between the graph baseline and the X-axis dates
-   by 20px, taking the measured gap from about 20px to about 40px. */
+/* Keep the extra breathing room ABOVE the X-axis dates. */
 .report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick-value {
   transform: translateY(20px) !important;
 }
@@ -74,11 +73,11 @@
   border-bottom: 0 !important;
 }
 
-/* Keep the divider in the same visual relationship to the shifted date labels,
-   and leave 20px between the divider and the buttons. */
+/* Bring the date-to-divider spacing back to about 20px while leaving the extra
+   space above the dates intact. Keep 20px from the divider to the buttons. */
 .report-card .report-actions-wrap {
   position: relative !important;
-  margin-top: 66px !important;
+  margin-top: 46px !important;
   padding-top: 20px !important;
   border-top: 0 !important;
 }
