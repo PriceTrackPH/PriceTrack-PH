@@ -52,9 +52,13 @@ html[data-theme="dark"] {
 .market-line {
   margin-bottom: 7px !important;
   color: var(--report-muted) !important;
-  font-size: 9px !important;
+  font-size: 12px !important;
   font-weight: 800 !important;
   letter-spacing: .11em !important;
+}
+
+.shopee-mark {
+  font-size: 10px !important;
 }
 
 .product-details h2 {
@@ -90,7 +94,7 @@ html[data-theme="dark"] {
 
 .current-price-row strong {
   color: var(--report-ink) !important;
-  font-size: 26px !important;
+  font-size: 30px !important;
   font-weight: 700 !important;
   letter-spacing: -.025em !important;
 }
@@ -98,14 +102,14 @@ html[data-theme="dark"] {
 .sample-badge,
 .live-badge {
   padding: 5px 8px !important;
-  font-size: 8px !important;
+  font-size: 11px !important;
   letter-spacing: .08em !important;
 }
 
 .product-details > p {
   margin-top: 7px !important;
   color: var(--report-soft-muted) !important;
-  font-size: 9px !important;
+  font-size: 10px !important;
 }
 
 .price-verdict {
@@ -116,7 +120,7 @@ html[data-theme="dark"] {
 
 .price-verdict > span {
   color: #00a47d !important;
-  font-size: 8px !important;
+  font-size: 11px !important;
   font-weight: 900 !important;
   letter-spacing: .14em !important;
 }
@@ -124,14 +128,14 @@ html[data-theme="dark"] {
 .price-verdict strong {
   margin-top: 7px !important;
   color: var(--report-ink) !important;
-  font-size: 17px !important;
+  font-size: 19px !important;
   font-weight: 600 !important;
 }
 
 .price-verdict p {
   margin-top: 6px !important;
   color: var(--report-muted) !important;
-  font-size: 9px !important;
+  font-size: 11px !important;
 }
 
 .stats-grid {
@@ -149,7 +153,7 @@ html[data-theme="dark"] {
 
 .stats-grid span {
   color: var(--report-muted) !important;
-  font-size: 8px !important;
+  font-size: 11px !important;
   font-weight: 850 !important;
   letter-spacing: .13em !important;
 }
@@ -157,7 +161,7 @@ html[data-theme="dark"] {
 .stats-grid strong {
   margin-top: 10px !important;
   color: var(--report-ink) !important;
-  font-size: 20px !important;
+  font-size: 22px !important;
   font-weight: 700 !important;
 }
 
@@ -168,7 +172,7 @@ html[data-theme="dark"] {
 .stats-grid small {
   margin-top: 7px !important;
   color: var(--report-soft-muted) !important;
-  font-size: 8px !important;
+  font-size: 11px !important;
 }
 
 .history-panel {
@@ -177,14 +181,14 @@ html[data-theme="dark"] {
 
 .history-heading h3 {
   color: var(--report-ink) !important;
-  font-size: 16px !important;
+  font-size: 18px !important;
   font-weight: 400 !important;
 }
 
 .history-heading p {
   margin-top: 5px !important;
   color: var(--report-muted) !important;
-  font-size: 9px !important;
+  font-size: 11px !important;
 }
 
 .range-tabs {
@@ -198,7 +202,7 @@ html[data-theme="dark"] {
   min-height: 25px !important;
   padding: 5px 7px !important;
   color: var(--report-muted) !important;
-  font-size: 8px !important;
+  font-size: 12px !important;
 }
 
 .range-tabs button.active {
@@ -251,7 +255,7 @@ html[data-theme="dark"] {
 .outbound-disclosure {
   margin-top: 6px !important;
   color: var(--report-soft-muted) !important;
-  font-size: 8px !important;
+  font-size: 10px !important;
 }
 
 @media (max-width: 860px) {
