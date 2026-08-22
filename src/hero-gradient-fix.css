@@ -141,15 +141,15 @@
   color: #211b5c;
 }
 
-/* Out-of-stock history remains available, but use a neutral treatment. */
+/* Match out-of-stock status accents to the LIVE DATABASE mint in light mode. */
 .report-card .out-of-stock-badge {
-  border: 1px solid #d8d8df !important;
-  background: #ffffff !important;
-  color: #4f4f5b !important;
+  border: 1px solid rgba(13, 156, 115, .18) !important;
+  background: #d8f6eb !important;
+  color: #0d9c73 !important;
 }
 
 .report-card .price-verdict.out-of-stock > span {
-  color: #4f4f5b !important;
+  color: #0d9c73 !important;
 }
 
 .report-card .history-heading p {
