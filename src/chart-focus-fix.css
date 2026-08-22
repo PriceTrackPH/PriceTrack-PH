@@ -16,3 +16,22 @@
   outline: none !important;
   box-shadow: none !important;
 }
+
+/* Keep chart points small and solid mint; no white centers. */
+.report-card .chart-wrap .recharts-dot,
+.report-card .chart-wrap .recharts-area-dot,
+.report-card .chart-wrap .recharts-active-dot circle {
+  fill: #13c89a !important;
+  stroke: #13c89a !important;
+  stroke-width: 0 !important;
+}
+
+/* Give the Y-axis price labels a little more breathing room from the first date. */
+.report-card .chart-wrap .recharts-yAxis .recharts-cartesian-axis-tick-value {
+  transform: translateX(-6px) !important;
+}
+
+/* Put the divider clearly below the X-axis date labels, not through them. */
+.report-card .report-actions-wrap {
+  margin-top: 18px !important;
+}
