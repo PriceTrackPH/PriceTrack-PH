@@ -1,18 +1,21 @@
 /* Closed variation picker width is measured in App.tsx from the longest label.
-   Do not force a large minimum width; keep only the text-sized width plus padding. */
+   Keep the visible outer padding balanced: 12px on the left of the text and
+   12px on the right of the chevron. The extra right padding only reserves room
+   for the chevron + gap, so it does not steal from the visual right edge. */
 .report-card .variation-picker {
   min-width: 0 !important;
   max-width: min(430px, 52vw) !important;
 }
 
 .report-card .variation-picker-button {
+  position: relative !important;
   width: 100% !important;
   min-width: 0 !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
   padding-left: 12px !important;
-  padding-right: 12px !important;
-  gap: 8px !important;
+  padding-right: 32px !important; /* 12px outer + 12px chevron + 8px gap */
+  gap: 0 !important;
 }
 
 .report-card .variation-picker-button > span:first-child {
@@ -23,7 +26,15 @@
 }
 
 .report-card .variation-chevron {
-  flex: 0 0 auto !important;
+  position: absolute !important;
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 12px !important;
+  min-width: 12px !important;
+  text-align: center !important;
+  flex: none !important;
+  pointer-events: none !important;
 }
 
 /* Opened menu sizes independently from the closed button. */
