@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -213,6 +213,8 @@ function App() {
   const [observations, setObservations] = useState<Observation[]>([]);
   const [selectedVariationId, setSelectedVariationId] = useState<number | null>(null);
   const [variationMenuOpen, setVariationMenuOpen] = useState(false);
+  const variationButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [variationPickerWidth, setVariationPickerWidth] = useState<number | undefined>(undefined);
   const [range, setRange] = useState<RangeKey>("30D");
   const [loading, setLoading] = useState(false);
   const [featuredLoading, setFeaturedLoading] = useState(true);
@@ -355,17 +357,63 @@ function App() {
   const allVariationPoints = useMemo(() => toChartPoints(allVariationRows), [allVariationRows]);
   const reportVariationName = selectedVariation?.name ?? "Default";
   const hasMultipleVariations = variations.length > 1;
-  const variationPickerWidth = useMemo(() => {
-    if (!variations.length) return undefined;
 
-    const longestLabelLength = variations.reduce((longest, variation) => {
-      const latest = latestByVariationId.get(variation.id);
-      const suffix = latest?.is_in_stock === false ? " — Out of stock" : "";
-      return Math.max(longest, `${variation.name}${suffix}`.length);
-    }, 0);
+  useLayoutEffect(() => {
+    const button = variationButtonRef.current;
+    if (!button || !variations.length) {
+      setVariationPickerWidth(undefined);
+      return;
+    }
 
-    return Math.min(430, Math.max(104, Math.ceil(longestLabelLength * 6 + 22)));
+    let cancelled = false;
+
+    const measureLongestVariation = () => {
+      if (cancelled || !variationButtonRef.current) return;
+
+      const currentButton = variationButtonRef.current;
+      const styles = window.getComputedStyle(currentButton);
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      if (!context) return;
+
+      context.font = [
+        styles.fontStyle,
+        styles.fontVariant,
+        styles.fontWeight,
+        styles.fontSize,
+        styles.fontFamily,
+      ].join(" ");
+
+      const letterSpacing = styles.letterSpacing === "normal"
+        ? 0
+        : Number.parseFloat(styles.letterSpacing) || 0;
+
+      const longestTextWidth = variations.reduce((longest, variation) => {
+        const latest = latestByVariationId.get(variation.id);
+        const suffix = latest?.is_in_stock === false ? " — Out of stock" : "";
+        const label = `${variation.name}${suffix}`;
+        const measured = context.measureText(label).width
+          + Math.max(0, label.length - 1) * letterSpacing;
+        return Math.max(longest, measured);
+      }, 0);
+
+      const horizontalPadding = (Number.parseFloat(styles.paddingLeft) || 0)
+        + (Number.parseFloat(styles.paddingRight) || 0);
+      const horizontalBorders = (Number.parseFloat(styles.borderLeftWidth) || 0)
+        + (Number.parseFloat(styles.borderRightWidth) || 0);
+      const measuredWidth = Math.ceil(longestTextWidth + horizontalPadding + horizontalBorders);
+
+      setVariationPickerWidth(Math.min(430, measuredWidth));
+    };
+
+    measureLongestVariation();
+    void document.fonts.ready.then(measureLongestVariation);
+
+    return () => {
+      cancelled = true;
+    };
   }, [variations, latestByVariationId]);
+
   const outboundLink = resolveOutboundLink(product);
   const priceChanges = countPriceChanges(allVariationPoints);
   const axis = useMemo(() => roundedAxis(chartData), [chartData]);
@@ -511,6 +559,7 @@ function App() {
                           }}
                         >
                           <button
+                            ref={variationButtonRef}
                             type="button"
                             className="variation-picker-button"
                             aria-haspopup="listbox"
