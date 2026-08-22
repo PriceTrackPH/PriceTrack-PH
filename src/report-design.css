@@ -248,6 +248,21 @@ html[data-theme="dark"] {
   font-size: 9px !important;
 }
 
+/* Recorded observations stay visible as small solid mint dots. */
+.report-card .chart-wrap .recharts-area-dots circle,
+.report-card .chart-wrap circle.recharts-area-dot {
+  fill: #13c89a !important;
+  stroke: #13c89a !important;
+  stroke-width: 0 !important;
+}
+
+/* Hovering a recorded point shows the larger white-center ring. */
+.report-card .chart-wrap .recharts-active-dot circle {
+  fill: #ffffff !important;
+  stroke: #13c89a !important;
+  stroke-width: 2px !important;
+}
+
 .report-actions-wrap {
   margin-top: 5px !important;
   padding-top: 14px !important;
