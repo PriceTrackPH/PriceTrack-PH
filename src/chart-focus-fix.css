@@ -17,6 +17,27 @@
   box-shadow: none !important;
 }
 
+/* Fade only the filled area under the price line. The line and data-point
+   circles are separate Recharts elements, so this mask does not change them. */
+.report-card .chart-wrap .recharts-area-area {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, .72) 45%,
+    rgba(0, 0, 0, 0) 100%
+  ) !important;
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, .72) 45%,
+    rgba(0, 0, 0, 0) 100%
+  ) !important;
+  -webkit-mask-size: 100% 100% !important;
+  mask-size: 100% 100% !important;
+  -webkit-mask-repeat: no-repeat !important;
+  mask-repeat: no-repeat !important;
+}
+
 /* Permanent marker on every real data point: small, solid, and the exact same
    color as the graph line. Recharts can inherit the Area fillOpacity, so force
    the point layer and circles back to full opacity. */
