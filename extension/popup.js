@@ -3,6 +3,8 @@ const button = document.querySelector("#open");
 const title = document.querySelector("#title");
 const detail = document.querySelector("#detail");
 const status = document.querySelector("#status");
+const popupToggle = document.querySelector("#popup-toggle");
+const POPUP_SETTING_KEY = "recordingPopupEnabled";
 let ids;
 let activeTabId;
 let primaryKey;
@@ -98,7 +100,19 @@ function readStoredStatus() {
   });
 }
 
+function initializePopupToggle() {
+  chrome.storage.local.get(POPUP_SETTING_KEY, result => {
+    popupToggle.checked = result[POPUP_SETTING_KEY] === true;
+  });
+
+  popupToggle.addEventListener("change", () => {
+    chrome.storage.local.set({ [POPUP_SETTING_KEY]: popupToggle.checked });
+  });
+}
+
 async function initialize() {
+  initializePopupToggle();
+
   const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
   activeTabId = activeTab?.id;
   ids = parseIds(activeTab?.url || "");
@@ -119,16 +133,19 @@ async function initialize() {
   legacyKey = `productStatus:${ids.productId}`;
   const existing = await readStoredStatus();
 
-  // The content script now starts at document_start. Only nudge it when there is
-  // no current status (or the last run failed); run-level deduping prevents a
-  // duplicate extraction if an automatic run is already in flight.
   if (activeTabId != null && (!existing || existing.state === "error")) {
     chrome.tabs.sendMessage(activeTabId, { type: "recordPriceNow" }, () => void chrome.runtime.lastError);
   }
 }
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== "local" || !ids) return;
+  if (areaName !== "local") return;
+
+  if (changes[POPUP_SETTING_KEY]) {
+    popupToggle.checked = changes[POPUP_SETTING_KEY].newValue === true;
+  }
+
+  if (!ids) return;
   if (changes[primaryKey]) {
     renderRecord(changes[primaryKey].newValue);
   } else if (changes[legacyKey]) {
