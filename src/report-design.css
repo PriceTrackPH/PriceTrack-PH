@@ -251,6 +251,7 @@ html[data-theme="dark"] {
 .report-actions-wrap {
   margin-top: 5px !important;
   padding-top: 14px !important;
+  border-top: 1px solid var(--report-border) !important;
   border-color: var(--report-border) !important;
 }
 
