@@ -118,7 +118,7 @@ async function initialize() {
   ids = parseIds(activeTab?.url || "");
   if (!ids) {
     title.textContent = "Open a Shopee product page";
-    detail.textContent = "Automatic tracking only runs on supported products.";
+    detail.textContent = "Automatic tracking works on supported products.";
     status.textContent = "No product data was collected from this page.";
     status.classList.add("error");
     return;
