@@ -82,12 +82,14 @@
   border-top: 0 !important;
 }
 
+/* Match the divider to the chart's actual plotted width at every browser zoom:
+   6px AreaChart left margin + 72px Y-axis width, and 24px right margin. */
 .report-card .report-actions-wrap::before {
   content: "";
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 78px;
+  right: 24px;
   height: 1px;
   background: var(--report-border);
   pointer-events: none;
