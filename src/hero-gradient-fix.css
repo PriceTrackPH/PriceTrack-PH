@@ -1,0 +1,17 @@
+/* Final hero background match to the reference site. */
+.hero-band {
+  background:
+    radial-gradient(
+      ellipse 24% 145% at 82.5% 50%,
+      rgba(111, 255, 225, .46) 0%,
+      rgba(111, 255, 225, .46) 12%,
+      rgba(111, 255, 225, 0) 100%
+    ),
+    linear-gradient(
+      90deg,
+      #f2f2ff 0%,
+      #fbfbff 58%,
+      #ffffff 68%,
+      #ffffff 100%
+    ) !important;
+}
