@@ -82,14 +82,15 @@
   border-top: 0 !important;
 }
 
-/* Match the divider to the chart's actual plotted width at every browser zoom:
-   6px AreaChart left margin + 72px Y-axis width, and 24px right margin. */
+/* Old-site behavior: the divider spans the full inner history-panel width.
+   Because it follows the panel instead of the plotted SVG, it stays visually
+   aligned with the section at different browser zoom levels. */
 .report-card .report-actions-wrap::before {
   content: "";
   position: absolute;
   top: 0;
-  left: 78px;
-  right: 24px;
+  left: 0;
+  right: 0;
   height: 1px;
   background: var(--report-border);
   pointer-events: none;
