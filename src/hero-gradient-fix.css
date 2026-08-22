@@ -112,6 +112,20 @@
   filter: brightness(1.08) !important;
 }
 
+/* Out-of-stock variations stay viewable for history, but must not look buyable. */
+.report-card .out-of-stock-badge {
+  background: #fff0ed !important;
+  color: #d94f36 !important;
+}
+
+.report-card .price-verdict.out-of-stock > span {
+  color: #d94f36 !important;
+}
+
+.report-card .history-heading p {
+  white-space: normal !important;
+}
+
 /* Dark mode: keep the header readable and make the entire hero dark, including the left side. */
 html[data-theme="dark"] .site-header {
   background: rgba(23, 26, 26, .97) !important;
@@ -172,4 +186,13 @@ html[data-theme="dark"] .hero-inner .eyebrow::before {
 
 html[data-theme="dark"] .hero-inner .eyebrow::after {
   color: #32efc2 !important;
+}
+
+html[data-theme="dark"] .report-card .out-of-stock-badge {
+  background: rgba(238, 77, 45, .16) !important;
+  color: #ff9078 !important;
+}
+
+html[data-theme="dark"] .report-card .price-verdict.out-of-stock > span {
+  color: #ff9078 !important;
 }
