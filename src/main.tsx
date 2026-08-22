@@ -15,6 +15,7 @@ import "./chart-focus-fix.css";
 import "./hero-gradient-fix.css";
 import "./dropdown-size-fix.css";
 import "./title-fit";
+import "./variation-display-format";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
