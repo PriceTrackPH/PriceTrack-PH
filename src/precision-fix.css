@@ -117,21 +117,16 @@ html {
   background: #9aa1ab !important;
 }
 
-/* Replace the plain Shopee S badge with a shopping-bag logo drawn as an embedded SVG. */
-.report-card .shopee-mark {
+/* Use the real Shopee PNG asset in the product-report seller line. */
+.report-card img.shopee-mark {
   width: 18px !important;
   height: 18px !important;
   min-width: 18px !important;
   flex: 0 0 18px !important;
-  border-radius: 0 !important;
-  background-color: transparent !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23EE4D2D'/%3E%3Cpath d='M7 8h10l-.7 10.2a2 2 0 0 1-2 1.8H9.7a2 2 0 0 1-2-1.8L7 8Z' fill='%23fff'/%3E%3Cpath d='M9 8V6.5a3 3 0 0 1 6 0V8' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round'/%3E%3Ctext x='12' y='16.2' text-anchor='middle' font-family='Arial,sans-serif' font-size='8.2' fill='%23EE4D2D'%3ES%3C/text%3E%3C/svg%3E") !important;
-  background-repeat: no-repeat !important;
-  background-position: center !important;
-  background-size: contain !important;
-  color: transparent !important;
-  font-size: 0 !important;
-  line-height: 0 !important;
+  display: block !important;
+  object-fit: contain !important;
+  border-radius: 4px !important;
+  background: transparent !important;
 }
 
 /* Let long product titles use the full space up to the verdict divider. */
