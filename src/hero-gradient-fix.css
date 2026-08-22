@@ -37,6 +37,17 @@
   font-size: 14px !important;
 }
 
+/* Keep the text field visually clean while typing/focused. */
+.search-box input,
+.search-box input:focus,
+.search-box input:focus-visible {
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
 .search-box .link-mark {
   width: auto !important;
   height: auto !important;
