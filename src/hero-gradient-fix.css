@@ -141,15 +141,15 @@
   color: #211b5c;
 }
 
-/* Out-of-stock history remains available, but use a neutral PriceTrack treatment. */
+/* Out-of-stock history remains available, but use a neutral treatment. */
 .report-card .out-of-stock-badge {
-  border: 1px solid rgba(33, 24, 95, .12) !important;
-  background: rgba(33, 24, 95, .07) !important;
-  color: #21185f !important;
+  border: 1px solid #d8d8df !important;
+  background: #ffffff !important;
+  color: #4f4f5b !important;
 }
 
 .report-card .price-verdict.out-of-stock > span {
-  color: #21185f !important;
+  color: #4f4f5b !important;
 }
 
 .report-card .history-heading p {
@@ -237,12 +237,15 @@ html[data-theme="dark"] .report-card .variation-control select option {
   color: #ebe7dc;
 }
 
+/* In dark mode, out-of-stock status uses white only — no purple, green, or orange accent. */
 html[data-theme="dark"] .report-card .out-of-stock-badge {
-  border-color: #3b3f40 !important;
-  background: rgba(255, 255, 255, .06) !important;
-  color: #c9c6be !important;
+  border-color: rgba(255, 255, 255, .28) !important;
+  background: transparent !important;
+  color: #ffffff !important;
 }
 
-html[data-theme="dark"] .report-card .price-verdict.out-of-stock > span {
-  color: #c9c6be !important;
+html[data-theme="dark"] .report-card .price-verdict.out-of-stock > span,
+html[data-theme="dark"] .report-card .price-verdict.out-of-stock > strong,
+html[data-theme="dark"] .report-card .price-verdict.out-of-stock > p {
+  color: #ffffff !important;
 }
