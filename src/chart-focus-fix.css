@@ -17,8 +17,9 @@
   box-shadow: none !important;
 }
 
-/* Keep a small solid mint marker permanently visible on every real data point. */
-.report-card .chart-wrap .recharts-area-dots .recharts-dot {
+/* Keep a small solid mint marker permanently visible on every real data point.
+   Target the generated Recharts dot directly; wrapper class names vary by version. */
+.report-card .chart-wrap .recharts-dot {
   opacity: 1 !important;
   fill: #13c89a !important;
   stroke: #13c89a !important;
