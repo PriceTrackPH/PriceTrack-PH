@@ -1,18 +1,21 @@
-/* Size the closed variation picker from only the currently selected value.
-   The opened scroll menu is absolute, so its options/scrollbar never affect the button width. */
+/* The closed variation picker gets an exact pixel width from App.tsx after measuring
+   the longest rendered variation label for the current product. The menu is separate. */
 .report-card .variation-picker {
-  width: fit-content !important;
   min-width: 0 !important;
   max-width: min(430px, 52vw) !important;
 }
 
 .report-card .variation-picker-button {
-  width: max-content !important;
+  width: 100% !important;
   min-width: 0 !important;
-  max-width: min(430px, 52vw) !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
 }
 
-/* Let the opened menu size from its own option text, independently of the closed button. */
+/* The opened menu sizes from its own option text and scrollbar. It never changes
+   the measured width of the closed variation button. */
 .report-card .variation-menu {
   width: max-content !important;
   min-width: 220px !important;
