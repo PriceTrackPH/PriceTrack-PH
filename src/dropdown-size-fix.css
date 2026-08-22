@@ -9,11 +9,11 @@
   max-width: min(430px, 52vw) !important;
 }
 
-/* The open menu uses the same stable width as the closed picker. */
+/* Keep the closed picker compact, but give only the opened menu extra room for option names. */
 .report-card .variation-menu {
-  width: 100% !important;
+  width: calc(100% + 78px) !important;
   min-width: 100% !important;
-  max-width: min(430px, 52vw) !important;
+  max-width: min(510px, 66vw) !important;
 }
 
 .report-card .variation-option {
