@@ -117,6 +117,11 @@ html {
   background: #9aa1ab !important;
 }
 
+/* Final report range-tab text sizing. */
+.report-card .range-tabs button {
+  font-size: 11px !important;
+}
+
 .trust-section {
   padding-bottom: 0 !important;
 }
