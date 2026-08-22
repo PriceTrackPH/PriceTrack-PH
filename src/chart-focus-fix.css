@@ -63,19 +63,21 @@
   transform: none !important;
 }
 
-/* Keep the edge date labels inside the plotted area: the first label begins
-   exactly at the left plot edge, the last label ends exactly at the right plot
-   edge, and all middle labels remain centered. */
-.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-ticks > .recharts-cartesian-axis-tick:first-child text,
-.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick:first-child text,
-.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick:first-of-type text {
-  text-anchor: start !important;
+/* Recharts centers edge labels on the first/last data coordinates. Shift each
+   edge label by half its own rendered width so the visible text stays inside
+   the plotted area at every browser zoom level. */
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-ticks > g:first-child text {
+  text-anchor: middle !important;
+  transform-box: fill-box !important;
+  transform-origin: center !important;
+  transform: translateX(50%) !important;
 }
 
-.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-ticks > .recharts-cartesian-axis-tick:last-child text,
-.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick:last-child text,
-.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick:last-of-type text {
-  text-anchor: end !important;
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-ticks > g:last-child text {
+  text-anchor: middle !important;
+  transform-box: fill-box !important;
+  transform-origin: center !important;
+  transform: translateX(-50%) !important;
 }
 
 /* Give the Y-axis price labels a little more breathing room from the first date. */
