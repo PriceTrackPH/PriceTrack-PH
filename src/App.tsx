@@ -348,6 +348,7 @@ function App() {
   const chartData = useMemo(() => toChartPoints(selectedHistory), [selectedHistory]);
   const allVariationPoints = useMemo(() => toChartPoints(allVariationRows), [allVariationRows]);
   const reportVariationName = selectedVariation?.name ?? "Default";
+  const hasMultipleVariations = variations.length > 1;
   const outboundLink = resolveOutboundLink(product);
   const priceChanges = countPriceChanges(allVariationPoints);
   const axis = useMemo(() => roundedAxis(chartData), [chartData]);
@@ -479,25 +480,31 @@ function App() {
                     </div>
                     <h2>{product.name}</h2>
 
-                    <div className="variation-control">
-                      <label htmlFor="variation">Variation:</label>
-                      <select
-                        id="variation"
-                        value={selectedVariationId ?? ""}
-                        onChange={(event) => setSelectedVariationId(Number(event.target.value))}
-                      >
-                        {variations.map((variation) => {
-                          const latest = latestByVariationId.get(variation.id);
-                          const unavailable = latest?.is_in_stock === false;
-                          return (
-                            <option key={variation.id} value={variation.id}>
-                              {variation.name}{unavailable ? " — Out of stock" : ""}
-                            </option>
-                          );
-                        })}
-                      </select>
-                      <span>· Public listed price</span>
-                    </div>
+                    {hasMultipleVariations ? (
+                      <div className="variation-control">
+                        <label htmlFor="variation">Variation:</label>
+                        <select
+                          id="variation"
+                          value={selectedVariationId ?? ""}
+                          onChange={(event) => setSelectedVariationId(Number(event.target.value))}
+                        >
+                          {variations.map((variation) => {
+                            const latest = latestByVariationId.get(variation.id);
+                            const unavailable = latest?.is_in_stock === false;
+                            return (
+                              <option key={variation.id} value={variation.id}>
+                                {variation.name}{unavailable ? " — Out of stock" : ""}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <span>· Public listed price</span>
+                      </div>
+                    ) : (
+                      <div className="variation-control single-listing-price">
+                        <span>Public listed price</span>
+                      </div>
+                    )}
 
                     <div className="current-price-row">
                       <strong>{displayedPrice}</strong>
@@ -544,7 +551,7 @@ function App() {
                   <div>
                     <h3>Price history</h3>
                     <p>
-                      Public listed price · {reportVariationName} variation
+                      Public listed price · {hasMultipleVariations ? `${reportVariationName} variation` : "Single listing"}
                       {selectedIsOutOfStock ? " · Currently out of stock" : ""}
                     </p>
                   </div>
