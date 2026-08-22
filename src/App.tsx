@@ -230,7 +230,7 @@ function App() {
       .maybeSingle();
 
     if (productError) throw productError;
-    if (!found) throw new Error("This product has not been recorded by PriceTrack yet.");
+    if (!found) throw new Error("This product isn't tracked yet. Install the PriceTrack PH extension and open this Shopee product to start recording future price changes.");
 
     const { data: models, error: variationError } = await supabase
       .from("product_variations")
