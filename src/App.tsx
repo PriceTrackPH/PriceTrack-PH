@@ -394,12 +394,12 @@ function App() {
             </p>
 
             <form className="search-box" onSubmit={handleSubmit}>
-              <span className="link-mark">◇</span>
+              <span className="link-mark">🔗</span>
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Paste a Shopee product link..."
-                aria-label="Shopee product link"
+                placeholder="Paste a product link..."
+                aria-label="Marketplace product link"
               />
               <button disabled={loading || !query.trim()}>
                 {loading ? "Checking…" : "Check price"}
