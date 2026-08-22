@@ -35,6 +35,32 @@ const peso = new Intl.NumberFormat("en-PH", {
   maximumFractionDigits: 0,
 });
 
+const MANILA_TIME_ZONE = "Asia/Manila";
+const chartDateFormatter = new Intl.DateTimeFormat("en-PH", {
+  month: "short",
+  day: "numeric",
+  timeZone: MANILA_TIME_ZONE,
+});
+const chartDateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  timeZone: MANILA_TIME_ZONE,
+});
+const fullDateFormatter = new Intl.DateTimeFormat("en-PH", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: MANILA_TIME_ZONE,
+});
+
+function chartDateLabel(value: string) {
+  const date = new Date(value);
+  const today = new Date();
+  return chartDateKeyFormatter.format(date) === chartDateKeyFormatter.format(today)
+    ? "Today"
+    : chartDateFormatter.format(date);
+}
+
 function parseShopeeUrl(value: string) {
   const url = new URL(value.trim());
   if (!/(^|\.)shopee\.ph$/i.test(url.hostname)) {
@@ -144,14 +170,8 @@ function toChartPoints(rows: Observation[]) {
   return rows.map((row) => ({
     price: Number(row.price),
     timestamp: Date.parse(row.observed_at),
-    label: new Date(row.observed_at).toLocaleDateString("en-PH", {
-      month: "short",
-      day: "numeric",
-    }),
-    fullDate: new Date(row.observed_at).toLocaleString("en-PH", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }),
+    label: chartDateLabel(row.observed_at),
+    fullDate: fullDateFormatter.format(new Date(row.observed_at)),
   }));
 }
 
@@ -512,8 +532,8 @@ function App() {
                           strokeWidth={3}
                           fill="#13c89a"
                           fillOpacity={0.14}
-                          dot={{ r: 3, fill: "#13c89a", strokeWidth: 0 }}
-                          activeDot={{ r: 6, fill: "#ffffff", stroke: "#13c89a", strokeWidth: 3 }}
+                          dot={{ r: 3, fill: "#ffffff", stroke: "#13c89a", strokeWidth: 2 }}
+                          activeDot={{ r: 5, fill: "#ffffff", stroke: "#13c89a", strokeWidth: 2 }}
                         />
                       </AreaChart>
                     </ResponsiveContainer>
