@@ -141,6 +141,142 @@
   color: #211b5c;
 }
 
+/* Branded custom variation picker so the open menu matches PriceTrack colors. */
+.report-card .variation-control {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  overflow: visible !important;
+}
+
+.report-card .variation-label {
+  flex: 0 0 auto;
+}
+
+.report-card .variation-picker {
+  position: relative;
+  display: inline-block;
+  min-width: 260px;
+  max-width: min(430px, 52vw);
+  z-index: 20;
+}
+
+.report-card .variation-picker-button {
+  width: 100%;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 10px 5px 12px;
+  border: 1px solid #d9d3f7;
+  border-radius: 7px;
+  background: #f2efff;
+  color: #21185f;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.report-card .variation-picker-button:hover,
+.report-card .variation-picker.open .variation-picker-button,
+.report-card .variation-picker-button:focus-visible {
+  border-color: #13c89a;
+  background: #f7f5ff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(19, 200, 154, .12);
+}
+
+.report-card .variation-picker-button > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-card .variation-chevron {
+  flex: 0 0 auto;
+  color: #13c89a;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.report-card .variation-picker.open .variation-chevron {
+  transform: rotate(180deg) translateY(1px);
+}
+
+.report-card .variation-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: max(100%, 300px);
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid #d9d3f7;
+  border-radius: 9px;
+  background: #fbfaff;
+  box-shadow: 0 14px 34px rgba(33, 24, 95, .18);
+  z-index: 50;
+}
+
+.report-card .variation-option {
+  width: 100%;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #21185f;
+  font-size: 11px;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+
+.report-card .variation-option:hover,
+.report-card .variation-option:focus-visible {
+  background: rgba(19, 200, 154, .12);
+  outline: none;
+}
+
+.report-card .variation-option.selected {
+  background: #21185f;
+  color: #ffffff;
+}
+
+.report-card .variation-option-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-card .variation-option small {
+  color: #0d9c73;
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.report-card .variation-option.selected small {
+  color: #8cf1d2;
+}
+
+.report-card .variation-check {
+  color: #13c89a;
+  font-weight: 900;
+}
+
 /* Match out-of-stock status accents to the LIVE DATABASE mint in light mode. */
 .report-card .out-of-stock-badge {
   border: 1px solid rgba(13, 156, 115, .18) !important;
@@ -235,6 +371,49 @@ html[data-theme="dark"] .report-card .variation-control select:focus-visible {
 html[data-theme="dark"] .report-card .variation-control select option {
   background: #1b1e1f;
   color: #ebe7dc;
+}
+
+html[data-theme="dark"] .report-card .variation-picker-button {
+  border-color: #4b4388;
+  background: #21185f;
+  color: #f7f4ff;
+}
+
+html[data-theme="dark"] .report-card .variation-picker-button:hover,
+html[data-theme="dark"] .report-card .variation-picker.open .variation-picker-button,
+html[data-theme="dark"] .report-card .variation-picker-button:focus-visible {
+  border-color: #32efc2;
+  background: #2a216d;
+  box-shadow: 0 0 0 2px rgba(50, 239, 194, .12);
+}
+
+html[data-theme="dark"] .report-card .variation-chevron,
+html[data-theme="dark"] .report-card .variation-check {
+  color: #32efc2;
+}
+
+html[data-theme="dark"] .report-card .variation-menu {
+  border-color: #4b4388;
+  background: #1a1c1d;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, .34);
+}
+
+html[data-theme="dark"] .report-card .variation-option {
+  color: #ebe7dc;
+}
+
+html[data-theme="dark"] .report-card .variation-option:hover,
+html[data-theme="dark"] .report-card .variation-option:focus-visible {
+  background: rgba(50, 239, 194, .11);
+}
+
+html[data-theme="dark"] .report-card .variation-option.selected {
+  background: #302574;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .report-card .variation-option small {
+  color: #32efc2;
 }
 
 /* Match out-of-stock status accents to the LIVE DATABASE mint in dark mode. */
