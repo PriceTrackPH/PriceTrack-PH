@@ -13,7 +13,6 @@ import "./precision-fix.css";
 import "./dark-report-fix.css";
 import "./chart-focus-fix.css";
 import "./hero-gradient-fix.css";
-import "./dropdown-size-fix.css";
 import "./title-fit";
 import "./variation-display-format";
 
