@@ -34,7 +34,7 @@
   min-width: 180px !important;
   padding: 0 24px !important;
   border-radius: 9px !important;
-  font-size: 14px !important;
+  font-size: 17px !important;
 }
 
 /* Keep the text field visually clean while typing/focused. */
@@ -46,6 +46,7 @@
   box-shadow: none !important;
   -webkit-appearance: none !important;
   appearance: none !important;
+  font-size: 17px !important;
 }
 
 .search-box .link-mark {
