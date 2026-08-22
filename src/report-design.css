@@ -172,6 +172,7 @@ html[data-theme="dark"] {
 }
 
 .stats-grid span {
+  margin: 0 !important;
   color: var(--report-muted) !important;
   font-size: 11px !important;
   font-weight: 850 !important;
@@ -179,7 +180,7 @@ html[data-theme="dark"] {
 }
 
 .stats-grid strong {
-  margin-top: 12px !important;
+  margin: 12px 0 0 !important;
   color: var(--report-ink) !important;
   font-size: 25px !important;
   font-weight: 700 !important;
@@ -190,7 +191,7 @@ html[data-theme="dark"] {
 }
 
 .stats-grid small {
-  margin-top: 4px !important;
+  margin: 4px 0 0 !important;
   color: var(--report-soft-muted) !important;
   font-size: 11px !important;
 }
