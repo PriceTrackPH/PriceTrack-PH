@@ -1,0 +1,9 @@
+/* Hide only the browser/Recharts focus rectangle around the price-history chart.
+   Keep chart hover/click tooltips and every other control unchanged. */
+.report-card .chart-wrap .recharts-wrapper:focus,
+.report-card .chart-wrap .recharts-wrapper:focus-visible,
+.report-card .chart-wrap .recharts-surface:focus,
+.report-card .chart-wrap .recharts-surface:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
