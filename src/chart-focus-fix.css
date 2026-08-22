@@ -17,13 +17,18 @@
   box-shadow: none !important;
 }
 
-/* Keep chart points small and solid mint; no white centers. */
-.report-card .chart-wrap .recharts-dot,
-.report-card .chart-wrap .recharts-area-dot,
+/* Hide the normal point markers. Only the active/hover point should appear. */
+.report-card .chart-wrap .recharts-area-dots .recharts-dot {
+  opacity: 0 !important;
+}
+
+/* Restore the white-center mint ring only while hovering a real data point. */
+.report-card .chart-wrap .recharts-active-dot .recharts-dot,
 .report-card .chart-wrap .recharts-active-dot circle {
-  fill: #13c89a !important;
+  opacity: 1 !important;
+  fill: #ffffff !important;
   stroke: #13c89a !important;
-  stroke-width: 0 !important;
+  stroke-width: 2 !important;
 }
 
 /* Give the Y-axis price labels a little more breathing room from the first date. */
