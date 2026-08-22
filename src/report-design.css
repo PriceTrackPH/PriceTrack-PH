@@ -50,6 +50,32 @@ html[data-theme="dark"] {
   border: 1px solid var(--report-border) !important;
 }
 
+/* Keep the current desktop summary height fixed while the product image fills it exactly. */
+@media (min-width: 861px) {
+  .report-card .product-summary {
+    height: 177px !important;
+    max-height: 177px !important;
+    align-items: stretch !important;
+    overflow: hidden !important;
+  }
+
+  .report-card .product-image,
+  .report-card .product-image-fallback,
+  .report-card .sample-image {
+    width: 177px !important;
+    height: 100% !important;
+    max-height: 177px !important;
+    aspect-ratio: 1 / 1 !important;
+    flex: 0 0 177px !important;
+    object-fit: cover !important;
+  }
+
+  .report-card .product-details {
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+}
+
 .market-line {
   margin-bottom: 7px !important;
   color: var(--report-muted) !important;
