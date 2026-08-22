@@ -41,7 +41,11 @@ function renderRecord(record) {
 
     const lowest = formatPeso(record.price);
     const lowestName = record.lowestVariationName ? ` · ${record.lowestVariationName}` : "";
-    if (count > 1) {
+    const processedCount = Number(record.recordedCount || 0) + Number(record.unchangedCount || 0);
+
+    if (count > 1 && processedCount >= count) {
+      status.textContent = `✓ All ${count} variations finished recording${lowest ? `. Lowest ${lowest}${lowestName}` : ""}.`;
+    } else if (count > 1) {
       status.textContent = `Checked ${count} variations automatically${lowest ? `. Lowest ${lowest}${lowestName}` : ""}.`;
     } else if (record.collectionMode === "visible-fallback") {
       status.textContent = `Checked the visible price${lowest ? `: ${lowest}` : ""}. Reload the product page if Shopee variation data was still loading.`;
