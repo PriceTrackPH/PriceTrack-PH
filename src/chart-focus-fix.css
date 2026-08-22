@@ -55,17 +55,18 @@
   transform: translateX(-6px) !important;
 }
 
-/* Do not draw a divider on the chart itself; that places it above the date labels. */
+/* Do not draw a divider on the chart itself; the X-axis labels extend slightly
+   below the responsive SVG container. */
 .report-card .chart-wrap {
   padding-bottom: 0 !important;
   border-bottom: 0 !important;
 }
 
-/* Draw the separator from the actions block instead. The actions block is after
-   the chart in the DOM, and this spacing puts the line below Aug 16 / Today. */
+/* Keep the divider clearly BELOW Aug 16 / Today. The extra margin accounts for
+   Recharts labels visually extending beneath the chart container. */
 .report-card .report-actions-wrap {
   position: relative !important;
-  margin-top: 16px !important;
+  margin-top: 36px !important;
   padding-top: 14px !important;
   border-top: 0 !important;
 }
