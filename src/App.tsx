@@ -484,7 +484,7 @@ function App() {
               is <em>really</em> a sale.
             </h1>
             <p>
-              Paste any Shopee product link to see today&apos;s price, its recorded low and high, and
+              Paste any supported product link to see today&apos;s price, its recorded low and high, and
               how the price changed over time.
             </p>
 
