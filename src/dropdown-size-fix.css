@@ -1,18 +1,21 @@
-/* Keep the custom variation picker at the width of the longest variation in the current report. */
+/* Size the closed variation picker from only the currently selected value.
+   The opened scroll menu is absolute, so its options/scrollbar never affect the button width. */
 .report-card .variation-picker {
+  width: fit-content !important;
   min-width: 0 !important;
   max-width: min(430px, 52vw) !important;
 }
 
 .report-card .variation-picker-button {
-  width: 100% !important;
+  width: max-content !important;
+  min-width: 0 !important;
   max-width: min(430px, 52vw) !important;
 }
 
-/* Keep the closed picker compact, but give only the opened menu extra room for option names. */
+/* Let the opened menu size from its own option text, independently of the closed button. */
 .report-card .variation-menu {
-  width: calc(100% + 78px) !important;
-  min-width: 100% !important;
+  width: max-content !important;
+  min-width: 220px !important;
   max-width: min(510px, 66vw) !important;
 }
 
