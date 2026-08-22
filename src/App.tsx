@@ -253,10 +253,15 @@ function App() {
       history = data ?? [];
     }
 
-    const defaultVariation = modelRows
+    const variationsWithLatest = modelRows
       .map((item) => ({ item, latest: latestObservation(history, item.id) }))
-      .filter((entry) => entry.latest)
-      .sort((a, b) => Number(a.latest!.price) - Number(b.latest!.price))[0]?.item;
+      .filter((entry) => entry.latest);
+
+    const defaultVariation = variationsWithLatest
+      .filter((entry) => entry.latest!.is_in_stock)
+      .sort((a, b) => Number(a.latest!.price) - Number(b.latest!.price))[0]?.item
+      ?? variationsWithLatest
+        .sort((a, b) => Number(a.latest!.price) - Number(b.latest!.price))[0]?.item;
 
     setProduct(found);
     setVariations(modelRows);
@@ -316,6 +321,17 @@ function App() {
 
   const selectedVariation = variations.find((item) => item.id === selectedVariationId) ?? null;
 
+  const latestByVariationId = useMemo(() => {
+    const latest = new Map<number, Observation>();
+    for (const row of observations) latest.set(row.variation_id, row);
+    return latest;
+  }, [observations]);
+
+  const selectedLatestObservation = selectedVariationId == null
+    ? null
+    : latestByVariationId.get(selectedVariationId) ?? null;
+  const selectedIsOutOfStock = selectedLatestObservation?.is_in_stock === false;
+
   const allVariationRows = useMemo(() => {
     if (selectedVariationId == null) return [];
     return observations.filter((row) => row.variation_id === selectedVariationId);
@@ -354,6 +370,13 @@ function App() {
   }, [chartData]);
 
   const verdict = useMemo(() => {
+    if (selectedLatestObservation?.is_in_stock === false) {
+      return {
+        label: "OUT OF STOCK",
+        title: "Currently unavailable",
+        detail: `Last listed price: ${peso.format(Number(selectedLatestObservation.price))}.`,
+      };
+    }
     if (!reportStats) return { label: "PRICE STATUS", title: "No history yet", detail: "Waiting for recorded observations." };
     if (reportStats.latest <= reportStats.low * 1.05) {
       return {
@@ -376,7 +399,13 @@ function App() {
       title: "Above average",
       detail: `${peso.format(reportStats.latest - reportStats.average)} above the selected-period average.`,
     };
-  }, [reportStats]);
+  }, [reportStats, selectedLatestObservation]);
+
+  const displayedPrice = selectedLatestObservation
+    ? peso.format(Number(selectedLatestObservation.price))
+    : reportStats
+      ? peso.format(reportStats.latest)
+      : "—";
 
   return (
     <div className="app-shell" id="top">
@@ -457,24 +486,30 @@ function App() {
                         value={selectedVariationId ?? ""}
                         onChange={(event) => setSelectedVariationId(Number(event.target.value))}
                       >
-                        {variations.map((variation) => (
-                          <option key={variation.id} value={variation.id}>
-                            {variation.name}
-                          </option>
-                        ))}
+                        {variations.map((variation) => {
+                          const latest = latestByVariationId.get(variation.id);
+                          const unavailable = latest?.is_in_stock === false;
+                          return (
+                            <option key={variation.id} value={variation.id}>
+                              {variation.name}{unavailable ? " — Out of stock" : ""}
+                            </option>
+                          );
+                        })}
                       </select>
                       <span>· Public listed price</span>
                     </div>
 
                     <div className="current-price-row">
-                      <strong>{reportStats ? peso.format(reportStats.latest) : "—"}</strong>
-                      <span className="sample-badge live-badge">LIVE DATABASE</span>
+                      <strong>{displayedPrice}</strong>
+                      <span className={`sample-badge live-badge${selectedIsOutOfStock ? " out-of-stock-badge" : ""}`}>
+                        {selectedIsOutOfStock ? "OUT OF STOCK" : "LIVE DATABASE"}
+                      </span>
                     </div>
                     <p>{priceChanges} recorded price change{priceChanges === 1 ? "" : "s"}</p>
                   </div>
                 </div>
 
-                <div className="price-verdict">
+                <div className={`price-verdict${selectedIsOutOfStock ? " out-of-stock" : ""}`}>
                   <span>{verdict.label}</span>
                   <strong>{verdict.title}</strong>
                   <p>{verdict.detail}</p>
@@ -508,7 +543,10 @@ function App() {
                 <div className="history-heading">
                   <div>
                     <h3>Price history</h3>
-                    <p>Public listed price · {reportVariationName} variation</p>
+                    <p>
+                      Public listed price · {reportVariationName} variation
+                      {selectedIsOutOfStock ? " · Currently out of stock" : ""}
+                    </p>
                   </div>
                   <div className="range-tabs" aria-label="Price history range">
                     {(["7D", "30D", "90D", "ALL"] as RangeKey[]).map((item) => (
