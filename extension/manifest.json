@@ -5,8 +5,7 @@
   "description": "Detect Shopee product variations immediately at page start, then save price history in the background.",
   "permissions": [
     "activeTab",
-    "storage",
-    "notifications"
+    "storage"
   ],
   "host_permissions": [
     "https://shopee.ph/*",
