@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import type { Tables } from "./database.types";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
+import shopeeLogo from "./assets/shopee-logo.png";
 
 type Product = Tables<"products">;
 type Variation = Tables<"product_variations">;
@@ -393,7 +394,7 @@ function App() {
 
                   <div className="product-details">
                     <div className="market-line">
-                      <span className="shopee-mark">S</span>
+                      <img className="shopee-mark" src={shopeeLogo} alt="Shopee" />
                       SHOPEE PH · {product.shop_name || "Shopee seller"}
                     </div>
                     <h2>{product.name}</h2>
