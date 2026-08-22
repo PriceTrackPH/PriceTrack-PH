@@ -21,6 +21,11 @@
   font-size: 13px !important;
 }
 
+/* Final hero description text size. */
+.hero-inner > p {
+  font-size: 19px !important;
+}
+
 /* Final hero search-bar sizing and marketplace-ready link icon. */
 .search-box {
   width: min(900px, 100%) !important;
