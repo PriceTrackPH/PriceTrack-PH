@@ -179,7 +179,7 @@ html[data-theme="dark"] {
 }
 
 .stats-grid strong {
-  margin-top: 13px !important;
+  margin-top: 8px !important;
   color: var(--report-ink) !important;
   font-size: 22px !important;
   font-weight: 700 !important;
@@ -190,7 +190,7 @@ html[data-theme="dark"] {
 }
 
 .stats-grid small {
-  margin-top: 7px !important;
+  margin-top: 4px !important;
   color: var(--report-soft-muted) !important;
   font-size: 11px !important;
 }
