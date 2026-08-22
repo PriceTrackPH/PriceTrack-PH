@@ -364,7 +364,7 @@ function App() {
       return Math.max(longest, `${variation.name}${suffix}`.length);
     }, 0);
 
-    return Math.min(430, Math.max(150, Math.ceil(longestLabelLength * 6.6 + 30)));
+    return Math.min(430, Math.max(104, Math.ceil(longestLabelLength * 6 + 22)));
   }, [variations, latestByVariationId]);
   const outboundLink = resolveOutboundLink(product);
   const priceChanges = countPriceChanges(allVariationPoints);
