@@ -476,7 +476,11 @@ function App() {
                 {chartData.length ? (
                   <div className="chart-wrap">
                     <ResponsiveContainer width="100%" height={300}>
-                      <AreaChart data={chartData} margin={{ top: 18, right: 24, bottom: 8, left: 6 }}>
+                      <AreaChart
+                        accessibilityLayer={false}
+                        data={chartData}
+                        margin={{ top: 18, right: 24, bottom: 8, left: 6 }}
+                      >
                         <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e9eceb" />
                         <XAxis
                           dataKey="label"
@@ -496,6 +500,7 @@ function App() {
                           tick={{ fill: "#777887", fontSize: 12 }}
                         />
                         <Tooltip
+                          cursor={false}
                           formatter={(value) => [peso.format(Number(value)), reportVariationName]}
                           labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate ?? ""}
                           contentStyle={{ borderRadius: 10, border: "1px solid #dddfea" }}
