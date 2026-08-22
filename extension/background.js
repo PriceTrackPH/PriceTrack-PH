@@ -5,6 +5,7 @@ function formatPeso(value) {
     : "";
 }
 
+const POPUP_SETTING_KEY = "recordingPopupEnabled";
 const recentNotifications = new Map();
 
 function notificationKey(record) {
@@ -14,35 +15,36 @@ function notificationKey(record) {
 function showRecordingNotification(record = {}) {
   if (!record || record.state !== "recorded") return;
 
-  const key = notificationKey(record);
-  const lastShown = recentNotifications.get(key) || 0;
-  if (Date.now() - lastShown < 10000) return;
-  recentNotifications.set(key, Date.now());
+  chrome.storage.local.get(POPUP_SETTING_KEY, result => {
+    if (result[POPUP_SETTING_KEY] !== true) return;
 
-  const count = Number(record.variationCount || 0);
-  const lowest = formatPeso(record.price);
-  const lowestName = record.lowestVariationName ? ` · ${record.lowestVariationName}` : "";
-  const message = count > 1
-    ? `All ${count} variations finished recording${lowest ? `. Lowest ${lowest}${lowestName}` : "."}`
-    : `Price recording finished${lowest ? ` at ${lowest}${lowestName}` : "."}`;
+    const key = notificationKey(record);
+    const lastShown = recentNotifications.get(key) || 0;
+    if (Date.now() - lastShown < 10000) return;
+    recentNotifications.set(key, Date.now());
 
-  chrome.notifications.create(`pricetrack-${Date.now()}`, {
-    type: "basic",
-    iconUrl: chrome.runtime.getURL("notification-icon.svg"),
-    title: "PriceTrack PH",
-    message,
-    priority: 2,
-    requireInteraction: false,
-  }, () => {
-    if (chrome.runtime.lastError) {
-      console.error("PriceTrack notification failed:", chrome.runtime.lastError.message);
-    }
+    const count = Number(record.variationCount || 0);
+    const lowest = formatPeso(record.price);
+    const lowestName = record.lowestVariationName ? ` · ${record.lowestVariationName}` : "";
+    const message = count > 1
+      ? `All ${count} variations finished recording${lowest ? `. Lowest ${lowest}${lowestName}` : "."}`
+      : `Price recording finished${lowest ? ` at ${lowest}${lowestName}` : "."}`;
+
+    chrome.notifications.create(`pricetrack-${Date.now()}`, {
+      type: "basic",
+      iconUrl: chrome.runtime.getURL("notification-icon.svg"),
+      title: "PriceTrack PH",
+      message,
+      priority: 2,
+      requireInteraction: false,
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("PriceTrack notification failed:", chrome.runtime.lastError.message);
+      }
+    });
   });
 }
 
-// Direct path: the Shopee tab tells the service worker immediately when the
-// current product reaches the recorded state. This works even when the popup
-// was never opened.
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type !== "recordingComplete" || !message.record) return false;
   showRecordingNotification(message.record);
@@ -50,7 +52,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return false;
 });
 
-// Keep storage changes as a fallback in case the direct tab message is missed.
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== "local") return;
 
