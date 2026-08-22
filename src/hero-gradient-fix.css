@@ -24,13 +24,13 @@
 /* Final hero search-bar sizing and marketplace-ready link icon. */
 .search-box {
   width: min(900px, 100%) !important;
-  height: 75px !important;
-  min-height: 75px !important;
+  height: 70px !important;
+  min-height: 70px !important;
 }
 
 .search-box button {
-  height: 60px !important;
-  min-height: 60px !important;
+  height: 56px !important;
+  min-height: 56px !important;
   min-width: 180px !important;
   padding: 0 24px !important;
   border-radius: 9px !important;
