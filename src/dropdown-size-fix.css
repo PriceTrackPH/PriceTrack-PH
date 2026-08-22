@@ -1,6 +1,6 @@
 /* Keep the closed variation control at its measured width. Opening the menu must
    never make the button wider. The menu is absolutely positioned so its own
-   intrinsic width cannot participate in the flex layout. */
+   width cannot participate in the flex layout. */
 .report-card .variation-picker {
   position: relative !important;
   flex: 0 0 auto !important;
@@ -38,16 +38,18 @@
   pointer-events: none !important;
 }
 
-/* The menu may be wider than the button, but because it is out of normal flow it
-   cannot resize the closed control when clicked. */
+/* Restore the older behavior: the CLOSED picker stays compact, while the OPENED
+   menu extends about 78px farther to the right. Because the menu is absolute,
+   this extra width never changes the closed button or surrounding layout. */
 .report-card .variation-menu {
   position: absolute !important;
   top: calc(100% + 6px) !important;
   left: 0 !important;
   z-index: 1000 !important;
-  width: max-content !important;
-  min-width: 220px !important;
-  max-width: min(510px, 66vw) !important;
+  width: calc(100% + 78px) !important;
+  min-width: calc(100% + 78px) !important;
+  max-width: min(510px, calc(100vw - 96px)) !important;
+  box-sizing: border-box !important;
 }
 
 .report-card .variation-option {
@@ -101,8 +103,13 @@ html:not([data-theme="dark"]) .report-card .variation-option.selected small {
 
 @media (max-width: 680px) {
   .report-card .variation-picker,
-  .report-card .variation-picker-button,
+  .report-card .variation-picker-button {
+    min-width: 0 !important;
+    max-width: calc(100vw - 96px) !important;
+  }
+
   .report-card .variation-menu {
+    width: min(calc(100% + 78px), calc(100vw - 96px)) !important;
     min-width: 0 !important;
     max-width: calc(100vw - 96px) !important;
   }
