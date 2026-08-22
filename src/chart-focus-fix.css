@@ -50,9 +50,13 @@
   stroke-width: 2 !important;
 }
 
-/* Add the extra space ABOVE the X-axis dates by moving the real X-axis group
-   down 20px. This changes the graph-to-date gap, not the date-to-divider gap. */
+/* Add 20px more space ABOVE the X-axis date labels. Moving the whole xAxis
+   wrapper did not affect Recharts reliably, so move the actual tick groups. */
 .report-card .chart-wrap .recharts-xAxis {
+  transform: none !important;
+}
+
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick {
   transform: translateY(20px) !important;
 }
 
@@ -79,7 +83,7 @@
 }
 
 /* Keep the date-to-divider spacing at about 20px and the divider-to-buttons gap
-   at 20px after moving the real X-axis down. */
+   at 20px after moving the date tick groups down. */
 .report-card .report-actions-wrap {
   width: 100% !important;
   box-sizing: border-box !important;
