@@ -28,6 +28,16 @@ html[data-theme="dark"] .report-card .stats-grid .green-value {
   color: #00F8B9 !important;
 }
 
+/* Match the LIVE DATABASE label to the report mint and make the pill 1px taller. */
+.report-card .live-badge {
+  padding-top: 5.5px !important;
+  padding-bottom: 5.5px !important;
+}
+
+html[data-theme="dark"] .report-card .live-badge {
+  color: #00F8B9 !important;
+}
+
 html[data-theme="dark"] .report-card .market-line,
 html[data-theme="dark"] .report-card .variation-line,
 html[data-theme="dark"] .report-card .variation-control,
