@@ -1,4 +1,9 @@
 /* Dark-mode readability fix scoped only to the database product report card. */
+html[data-theme="dark"] .report-section > .section-label,
+html[data-theme="dark"] .report-card .price-verdict > span {
+  color: #00F8B9 !important;
+}
+
 html[data-theme="dark"] .report-card,
 html[data-theme="dark"] .report-card .report-top,
 html[data-theme="dark"] .report-card .history-panel {
