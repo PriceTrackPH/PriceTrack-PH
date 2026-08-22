@@ -1,0 +1,19 @@
+/* Light-mode lavender accents for the database report.
+   Reuse the same soft PriceTrack lavender already used elsewhere on the site. */
+html:not([data-theme="dark"]) .report-card .stats-grid > div {
+  background: #f2efff !important;
+}
+
+html:not([data-theme="dark"]) .report-card .range-tabs {
+  background: #f2efff !important;
+}
+
+html:not([data-theme="dark"]) .report-card .range-tabs button {
+  background: transparent !important;
+}
+
+html:not([data-theme="dark"]) .report-card .range-tabs button.active {
+  background: #e4ddff !important;
+  color: #21185f !important;
+  box-shadow: 0 1px 4px rgba(33, 24, 95, .12) !important;
+}
