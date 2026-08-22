@@ -73,25 +73,39 @@
   border-bottom: 0 !important;
 }
 
-/* Bring the date-to-divider spacing back to about 20px while leaving the extra
-   space above the dates intact. Keep 20px from the divider to the buttons. */
+/* Keep the date-to-divider spacing at about 20px and the divider-to-buttons gap
+   at 20px. Use the wrapper's real border so it remains attached at every zoom. */
 .report-card .report-actions-wrap {
+  width: 100% !important;
+  box-sizing: border-box !important;
   position: relative !important;
   margin-top: 46px !important;
   padding-top: 20px !important;
-  border-top: 0 !important;
+  border-top: 1px solid var(--report-border) !important;
 }
 
-/* Old-site behavior: the divider spans the full inner history-panel width.
-   Because it follows the panel instead of the plotted SVG, it stays visually
-   aligned with the section at different browser zoom levels. */
+/* Remove the old floating pseudo-divider completely. */
 .report-card .report-actions-wrap::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--report-border);
-  pointer-events: none;
+  content: none !important;
+  display: none !important;
+}
+
+/* Browser zoom reduces the CSS viewport width. At the same responsive point as
+   the rest of the report, match the old site's stacked full-width actions. */
+@media (max-width: 860px) {
+  .report-card .report-actions {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .report-card .report-actions .track-price-button,
+  .report-card .report-actions .shopee-outbound-button {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    justify-content: center !important;
+  }
 }
