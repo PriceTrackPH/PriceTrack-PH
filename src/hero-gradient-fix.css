@@ -21,6 +21,33 @@
   font-size: clamp(53px, 5.15vw, 73px) !important;
 }
 
+/* Match the reference eyebrow with a real mint line before the label. */
+.hero-inner .eyebrow {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+}
+
+.hero-inner .eyebrow::before {
+  content: "";
+  width: 24px !important;
+  height: 2px !important;
+  flex: 0 0 24px !important;
+  border-radius: 999px !important;
+  background: #13c89a !important;
+}
+
+.hero-inner .eyebrow::after {
+  content: "INDEPENDENT PRICE TRACKER";
+  color: #0aa57f !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  letter-spacing: .16em !important;
+  line-height: 1 !important;
+}
+
 /* Final hero trust-row text size. */
 .trust-row {
   font-size: 13px !important;
