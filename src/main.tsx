@@ -14,6 +14,7 @@ import "./dark-report-fix.css";
 import "./chart-focus-fix.css";
 import "./hero-gradient-fix.css";
 import "./variation-white-default.css";
+import "./report-lavender-fix.css";
 import "./title-fit";
 import "./variation-display-format";
 
