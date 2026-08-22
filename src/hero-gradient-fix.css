@@ -112,14 +112,44 @@
   filter: brightness(1.08) !important;
 }
 
-/* Out-of-stock variations stay viewable for history, but must not look buyable. */
+/* Keep variation controls visually integrated with the report card. */
+.report-card .variation-control select {
+  min-height: 30px !important;
+  padding: 4px 30px 4px 10px !important;
+  border: 1px solid #e2e1eb !important;
+  border-radius: 7px !important;
+  outline: none !important;
+  background: #f8f8fb !important;
+  color: #211b5c !important;
+  box-shadow: none !important;
+}
+
+.report-card .variation-control select:hover {
+  border-color: #d5d3df !important;
+  background: #fbfbfd !important;
+}
+
+.report-card .variation-control select:focus,
+.report-card .variation-control select:focus-visible {
+  border-color: #c9c6d8 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(33, 24, 95, .05) !important;
+}
+
+.report-card .variation-control select option {
+  background: #ffffff;
+  color: #211b5c;
+}
+
+/* Out-of-stock history remains available, but use a neutral PriceTrack treatment. */
 .report-card .out-of-stock-badge {
-  background: #fff0ed !important;
-  color: #d94f36 !important;
+  border: 1px solid rgba(33, 24, 95, .12) !important;
+  background: rgba(33, 24, 95, .07) !important;
+  color: #21185f !important;
 }
 
 .report-card .price-verdict.out-of-stock > span {
-  color: #d94f36 !important;
+  color: #21185f !important;
 }
 
 .report-card .history-heading p {
@@ -188,11 +218,31 @@ html[data-theme="dark"] .hero-inner .eyebrow::after {
   color: #32efc2 !important;
 }
 
+html[data-theme="dark"] .report-card .variation-control select {
+  border-color: #343839 !important;
+  background: #1b1e1f !important;
+  color: #ebe7dc !important;
+}
+
+html[data-theme="dark"] .report-card .variation-control select:hover,
+html[data-theme="dark"] .report-card .variation-control select:focus,
+html[data-theme="dark"] .report-card .variation-control select:focus-visible {
+  border-color: #444849 !important;
+  background: #202425 !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .025) !important;
+}
+
+html[data-theme="dark"] .report-card .variation-control select option {
+  background: #1b1e1f;
+  color: #ebe7dc;
+}
+
 html[data-theme="dark"] .report-card .out-of-stock-badge {
-  background: rgba(238, 77, 45, .16) !important;
-  color: #ff9078 !important;
+  border-color: #3b3f40 !important;
+  background: rgba(255, 255, 255, .06) !important;
+  color: #c9c6be !important;
 }
 
 html[data-theme="dark"] .report-card .price-verdict.out-of-stock > span {
-  color: #ff9078 !important;
+  color: #c9c6be !important;
 }
