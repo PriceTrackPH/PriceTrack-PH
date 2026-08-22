@@ -104,11 +104,12 @@
 /* Use the PriceTrack primary color for marketplace outbound actions. */
 .shopee-outbound-button {
   background: #21185f !important;
-  border-color: #21185f !important;
+  border: 1px solid #4b4388 !important;
   color: #ffffff !important;
 }
 
 .shopee-outbound-button:hover {
+  border-color: #625aa0 !important;
   filter: brightness(1.08) !important;
 }
 
