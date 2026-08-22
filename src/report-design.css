@@ -179,7 +179,7 @@ html[data-theme="dark"] {
 }
 
 .stats-grid strong {
-  margin-top: 10px !important;
+  margin-top: 13px !important;
   color: var(--report-ink) !important;
   font-size: 22px !important;
   font-weight: 700 !important;
