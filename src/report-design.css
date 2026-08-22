@@ -34,7 +34,7 @@ html[data-theme="dark"] {
 
 .report-top {
   gap: 34px !important;
-  padding: 24px 24px 26px !important;
+  padding: 26px 24px 28px !important;
 }
 
 .product-summary {
@@ -50,11 +50,11 @@ html[data-theme="dark"] {
   border: 1px solid var(--report-border) !important;
 }
 
-/* Keep the current desktop summary height fixed while the product image fills it exactly. */
+/* Keep the desktop summary roomy enough for readable metadata without changing the lower report sections. */
 @media (min-width: 861px) {
   .report-card .product-summary {
-    height: 177px !important;
-    max-height: 177px !important;
+    height: 190px !important;
+    max-height: 190px !important;
     align-items: stretch !important;
     overflow: hidden !important;
   }
@@ -62,11 +62,11 @@ html[data-theme="dark"] {
   .report-card .product-image,
   .report-card .product-image-fallback,
   .report-card .sample-image {
-    width: 177px !important;
+    width: 190px !important;
     height: 100% !important;
-    max-height: 177px !important;
+    max-height: 190px !important;
     aspect-ratio: 1 / 1 !important;
-    flex: 0 0 177px !important;
+    flex: 0 0 190px !important;
     object-fit: cover !important;
   }
 
@@ -101,17 +101,17 @@ html[data-theme="dark"] {
 .variation-control {
   margin-top: 6px !important;
   color: var(--report-muted) !important;
-  font-size: 10px !important;
+  font-size: 11px !important;
 }
 
 .variation-control select {
-  min-height: 25px !important;
+  min-height: 28px !important;
   padding-top: 2px !important;
   padding-bottom: 2px !important;
   border-color: var(--report-border) !important;
   border-radius: 5px !important;
   color: var(--report-ink) !important;
-  font-size: 10px !important;
+  font-size: 11px !important;
 }
 
 .current-price-row {
@@ -134,9 +134,10 @@ html[data-theme="dark"] {
 }
 
 .product-details > p {
-  margin-top: 7px !important;
+  margin-top: 8px !important;
   color: var(--report-soft-muted) !important;
-  font-size: 10px !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
 }
 
 .price-verdict {
