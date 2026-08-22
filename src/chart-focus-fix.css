@@ -17,15 +17,15 @@
   box-shadow: none !important;
 }
 
-/* Permanent marker on every real data point. Keep the exact graph-line color,
-   but give the dot enough radius + same-color stroke to stand out from the line. */
+/* Permanent marker on every real data point: small, solid, and the exact same
+   color as the graph line. */
 .report-card .chart-wrap circle.recharts-dot,
 .report-card .chart-wrap .recharts-dot {
-  r: 4.5px !important;
+  r: 3.5px !important;
   opacity: 1 !important;
   fill: #13c89a !important;
-  stroke: #13c89a !important;
-  stroke-width: 2px !important;
+  stroke: none !important;
+  stroke-width: 0 !important;
 }
 
 /* Keep the existing hover marker unchanged: larger white-center mint ring. */
