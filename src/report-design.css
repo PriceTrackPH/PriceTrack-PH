@@ -143,6 +143,21 @@ html[data-theme="dark"] {
   border-color: var(--report-border) !important;
 }
 
+@media (min-width: 861px) {
+  .stats-grid {
+    width: 1158px !important;
+    max-width: 100% !important;
+    height: 140px !important;
+    min-height: 140px !important;
+    box-sizing: border-box !important;
+  }
+
+  .stats-grid > div {
+    height: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
 .stats-grid > div {
   padding: 22px 22px 20px !important;
   background: var(--report-stat-bg) !important;
