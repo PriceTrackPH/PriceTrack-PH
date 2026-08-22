@@ -190,9 +190,9 @@ async function fetchShopeePayload(ids) {
     `/api/v4/pdp/get?shop_id=${encodeURIComponent(ids.shopId)}&item_id=${encodeURIComponent(ids.productId)}`,
   ];
 
-  for (const endpoint of endpoints) {
+  const requestEndpoint = async endpoint => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1200);
+    const timeout = setTimeout(() => controller.abort(), 900);
     try {
       const response = await fetch(endpoint, {
         credentials: "include",
@@ -202,15 +202,36 @@ async function fetchShopeePayload(ids) {
         },
         signal: controller.signal,
       });
-      if (!response.ok) continue;
+      if (!response.ok) return null;
       const payload = await response.json();
-      if (findShopeeItemNode(payload, ids)) return payload;
-    } catch {}
-    finally {
+      return findShopeeItemNode(payload, ids) ? payload : null;
+    } catch {
+      return null;
+    } finally {
       clearTimeout(timeout);
     }
-  }
-  return null;
+  };
+
+  return new Promise(resolve => {
+    let remaining = endpoints.length;
+    let resolved = false;
+
+    for (const endpoint of endpoints) {
+      requestEndpoint(endpoint).then(payload => {
+        if (resolved) return;
+        if (payload) {
+          resolved = true;
+          resolve(payload);
+          return;
+        }
+        remaining -= 1;
+        if (remaining === 0) {
+          resolved = true;
+          resolve(null);
+        }
+      });
+    }
+  });
 }
 
 function extractPublicProduct() {
@@ -318,9 +339,8 @@ async function collectAllVariations(ids) {
     .catch(() => {})
     .finally(() => { fetchFinished = true; });
 
-  // Poll the bridge very briefly. This usually resolves in a few hundred ms,
-  // while the bounded direct request runs in parallel.
-  for (let attempt = 0; attempt < 16; attempt += 1) {
+  // Fast window: bridge and both Shopee PDP endpoints run in parallel.
+  for (let attempt = 0; attempt < 10; attempt += 1) {
     const captured = normalizeShopeePayload(capturedShopeePayload, ids);
     if (captured?.variations?.length) return captured;
 
@@ -329,19 +349,19 @@ async function collectAllVariations(ids) {
       if (fetched?.variations?.length) return fetched;
     }
 
-    if (attempt === 4 || attempt === 10) {
+    if (attempt === 3 || attempt === 7) {
       window.postMessage({ source: REQUEST_SOURCE, type: "request-product-data" }, "*");
     }
-    await sleep(75);
+    await sleep(60);
   }
 
-  // One embedded-data scan after the initial 1.2s fast window.
+  // Only scan embedded page data if the two fast sources did not finish first.
   const embeddedPayload = extractEmbeddedShopeePayload(ids);
   const embedded = normalizeShopeePayload(embeddedPayload, ids);
   if (embedded?.variations?.length) return embedded;
 
-  // Give a still-running direct request / late Shopee response one final short window.
-  for (let attempt = 0; attempt < 8; attempt += 1) {
+  // Final short window lets the parallel direct requests reach their 900ms bound.
+  for (let attempt = 0; attempt < 5; attempt += 1) {
     const captured = normalizeShopeePayload(capturedShopeePayload, ids);
     if (captured?.variations?.length) return captured;
 
@@ -350,10 +370,10 @@ async function collectAllVariations(ids) {
       if (fetched?.variations?.length) return fetched;
     }
 
-    if (!fetchFinished && attempt === 3) {
+    if (!fetchFinished && attempt === 1) {
       window.postMessage({ source: REQUEST_SOURCE, type: "request-product-data" }, "*");
     }
-    await sleep(100);
+    await sleep(60);
   }
 
   return null;
@@ -374,9 +394,8 @@ async function automaticallyRecordPrice() {
   let product = await collectAllVariations(ids);
   if (!product) {
     // The fast model-data path does not need the DOM, but the visible fallback
-    // does. Give an unfinished page only a small grace period instead of waiting
-    // for Shopee's full DOMContentLoaded event, which can take many seconds.
-    if (document.readyState === "loading") await sleep(500);
+    // does. Give an unfinished page only a short grace period.
+    if (document.readyState === "loading") await sleep(250);
 
     const visible = extractPublicProduct();
     if (!visible?.price) {
