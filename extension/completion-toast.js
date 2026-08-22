@@ -1,23 +1,6 @@
 (() => {
+  const POPUP_SETTING_KEY = "recordingPopupEnabled";
   let lastToastKey = "";
-  let toastTimer = null;
-
-  function parseCurrentProduct() {
-    try {
-      const url = new URL(location.href);
-      const match = url.pathname.match(/-i\.(\d+)\.(\d+)/i) || url.pathname.match(/\/product\/(\d+)\/(\d+)/i);
-      if (!match) return null;
-      return {
-        shopId: match[1],
-        productId: match[2],
-        statusKey: `productStatus:${match[1]}:${match[2]}`,
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  const currentProduct = parseCurrentProduct();
 
   function formatPeso(value) {
     const number = Number(value);
@@ -26,12 +9,15 @@
       : "";
   }
 
-  function clearToast() {
-    if (toastTimer) {
-      clearTimeout(toastTimer);
-      toastTimer = null;
-    }
-    document.getElementById("pricetrack-recording-toast")?.remove();
+  function currentProductId() {
+    return location.pathname.match(/-i\.\d+\.(\d+)/i)?.[1] ||
+      location.pathname.match(/\/product\/\d+\/(\d+)/i)?.[1] || null;
+  }
+
+  function recordBelongsToThisTab(key) {
+    const productId = currentProductId();
+    if (!productId || !key.startsWith("productStatus:")) return false;
+    return key.endsWith(`:${productId}`) || key === `productStatus:${productId}`;
   }
 
   function showToast(record) {
@@ -41,7 +27,8 @@
     if (key === lastToastKey) return;
     lastToastKey = key;
 
-    clearToast();
+    const existing = document.getElementById("pricetrack-recording-toast");
+    if (existing) existing.remove();
 
     const count = Number(record.variationCount || 0);
     const lowest = formatPeso(record.price);
@@ -87,24 +74,24 @@
       toast.style.transform = "translateY(0)";
     });
 
-    toastTimer = setTimeout(() => {
+    setTimeout(() => {
       toast.style.opacity = "0";
       toast.style.transform = "translateY(-8px)";
       setTimeout(() => toast.remove(), 220);
-      toastTimer = null;
     }, 7000);
   }
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== "local" || !currentProduct) return;
+    if (areaName !== "local") return;
+    for (const [key, change] of Object.entries(changes)) {
+      if (!recordBelongsToThisTab(key)) continue;
+      const record = change.newValue;
+      if (!record || record.state !== "recorded") continue;
 
-    // Each Shopee tab listens only to its own shop + product status. This keeps
-    // a completed notification from another/previous tab from appearing here.
-    const change = changes[currentProduct.statusKey];
-    if (!change) return;
-    showToast(change.newValue);
+      chrome.storage.local.get(POPUP_SETTING_KEY, result => {
+        if (result[POPUP_SETTING_KEY] !== true) return;
+        showToast(record);
+      });
+    }
   });
-
-  // Closing/navigating away from this tab discards its toast state completely.
-  window.addEventListener("pagehide", clearToast, { once: true });
 })();
