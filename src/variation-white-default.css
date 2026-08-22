@@ -1,0 +1,42 @@
+/* Restore the original light/white variation control appearance without changing behavior. */
+html:not([data-theme="dark"]) .report-card .variation-picker-button {
+  border: 1px solid #dedee8 !important;
+  background: #ffffff !important;
+  color: #211b5c !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-picker-button:hover,
+html:not([data-theme="dark"]) .report-card .variation-picker.open .variation-picker-button,
+html:not([data-theme="dark"]) .report-card .variation-picker-button:focus-visible {
+  border-color: #c9c6d8 !important;
+  background: #ffffff !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(33, 24, 95, .05) !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-menu {
+  border-color: #dedee8 !important;
+  background: #ffffff !important;
+  box-shadow: 0 14px 34px rgba(33, 24, 95, .14) !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option {
+  color: #211b5c !important;
+  background: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option:hover,
+html:not([data-theme="dark"]) .report-card .variation-option:focus-visible {
+  background: #f7f7fb !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option.selected {
+  background: #f0eff6 !important;
+  color: #211b5c !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option small,
+html:not([data-theme="dark"]) .report-card .variation-option.selected small {
+  color: #0d9c73 !important;
+}
