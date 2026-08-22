@@ -50,9 +50,9 @@
   stroke-width: 2 !important;
 }
 
-/* Keep the extra breathing room ABOVE the X-axis dates. */
+/* Keep about 40px of breathing room between the graph and X-axis dates. */
 .report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick-value {
-  transform: translateY(20px) !important;
+  transform: translateY(40px) !important;
 }
 
 /* Align only the first X-axis date label with the left edge of the plotted area.
@@ -73,13 +73,13 @@
   border-bottom: 0 !important;
 }
 
-/* Keep the date-to-divider spacing at about 20px and the divider-to-buttons gap
-   at 20px. Use the wrapper's real border so it remains attached at every zoom. */
+/* Preserve the date-to-divider and divider-to-buttons spacing after moving the
+   X-axis dates 20px farther down. */
 .report-card .report-actions-wrap {
   width: 100% !important;
   box-sizing: border-box !important;
   position: relative !important;
-  margin-top: 46px !important;
+  margin-top: 66px !important;
   padding-top: 20px !important;
   border-top: 1px solid var(--report-border) !important;
 }
@@ -93,10 +93,9 @@
 /* Browser zoom reduces the CSS viewport width. At the same responsive point as
    the rest of the report, match the old site's stacked full-width actions. */
 @media (max-width: 860px) {
-  /* At zoomed/narrow widths, move the real divider itself farther below the
-     SVG date labels. This is more reliable than transforming SVG text. */
+  /* Keep the same spacing relationship at zoomed/narrow widths. */
   .report-card .report-actions-wrap {
-    margin-top: 60px !important;
+    margin-top: 80px !important;
   }
 
   .report-card .report-actions {
