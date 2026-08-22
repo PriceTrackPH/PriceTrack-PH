@@ -44,8 +44,8 @@ html[data-theme="dark"] {
 .product-image,
 .product-image-fallback,
 .sample-image {
-  width: 170px !important;
-  height: 170px !important;
+  width: 171px !important;
+  height: 171px !important;
   border-radius: 10px !important;
   border: 1px solid var(--report-border) !important;
 }
