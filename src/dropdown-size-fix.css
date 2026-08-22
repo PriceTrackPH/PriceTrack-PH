@@ -20,6 +20,46 @@
   width: 100% !important;
 }
 
+/* Use the same dark PriceTrack dropdown treatment in light mode. */
+html:not([data-theme="dark"]) .report-card .variation-picker-button {
+  border-color: #4b4388 !important;
+  background: #21185f !important;
+  color: #f7f4ff !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-picker-button:hover,
+html:not([data-theme="dark"]) .report-card .variation-picker.open .variation-picker-button,
+html:not([data-theme="dark"]) .report-card .variation-picker-button:focus-visible {
+  border-color: #32efc2 !important;
+  background: #2a216d !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(50, 239, 194, .12) !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-menu {
+  border-color: #4b4388 !important;
+  background: #1a1c1d !important;
+  box-shadow: 0 16px 38px rgba(33, 24, 95, .24) !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option {
+  color: #ebe7dc !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option:hover,
+html:not([data-theme="dark"]) .report-card .variation-option:focus-visible {
+  background: rgba(50, 239, 194, .11) !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option.selected {
+  background: #302574 !important;
+  color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option small {
+  color: #32efc2 !important;
+}
+
 @media (max-width: 680px) {
   .report-card .variation-picker,
   .report-card .variation-picker-button,
