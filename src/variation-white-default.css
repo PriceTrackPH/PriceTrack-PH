@@ -19,6 +19,19 @@
   white-space: nowrap !important;
 }
 
+/* Only the opened dropdown width follows its content. Keep every other style unchanged. */
+.report-card .variation-menu {
+  width: max-content !important;
+  min-width: 100% !important;
+  max-width: min(510px, 66vw) !important;
+}
+
+.report-card .variation-option-name {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
 html:not([data-theme="dark"]) .report-card .variation-picker-button {
   border: 1px solid #21185f !important;
   background: #21185f !important;
