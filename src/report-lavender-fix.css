@@ -17,13 +17,13 @@ html:not([data-theme="dark"]) .report-card .range-tabs button.active {
   box-shadow: 0 1px 4px rgba(33, 24, 95, .12) !important;
 }
 
-/* Dark mode: lighter muted lavender so it is clearly purple without looking too heavy. */
+/* Dark mode: match the sampled dark surface from the provided reference image. */
 html[data-theme="dark"] .report-card .stats-grid > div {
-  background: #2d2847 !important;
+  background: #1b1e1f !important;
 }
 
 html[data-theme="dark"] .report-card .range-tabs {
-  background: #2d2847 !important;
+  background: #1b1e1f !important;
 }
 
 html[data-theme="dark"] .report-card .range-tabs button {
@@ -31,7 +31,7 @@ html[data-theme="dark"] .report-card .range-tabs button {
 }
 
 html[data-theme="dark"] .report-card .range-tabs button.active {
-  background: #4a4172 !important;
+  background: #242829 !important;
   color: #f7f3ff !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, .20) !important;
 }
