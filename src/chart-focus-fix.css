@@ -18,11 +18,21 @@
 }
 
 /* Permanent marker on every real data point: small, solid, and the exact same
-   color as the graph line. */
+   color as the graph line. Recharts can inherit the Area fillOpacity, so force
+   the point layer and circles back to full opacity. */
+.report-card .chart-wrap .recharts-area-dots,
+.report-card .chart-wrap .recharts-area-dots circle,
 .report-card .chart-wrap circle.recharts-dot,
 .report-card .chart-wrap .recharts-dot {
-  r: 4px !important;
   opacity: 1 !important;
+  fill-opacity: 1 !important;
+  stroke-opacity: 1 !important;
+}
+
+.report-card .chart-wrap circle.recharts-dot,
+.report-card .chart-wrap .recharts-area-dots circle,
+.report-card .chart-wrap .recharts-dot {
+  r: 4px !important;
   fill: #13c89a !important;
   stroke: none !important;
   stroke-width: 0 !important;
@@ -33,6 +43,8 @@
 .report-card .chart-wrap .recharts-active-dot .recharts-dot {
   r: 5px !important;
   opacity: 1 !important;
+  fill-opacity: 1 !important;
+  stroke-opacity: 1 !important;
   fill: #ffffff !important;
   stroke: #13c89a !important;
   stroke-width: 2 !important;
