@@ -212,6 +212,7 @@ function App() {
   const [variations, setVariations] = useState<Variation[]>([]);
   const [observations, setObservations] = useState<Observation[]>([]);
   const [selectedVariationId, setSelectedVariationId] = useState<number | null>(null);
+  const [variationMenuOpen, setVariationMenuOpen] = useState(false);
   const [range, setRange] = useState<RangeKey>("30D");
   const [loading, setLoading] = useState(false);
   const [featuredLoading, setFeaturedLoading] = useState(true);
@@ -267,6 +268,7 @@ function App() {
     setVariations(modelRows);
     setObservations(history);
     setSelectedVariationId(defaultVariation?.id ?? modelRows[0]?.id ?? null);
+    setVariationMenuOpen(false);
   }
 
   useEffect(() => {
@@ -482,22 +484,57 @@ function App() {
 
                     {hasMultipleVariations ? (
                       <div className="variation-control">
-                        <label htmlFor="variation">Variation:</label>
-                        <select
-                          id="variation"
-                          value={selectedVariationId ?? ""}
-                          onChange={(event) => setSelectedVariationId(Number(event.target.value))}
+                        <span className="variation-label">Variation:</span>
+                        <div
+                          className={`variation-picker${variationMenuOpen ? " open" : ""}`}
+                          onBlur={(event) => {
+                            const nextTarget = event.relatedTarget;
+                            if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+                              setVariationMenuOpen(false);
+                            }
+                          }}
                         >
-                          {variations.map((variation) => {
-                            const latest = latestByVariationId.get(variation.id);
-                            const unavailable = latest?.is_in_stock === false;
-                            return (
-                              <option key={variation.id} value={variation.id}>
-                                {variation.name}{unavailable ? " — Out of stock" : ""}
-                              </option>
-                            );
-                          })}
-                        </select>
+                          <button
+                            type="button"
+                            className="variation-picker-button"
+                            aria-haspopup="listbox"
+                            aria-expanded={variationMenuOpen}
+                            onClick={() => setVariationMenuOpen((open) => !open)}
+                          >
+                            <span>
+                              {selectedVariation?.name ?? "Choose variation"}
+                              {selectedIsOutOfStock ? " — Out of stock" : ""}
+                            </span>
+                            <span className="variation-chevron" aria-hidden="true">⌄</span>
+                          </button>
+
+                          {variationMenuOpen && (
+                            <div className="variation-menu" role="listbox" aria-label="Product variation">
+                              {variations.map((variation) => {
+                                const latest = latestByVariationId.get(variation.id);
+                                const unavailable = latest?.is_in_stock === false;
+                                const selected = variation.id === selectedVariationId;
+                                return (
+                                  <button
+                                    key={variation.id}
+                                    type="button"
+                                    role="option"
+                                    aria-selected={selected}
+                                    className={`variation-option${selected ? " selected" : ""}`}
+                                    onClick={() => {
+                                      setSelectedVariationId(variation.id);
+                                      setVariationMenuOpen(false);
+                                    }}
+                                  >
+                                    <span className="variation-option-name">{variation.name}</span>
+                                    {unavailable && <small>Out of stock</small>}
+                                    {selected && <span className="variation-check" aria-hidden="true">✓</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                         <span>· Public listed price</span>
                       </div>
                     ) : (
