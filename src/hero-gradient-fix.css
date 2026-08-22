@@ -15,3 +15,8 @@
       #ffffff 100%
     ) !important;
 }
+
+/* Final hero trust-row text size. */
+.trust-row {
+  font-size: 13px !important;
+}
