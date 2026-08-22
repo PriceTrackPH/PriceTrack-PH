@@ -87,48 +87,45 @@ body,
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.beta-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 26px;
-  padding: 0 12px;
-  border: 1px solid rgba(19, 200, 154, .42);
-  border-radius: 999px;
-  background: rgba(19, 200, 154, .13);
-  color: #13c89a;
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: .08em;
-  white-space: nowrap;
 }
 
 .theme-switch {
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  min-width: 118px;
   padding: 3px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface-muted);
-}
-
-.theme-switch button {
-  border: 0;
-  border-radius: 999px;
-  padding: 6px 9px;
-  background: transparent;
   color: var(--muted);
   cursor: pointer;
-  font-size: 10px;
-  font-weight: 800;
+  font: inherit;
 }
 
-.theme-switch button[aria-pressed="true"] {
+.theme-switch span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  transition: background .16s ease, color .16s ease, box-shadow .16s ease;
+}
+
+.theme-switch[data-theme-current="light"] [data-theme-label="light"],
+.theme-switch[data-theme-current="dark"] [data-theme-label="dark"] {
   background: var(--surface);
   color: var(--text);
   box-shadow: 0 1px 5px rgba(0, 0, 0, .12);
+}
+
+.theme-switch:focus-visible {
+  outline: 2px solid #13c89a;
+  outline-offset: 2px;
 }
 
 .hero-band {
@@ -242,8 +239,12 @@ html[data-theme="dark"] .recharts-tooltip-wrapper .recharts-default-tooltip {
     margin-left: auto;
   }
 
-  .theme-switch button {
-    padding: 6px 8px;
+  .theme-switch {
+    min-width: 108px;
+  }
+
+  .theme-switch span {
+    padding: 0 8px;
     font-size: 9px;
   }
 }
@@ -253,11 +254,11 @@ html[data-theme="dark"] .recharts-tooltip-wrapper .recharts-default-tooltip {
     width: min(100% - 24px, 910px);
   }
 
-  .beta-pill {
-    display: none;
+  .theme-switch {
+    min-width: 104px;
   }
 
-  .theme-switch button {
-    padding: 6px 7px;
+  .theme-switch span {
+    padding: 0 7px;
   }
 }
