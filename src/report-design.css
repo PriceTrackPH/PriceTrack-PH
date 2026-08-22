@@ -221,7 +221,7 @@ html[data-theme="dark"] {
   line-height: 25px !important;
   color: var(--report-muted) !important;
   font-size: 9px !important;
-  font-weight: 400 !important;
+  font-weight: 700 !important;
 }
 
 .range-tabs button.active {
