@@ -24,6 +24,10 @@ html[data-theme="dark"] .report-card .track-price-button {
   color: #ebe7dc !important;
 }
 
+html[data-theme="dark"] .report-card .stats-grid .green-value {
+  color: #00F8B9 !important;
+}
+
 html[data-theme="dark"] .report-card .market-line,
 html[data-theme="dark"] .report-card .variation-line,
 html[data-theme="dark"] .report-card .variation-control,
