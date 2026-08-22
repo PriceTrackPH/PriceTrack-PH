@@ -63,10 +63,19 @@
   transform: none !important;
 }
 
-/* Align only the first X-axis date label with the left edge of the plotted area.
-   Middle and right labels keep Recharts' normal centered alignment. */
+/* Keep the edge date labels inside the plotted area: the first label begins
+   exactly at the left plot edge, the last label ends exactly at the right plot
+   edge, and all middle labels remain centered. */
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-ticks > .recharts-cartesian-axis-tick:first-child text,
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick:first-child text,
 .report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick:first-of-type text {
   text-anchor: start !important;
+}
+
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-ticks > .recharts-cartesian-axis-tick:last-child text,
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick:last-child text,
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick:last-of-type text {
+  text-anchor: end !important;
 }
 
 /* Give the Y-axis price labels a little more breathing room from the first date. */
