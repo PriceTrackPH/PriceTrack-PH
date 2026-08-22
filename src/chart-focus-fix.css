@@ -17,12 +17,15 @@
   box-shadow: none !important;
 }
 
-/* Hide the normal point markers. Only the active/hover point should appear. */
+/* Keep a small solid mint marker permanently visible on every real data point. */
 .report-card .chart-wrap .recharts-area-dots .recharts-dot {
-  opacity: 0 !important;
+  opacity: 1 !important;
+  fill: #13c89a !important;
+  stroke: #13c89a !important;
+  stroke-width: 0 !important;
 }
 
-/* Restore the white-center mint ring only while hovering a real data point. */
+/* Keep the existing white-center mint ring only while hovering a real data point. */
 .report-card .chart-wrap .recharts-active-dot .recharts-dot,
 .report-card .chart-wrap .recharts-active-dot circle {
   opacity: 1 !important;
