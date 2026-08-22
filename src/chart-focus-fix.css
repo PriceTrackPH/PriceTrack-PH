@@ -93,6 +93,12 @@
 /* Browser zoom reduces the CSS viewport width. At the same responsive point as
    the rest of the report, match the old site's stacked full-width actions. */
 @media (max-width: 860px) {
+  /* At zoomed/narrow widths, move the real divider itself farther below the
+     SVG date labels. This is more reliable than transforming SVG text. */
+  .report-card .report-actions-wrap {
+    margin-top: 60px !important;
+  }
+
   .report-card .report-actions {
     width: 100% !important;
     display: flex !important;
@@ -107,14 +113,5 @@
     min-width: 0 !important;
     box-sizing: border-box !important;
     justify-content: center !important;
-  }
-}
-
-/* At extreme browser zoom (such as 500%), the CSS viewport becomes phone-sized.
-   Do not push the X-axis text 20px outside the chart there; keep the labels above
-   the real divider instead of letting the divider run through the date text. */
-@media (max-width: 480px) {
-  .report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick-value {
-    transform: translateY(4px) !important;
   }
 }
