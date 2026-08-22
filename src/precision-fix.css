@@ -117,9 +117,21 @@ html {
   background: #9aa1ab !important;
 }
 
+/* Let long product titles use the full space up to the verdict divider. */
+@media (min-width: 861px) {
+  .report-card .report-top {
+    gap: 24px !important;
+  }
+
+  .report-card .product-details h2 {
+    max-width: none !important;
+  }
+}
+
 /* Final report range-tab text sizing. */
 .report-card .range-tabs button {
-  font-size: 11px !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
 }
 
 .trust-section {
