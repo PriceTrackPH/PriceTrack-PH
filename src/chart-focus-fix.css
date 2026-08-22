@@ -50,6 +50,12 @@
   stroke-width: 2 !important;
 }
 
+/* Increase only the visual gap between the graph baseline and the X-axis dates
+   by 20px, taking the measured gap from about 20px to about 40px. */
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick-value {
+  transform: translateY(20px) !important;
+}
+
 /* Align only the first X-axis date label with the left edge of the plotted area.
    Middle and right labels keep Recharts' normal centered alignment. */
 .report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick:first-of-type text {
@@ -68,11 +74,11 @@
   border-bottom: 0 !important;
 }
 
-/* Keep the divider clearly BELOW Aug 16 / Today. Increase the visual gap from
-   roughly 30px to 40px, then leave 20px between the divider and the buttons. */
+/* Keep the divider in the same visual relationship to the shifted date labels,
+   and leave 20px between the divider and the buttons. */
 .report-card .report-actions-wrap {
   position: relative !important;
-  margin-top: 46px !important;
+  margin-top: 66px !important;
   padding-top: 20px !important;
   border-top: 0 !important;
 }
