@@ -385,8 +385,8 @@ function App() {
           <div className="hero-inner">
             <div className="eyebrow">— &nbsp; INDEPENDENT PRICE TRACKER</div>
             <h1>
-              Know if the Shopee<br />
-              sale is <em>really</em> a sale.
+              Know if the sale<br />
+              is <em>really</em> a sale.
             </h1>
             <p>
               Paste any Shopee product link to see today&apos;s price, its recorded low and high, and
