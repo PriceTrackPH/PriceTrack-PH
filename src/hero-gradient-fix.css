@@ -24,6 +24,7 @@
 /* Final hero search-bar sizing and marketplace-ready link icon. */
 .search-box {
   width: min(900px, 100%) !important;
+  min-height: 65px !important;
 }
 
 .search-box .link-mark {
