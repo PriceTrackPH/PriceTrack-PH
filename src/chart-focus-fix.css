@@ -109,3 +109,12 @@
     justify-content: center !important;
   }
 }
+
+/* At extreme browser zoom (such as 500%), the CSS viewport becomes phone-sized.
+   Do not push the X-axis text 20px outside the chart there; keep the labels above
+   the real divider instead of letting the divider run through the date text. */
+@media (max-width: 480px) {
+  .report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick-value {
+    transform: translateY(4px) !important;
+  }
+}
