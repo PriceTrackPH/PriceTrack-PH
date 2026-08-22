@@ -155,6 +155,10 @@ html[data-theme="dark"] {
   .stats-grid > div {
     height: 100% !important;
     box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
   }
 }
 
