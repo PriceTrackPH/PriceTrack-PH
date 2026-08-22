@@ -10,6 +10,7 @@ import "./report-design.css";
 import "./legacy-sections.css";
 import "./old-ui-exact.css";
 import "./precision-fix.css";
+import "./dark-report-fix.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
