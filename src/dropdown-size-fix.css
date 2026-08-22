@@ -1,8 +1,9 @@
 /* The closed variation picker gets an exact pixel width from App.tsx after measuring
-   the longest rendered variation label for the current product. The menu is separate. */
+   the longest rendered variation label for the current product. Keep a generous
+   minimum width so the selected value never looks cramped. */
 .report-card .variation-picker {
-  min-width: 0 !important;
-  max-width: min(430px, 52vw) !important;
+  min-width: 320px !important;
+  max-width: min(520px, 60vw) !important;
 }
 
 .report-card .variation-picker-button {
@@ -10,16 +11,28 @@
   min-width: 0 !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
-  padding-left: 12px !important;
-  padding-right: 12px !important;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+  gap: 10px !important;
+}
+
+.report-card .variation-picker-button > span:first-child {
+  min-width: 0 !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+.report-card .variation-chevron {
+  flex: 0 0 auto !important;
 }
 
 /* The opened menu sizes from its own option text and scrollbar. It never changes
    the measured width of the closed variation button. */
 .report-card .variation-menu {
   width: max-content !important;
-  min-width: 220px !important;
-  max-width: min(510px, 66vw) !important;
+  min-width: 320px !important;
+  max-width: min(560px, 68vw) !important;
 }
 
 .report-card .variation-option {
@@ -76,6 +89,7 @@ html:not([data-theme="dark"]) .report-card .variation-option.selected small {
   .report-card .variation-picker,
   .report-card .variation-picker-button,
   .report-card .variation-menu {
+    min-width: 0 !important;
     max-width: calc(100vw - 96px) !important;
   }
 }
