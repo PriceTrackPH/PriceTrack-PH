@@ -18,6 +18,26 @@ function formatVisibleVariationLabels(root: ParentNode = document) {
   });
 }
 
+/*
+ * The variation menu lives inside a focus-managed picker in App.tsx. Browsers can
+ * fire blur on the picker button before the option's click handler runs. When that
+ * happens the menu is removed and React never receives the selection click, making
+ * the report appear stuck on the previous variation.
+ *
+ * Keep focus on the picker until React's option onClick runs. The click event still
+ * fires normally, so App.tsx updates selectedVariationId and every derived value
+ * (current price, stock status, stats, observation count and chart) re-renders for
+ * the newly selected variation.
+ */
+function preserveVariationOptionClick(event: MouseEvent) {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  if (!target.closest(".variation-option")) return;
+  event.preventDefault();
+}
+
+document.addEventListener("mousedown", preserveVariationOptionClick, true);
+
 let frame = 0;
 function scheduleFormat() {
   if (frame) return;
