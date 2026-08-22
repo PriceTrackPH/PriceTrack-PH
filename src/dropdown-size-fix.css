@@ -1,0 +1,33 @@
+/* Let the custom variation picker size itself from its content instead of using a fixed width. */
+.report-card .variation-picker {
+  min-width: 0 !important;
+  width: max-content !important;
+  max-width: min(430px, 52vw) !important;
+}
+
+.report-card .variation-picker-button {
+  width: auto !important;
+  max-width: min(430px, 52vw) !important;
+}
+
+/* The open menu follows the longest option, while staying within a sensible viewport limit. */
+.report-card .variation-menu {
+  width: max-content !important;
+  min-width: 100% !important;
+  max-width: min(520px, 70vw) !important;
+}
+
+.report-card .variation-option {
+  width: 100% !important;
+}
+
+@media (max-width: 680px) {
+  .report-card .variation-picker,
+  .report-card .variation-picker-button {
+    max-width: calc(100vw - 96px) !important;
+  }
+
+  .report-card .variation-menu {
+    max-width: calc(100vw - 64px) !important;
+  }
+}
