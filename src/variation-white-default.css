@@ -1,5 +1,4 @@
-/* Keep the variation control compact in both themes. Light mode remains white;
-   dark mode keeps its dark/purple colors but uses the same measured sizing. */
+/* Keep the variation control compact in both themes and use the PriceTrack purple button color. */
 .report-card .variation-picker,
 .report-card .variation-picker-button {
   min-width: 0 !important;
@@ -21,19 +20,20 @@
 }
 
 html:not([data-theme="dark"]) .report-card .variation-picker-button {
-  border: 1px solid #dedee8 !important;
-  background: #ffffff !important;
-  color: #211b5c !important;
+  border: 1px solid #21185f !important;
+  background: #21185f !important;
+  color: #ffffff !important;
   box-shadow: none !important;
 }
 
 html:not([data-theme="dark"]) .report-card .variation-picker-button:hover,
 html:not([data-theme="dark"]) .report-card .variation-picker.open .variation-picker-button,
 html:not([data-theme="dark"]) .report-card .variation-picker-button:focus-visible {
-  border-color: #c9c6d8 !important;
-  background: #ffffff !important;
+  border-color: #2a216d !important;
+  background: #2a216d !important;
+  color: #ffffff !important;
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(33, 24, 95, .05) !important;
+  box-shadow: 0 0 0 2px rgba(33, 24, 95, .12) !important;
 }
 
 html:not([data-theme="dark"]) .report-card .variation-menu {
