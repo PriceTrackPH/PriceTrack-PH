@@ -8,27 +8,30 @@ function formatVariationText(value: string) {
   return value.replace(/\s*[,，]\s*/g, " — ");
 }
 
-function formatVisibleVariationLabels(root: ParentNode = document) {
-  root.querySelectorAll<HTMLElement>(VARIATION_SELECTORS).forEach((element) => {
-    const current = element.textContent;
-    if (!current || (!current.includes(",") && !current.includes("，"))) return;
+/*
+ * Preserve React's DOM structure. Replacing element.textContent collapses React's
+ * separate text nodes into one node, which can make the visible variation label
+ * drift out of sync with selectedVariationId after changing options.
+ */
+function formatTextNodes(element: HTMLElement) {
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
 
-    const formatted = formatVariationText(current);
-    if (formatted !== current) element.textContent = formatted;
-  });
+  while (node) {
+    const current = node.nodeValue;
+    if (current && (current.includes(",") || current.includes("，"))) {
+      const formatted = formatVariationText(current);
+      if (formatted !== current) node.nodeValue = formatted;
+    }
+    node = walker.nextNode();
+  }
 }
 
-/*
- * The variation menu lives inside a focus-managed picker in App.tsx. Browsers can
- * fire blur on the picker button before the option's click handler runs. When that
- * happens the menu is removed and React never receives the selection click, making
- * the report appear stuck on the previous variation.
- *
- * Keep focus on the picker until React's option onClick runs. The click event still
- * fires normally, so App.tsx updates selectedVariationId and every derived value
- * (current price, stock status, stats, observation count and chart) re-renders for
- * the newly selected variation.
- */
+function formatVisibleVariationLabels(root: ParentNode = document) {
+  root.querySelectorAll<HTMLElement>(VARIATION_SELECTORS).forEach(formatTextNodes);
+}
+
+/* Keep focus on the picker until React's option click runs. */
 function preserveVariationOptionClick(event: MouseEvent) {
   const target = event.target;
   if (!(target instanceof Element)) return;
