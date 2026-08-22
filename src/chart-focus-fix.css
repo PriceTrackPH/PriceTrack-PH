@@ -50,9 +50,14 @@
   stroke-width: 2 !important;
 }
 
-/* Keep about 40px of breathing room between the graph and X-axis dates. */
+/* Add the extra space ABOVE the X-axis dates by moving the real X-axis group
+   down 20px. This changes the graph-to-date gap, not the date-to-divider gap. */
+.report-card .chart-wrap .recharts-xAxis {
+  transform: translateY(20px) !important;
+}
+
 .report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick-value {
-  transform: translateY(40px) !important;
+  transform: none !important;
 }
 
 /* Align only the first X-axis date label with the left edge of the plotted area.
@@ -73,8 +78,8 @@
   border-bottom: 0 !important;
 }
 
-/* Preserve the date-to-divider and divider-to-buttons spacing after moving the
-   X-axis dates 20px farther down. */
+/* Keep the date-to-divider spacing at about 20px and the divider-to-buttons gap
+   at 20px after moving the real X-axis down. */
 .report-card .report-actions-wrap {
   width: 100% !important;
   box-sizing: border-box !important;
@@ -93,7 +98,6 @@
 /* Browser zoom reduces the CSS viewport width. At the same responsive point as
    the rest of the report, match the old site's stacked full-width actions. */
 @media (max-width: 860px) {
-  /* Keep the same spacing relationship at zoomed/narrow widths. */
   .report-card .report-actions-wrap {
     margin-top: 80px !important;
   }
