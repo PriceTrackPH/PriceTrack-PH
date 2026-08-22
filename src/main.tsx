@@ -11,6 +11,7 @@ import "./legacy-sections.css";
 import "./old-ui-exact.css";
 import "./precision-fix.css";
 import "./dark-report-fix.css";
+import "./title-fit";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
