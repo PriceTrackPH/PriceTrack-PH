@@ -215,10 +215,12 @@ html[data-theme="dark"] {
 
 .range-tabs button {
   min-width: 34px !important;
+  height: 25px !important;
   min-height: 25px !important;
-  padding: 5px 7px !important;
+  padding: 0 7px !important;
+  line-height: 25px !important;
   color: var(--report-muted) !important;
-  font-size: 12px !important;
+  font-size: 10px !important;
 }
 
 .range-tabs button.active {
