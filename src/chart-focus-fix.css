@@ -55,15 +55,28 @@
   transform: translateX(-6px) !important;
 }
 
-/* Put the divider after the chart container so it sits below the X-axis dates. */
+/* Do not draw a divider on the chart itself; that places it above the date labels. */
 .report-card .chart-wrap {
-  padding-bottom: 12px !important;
-  border-bottom: 1px solid var(--report-border) !important;
+  padding-bottom: 0 !important;
+  border-bottom: 0 !important;
 }
 
-/* Remove the old actions-top divider so there is only one line. */
+/* Draw the separator from the actions block instead. The actions block is after
+   the chart in the DOM, and this spacing puts the line below Aug 16 / Today. */
 .report-card .report-actions-wrap {
-  margin-top: 0 !important;
+  position: relative !important;
+  margin-top: 16px !important;
   padding-top: 14px !important;
   border-top: 0 !important;
+}
+
+.report-card .report-actions-wrap::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--report-border);
+  pointer-events: none;
 }
