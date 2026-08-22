@@ -237,15 +237,21 @@ html[data-theme="dark"] .report-card .variation-control select option {
   color: #ebe7dc;
 }
 
-/* In dark mode, out-of-stock status uses white only — no purple, green, or orange accent. */
+/* Match out-of-stock status accents to the LIVE DATABASE mint in dark mode. */
 html[data-theme="dark"] .report-card .out-of-stock-badge {
-  border-color: rgba(255, 255, 255, .28) !important;
-  background: transparent !important;
-  color: #ffffff !important;
+  border-color: rgba(0, 248, 185, .32) !important;
+  background: rgba(0, 248, 185, .08) !important;
+  color: #00F8B9 !important;
 }
 
-html[data-theme="dark"] .report-card .price-verdict.out-of-stock > span,
-html[data-theme="dark"] .report-card .price-verdict.out-of-stock > strong,
+html[data-theme="dark"] .report-card .price-verdict.out-of-stock > span {
+  color: #00F8B9 !important;
+}
+
+html[data-theme="dark"] .report-card .price-verdict.out-of-stock > strong {
+  color: #ebe7dc !important;
+}
+
 html[data-theme="dark"] .report-card .price-verdict.out-of-stock > p {
-  color: #ffffff !important;
+  color: #aaa69c !important;
 }
