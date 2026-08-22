@@ -44,8 +44,8 @@ html[data-theme="dark"] {
 .product-image,
 .product-image-fallback,
 .sample-image {
-  width: 124px !important;
-  height: 124px !important;
+  width: 150px !important;
+  height: 150px !important;
   border-radius: 10px !important;
 }
 
