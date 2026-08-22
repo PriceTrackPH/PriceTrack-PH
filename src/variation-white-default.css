@@ -1,28 +1,30 @@
-/* Restore the original light/white variation control appearance without changing behavior. */
-html:not([data-theme="dark"]) .report-card .variation-picker-button {
-  border: 1px solid #dedee8 !important;
-  background: #ffffff !important;
-  color: #211b5c !important;
-  box-shadow: none !important;
-  width: max-content !important;
+/* Keep the variation control compact in both themes. Light mode remains white;
+   dark mode keeps its dark/purple colors but uses the same measured sizing. */
+.report-card .variation-picker,
+.report-card .variation-picker-button {
   min-width: 0 !important;
+  width: max-content !important;
   max-width: min(430px, 52vw) !important;
+}
+
+.report-card .variation-picker-button {
   padding-left: 5px !important;
   padding-right: 5px !important;
   gap: 0 !important;
   box-sizing: border-box !important;
 }
 
-html:not([data-theme="dark"]) .report-card .variation-picker {
-  min-width: 0 !important;
-  width: max-content !important;
-  max-width: min(430px, 52vw) !important;
-}
-
-html:not([data-theme="dark"]) .report-card .variation-picker-button > span:first-child {
+.report-card .variation-picker-button > span:first-child {
   overflow: visible !important;
   text-overflow: clip !important;
   white-space: nowrap !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-picker-button {
+  border: 1px solid #dedee8 !important;
+  background: #ffffff !important;
+  color: #211b5c !important;
+  box-shadow: none !important;
 }
 
 html:not([data-theme="dark"]) .report-card .variation-picker-button:hover,
