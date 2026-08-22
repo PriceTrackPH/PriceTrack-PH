@@ -5,7 +5,7 @@ function formatPeso(value) {
     : "";
 }
 
-const POPUP_SETTING_KEY = "recordingPopupEnabled";
+const POPUP_SETTING_KEY = "notificationsEnabled";
 const recentNotifications = new Map();
 
 function notificationKey(record) {
