@@ -55,7 +55,15 @@
   transform: translateX(-6px) !important;
 }
 
-/* Put the divider clearly below the X-axis date labels, not through them. */
+/* Put the divider after the chart container so it sits below the X-axis dates. */
+.report-card .chart-wrap {
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid var(--report-border) !important;
+}
+
+/* Remove the old actions-top divider so there is only one line. */
 .report-card .report-actions-wrap {
-  margin-top: 18px !important;
+  margin-top: 0 !important;
+  padding-top: 14px !important;
+  border-top: 0 !important;
 }
