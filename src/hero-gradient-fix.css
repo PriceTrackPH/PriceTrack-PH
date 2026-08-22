@@ -20,3 +20,24 @@
 .trust-row {
   font-size: 13px !important;
 }
+
+/* Final hero search-bar sizing and marketplace-ready link icon. */
+.search-box {
+  width: min(800px, 100%) !important;
+}
+
+.search-box .link-mark {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  flex: 0 0 22px !important;
+  border: 1px solid #d9d8e5 !important;
+  border-radius: 50% !important;
+  color: #77778c !important;
+  background: #ffffff !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  transform: none !important;
+}
