@@ -23,7 +23,7 @@
 
 /* Final hero search-bar sizing and marketplace-ready link icon. */
 .search-box {
-  width: min(800px, 100%) !important;
+  width: min(900px, 100%) !important;
 }
 
 .search-box .link-mark {
