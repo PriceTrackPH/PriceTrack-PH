@@ -17,18 +17,21 @@
   box-shadow: none !important;
 }
 
-/* Keep a small solid mint marker permanently visible on every real data point.
-   Target the generated Recharts dot directly; wrapper class names vary by version. */
+/* Permanent marker on every real data point. Force the SVG radius here so the
+   marker stays visibly circular even if Recharts emits a smaller r attribute. */
+.report-card .chart-wrap circle.recharts-dot,
 .report-card .chart-wrap .recharts-dot {
+  r: 4px !important;
   opacity: 1 !important;
   fill: #13c89a !important;
   stroke: #13c89a !important;
   stroke-width: 0 !important;
 }
 
-/* Keep the existing white-center mint ring only while hovering a real data point. */
-.report-card .chart-wrap .recharts-active-dot .recharts-dot,
-.report-card .chart-wrap .recharts-active-dot circle {
+/* Keep the existing hover marker unchanged: larger white-center mint ring. */
+.report-card .chart-wrap .recharts-active-dot circle,
+.report-card .chart-wrap .recharts-active-dot .recharts-dot {
+  r: 5px !important;
   opacity: 1 !important;
   fill: #ffffff !important;
   stroke: #13c89a !important;
