@@ -1,5 +1,5 @@
 (() => {
-  const POPUP_SETTING_KEY = "recordingPopupEnabled";
+  const POPUP_SETTING_KEY = "notificationsEnabled";
   let lastToastKey = "";
 
   function formatPeso(value) {
