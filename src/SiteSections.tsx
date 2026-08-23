@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import gcashQr from "./assets/donation-gcash-qr.png";
-import mayaQr from "./assets/donation-maya-qr.png";
+import gcashQr from "./assets/donation-gcash-qr.jpg";
+import mayaQr from "./assets/donation-maya-qr.jpg";
 import bankQr from "./assets/donation-bank-qr.png";
 
 function SiteSections() {
