@@ -1,4 +1,25 @@
+import { useEffect, useState } from "react";
+
 function SiteSections() {
+  const [donationOpen, setDonationOpen] = useState(false);
+
+  useEffect(() => {
+    if (!donationOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDonationOpen(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [donationOpen]);
+
   return (
     <>
       <section className="extension-section" id="extension">
@@ -72,9 +93,53 @@ function SiteSections() {
             <h3>Support independent price tracking.</h3>
             <p>Donations help pay for daily price checks, storage, and alerts. All core history remains free.</p>
           </div>
-          <button type="button">♡ Donate to PriceTrack PH</button>
+          <button type="button" onClick={() => setDonationOpen(true)}>♡ Donate to PriceTrack PH</button>
         </div>
       </section>
+
+      {donationOpen && (
+        <div
+          className="donation-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setDonationOpen(false);
+          }}
+        >
+          <section className="donation-modal" role="dialog" aria-modal="true" aria-labelledby="donation-title">
+            <button
+              className="donation-modal-close"
+              type="button"
+              aria-label="Close donation window"
+              onClick={() => setDonationOpen(false)}
+            >
+              ×
+            </button>
+
+            <div className="donation-modal-heading">
+              <div className="section-label">SUPPORT PRICETRACK PH</div>
+              <h3 id="donation-title">Choose a QR code to donate.</h3>
+              <p>Scan the option that works best for you.</p>
+            </div>
+
+            <div className="donation-qr-grid">
+              {[
+                { label: "GCash", code: "QR 1" },
+                { label: "Maya", code: "QR 2" },
+                { label: "Bank / QR Ph", code: "QR 3" },
+              ].map((item) => (
+                <div className="donation-qr-card" key={item.label}>
+                  <div className="donation-qr-placeholder" aria-label={`${item.label} QR code placeholder`}>
+                    {item.code}
+                  </div>
+                  <strong>{item.label}</strong>
+                </div>
+              ))}
+            </div>
+
+            <p className="donation-thanks">Thank you for helping keep PriceTrack PH free.</p>
+          </section>
+        </div>
+      )}
 
       <footer className="full-footer">
         <div className="section-shell">
