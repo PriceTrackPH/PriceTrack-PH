@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import gcashQr from "./assets/donation-gcash-qr.png";
+import mayaQr from "./assets/donation-maya-qr.png";
+import bankQr from "./assets/donation-bank-qr.png";
 
 function SiteSections() {
   const [donationOpen, setDonationOpen] = useState(false);
@@ -123,14 +126,12 @@ function SiteSections() {
 
             <div className="donation-qr-grid">
               {[
-                { label: "GCash", code: "QR 1" },
-                { label: "Maya", code: "QR 2" },
-                { label: "Bank / QR Ph", code: "QR 3" },
+                { label: "GCash", src: gcashQr },
+                { label: "Maya", src: mayaQr },
+                { label: "Bank / QR Ph", src: bankQr },
               ].map((item) => (
                 <div className="donation-qr-card" key={item.label}>
-                  <div className="donation-qr-placeholder" aria-label={`${item.label} QR code placeholder`}>
-                    {item.code}
-                  </div>
+                  <img className="donation-qr-image" src={item.src} alt={`${item.label} donation QR code`} />
                   <strong>{item.label}</strong>
                 </div>
               ))}
