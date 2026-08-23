@@ -97,10 +97,11 @@ body,
   padding: 3px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--surface-muted);
+  background: color-mix(in srgb, var(--surface-muted) 82%, transparent);
   color: var(--muted);
   cursor: pointer;
   font: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18);
 }
 
 .theme-switch span {
@@ -113,14 +114,40 @@ body,
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
-  transition: background .16s ease, color .16s ease, box-shadow .16s ease;
+  color: var(--muted);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: background .16s ease, color .16s ease, box-shadow .16s ease, opacity .16s ease;
 }
 
 .theme-switch[data-theme-current="light"] [data-theme-label="light"],
 .theme-switch[data-theme-current="dark"] [data-theme-label="dark"] {
-  background: var(--surface);
+  background: rgba(19, 200, 154, .09);
   color: var(--text);
-  box-shadow: 0 1px 5px rgba(0, 0, 0, .12);
+  box-shadow:
+    inset 0 0 0 1px #13c89a,
+    0 0 8px rgba(19, 200, 154, .10);
+}
+
+.theme-switch[data-theme-current="light"] [data-theme-label="dark"],
+.theme-switch[data-theme-current="dark"] [data-theme-label="light"] {
+  color: var(--muted);
+  opacity: .78;
+}
+
+html[data-theme="dark"] .theme-switch {
+  background: #1b1f20;
+  border-color: #3a3f40;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .025);
+}
+
+html[data-theme="dark"] .theme-switch[data-theme-current="dark"] [data-theme-label="dark"],
+html[data-theme="dark"] .theme-switch[data-theme-current="light"] [data-theme-label="light"] {
+  background: rgba(19, 200, 154, .075);
+  color: #f4f3ef;
+  box-shadow:
+    inset 0 0 0 1px #13c89a,
+    0 0 9px rgba(19, 200, 154, .11);
 }
 
 .theme-switch:focus-visible {
