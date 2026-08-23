@@ -1,0 +1,76 @@
+/* Keep the variation control compact in both themes and use the PriceTrack purple button color. */
+.report-card .variation-picker,
+.report-card .variation-picker-button {
+  min-width: 0 !important;
+  width: max-content !important;
+  max-width: min(430px, 52vw) !important;
+}
+
+.report-card .variation-picker-button {
+  padding-left: 5px !important;
+  padding-right: 5px !important;
+  gap: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.report-card .variation-picker-button > span:first-child {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+/* Only the opened dropdown width follows its content. Keep every other style unchanged. */
+.report-card .variation-menu {
+  width: max-content !important;
+  min-width: 100% !important;
+  max-width: min(510px, 66vw) !important;
+}
+
+.report-card .variation-option-name {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-picker-button {
+  border: 1px solid #21185f !important;
+  background: #21185f !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-picker-button:hover,
+html:not([data-theme="dark"]) .report-card .variation-picker.open .variation-picker-button,
+html:not([data-theme="dark"]) .report-card .variation-picker-button:focus-visible {
+  border-color: #2a216d !important;
+  background: #2a216d !important;
+  color: #ffffff !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(33, 24, 95, .12) !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-menu {
+  border-color: #dedee8 !important;
+  background: #ffffff !important;
+  box-shadow: 0 14px 34px rgba(33, 24, 95, .14) !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option {
+  color: #211b5c !important;
+  background: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option:hover,
+html:not([data-theme="dark"]) .report-card .variation-option:focus-visible {
+  background: #f7f7fb !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option.selected {
+  background: #f0eff6 !important;
+  color: #211b5c !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option small,
+html:not([data-theme="dark"]) .report-card .variation-option.selected small {
+  color: #0d9c73 !important;
+}

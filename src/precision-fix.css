@@ -1,0 +1,323 @@
+/* Final old-live-site alignment: only support spacing and footer typography. */
+
+/* Keep the site header frozen at the top while the page scrolls. */
+.site-header {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 9999 !important;
+}
+
+body {
+  padding-top: 58px !important;
+}
+
+html {
+  scroll-padding-top: 70px;
+}
+
+/* Final extension typography override. Loaded after fidelity.css so these sizes win. */
+.extension-section .section-label {
+  color: #32efc2 !important;
+}
+
+.extension-section .extension-copy p {
+  font-size: 18px !important;
+}
+
+.extension-section .steps-list li {
+  font-size: 16px !important;
+}
+
+.extension-section .download-beta {
+  height: 50px !important;
+  min-height: 50px !important;
+  box-sizing: border-box !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .22) !important;
+}
+
+.extension-section .download-beta span {
+  color: #ffffff !important;
+}
+
+/* Extension preview brand-color cleanup. */
+.extension-section .extension-grid {
+  grid-template-columns: minmax(0, 1fr) 535px !important;
+}
+
+.extension-section .extension-preview {
+  width: 535px !important;
+  height: 345px !important;
+  min-height: 345px !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  justify-self: end !important;
+  background: #f3f4f1 !important;
+}
+
+.extension-section .preview-card {
+  width: 340px !important;
+  height: 250px !important;
+  box-sizing: border-box !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+  background: #ffffff !important;
+  color: #201b57 !important;
+  box-shadow: 0 16px 36px rgba(32, 27, 87, .18) !important;
+}
+
+.extension-section .preview-card > strong {
+  color: #201b57 !important;
+}
+
+.extension-section .preview-card > strong em {
+  color: #32efc2 !important;
+}
+
+.extension-section .preview-card .detected-box {
+  height: 80px !important;
+  min-height: 80px !important;
+  box-sizing: border-box !important;
+  background: #e9fffa !important;
+  border-color: #32efc2 !important;
+  color: #201b57 !important;
+}
+
+.extension-section .preview-card .detected-box b {
+  color: #32efc2 !important;
+  font-size: 20px !important;
+}
+
+.extension-section .preview-card .detected-box strong {
+  font-size: 13px !important;
+}
+
+.extension-section .preview-card button {
+  height: 50px !important;
+  min-height: 50px !important;
+  box-sizing: border-box !important;
+  background: #201b57 !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+}
+
+.extension-section .preview-card > small,
+.extension-section .preview-card .detected-box small {
+  color: #7b8190 !important;
+  font-size: 10px !important;
+}
+
+.extension-section .browser-dots span {
+  background: #9aa1ab !important;
+}
+
+/* Use the real Shopee PNG asset in the product-report seller line. */
+.report-card img.shopee-mark {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  flex: 0 0 18px !important;
+  display: block !important;
+  object-fit: contain !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+}
+
+/* Let long product titles use the full space up to the verdict divider. */
+@media (min-width: 861px) {
+  .report-card .report-top {
+    gap: 24px !important;
+  }
+
+  .report-card .product-details h2 {
+    max-width: none !important;
+  }
+}
+
+/* Final report range-tab text sizing. */
+.report-card .range-tabs button {
+  font-size: 9px !important;
+  font-weight: 900 !important;
+}
+
+.trust-section {
+  padding-bottom: 0 !important;
+}
+
+.support-section {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 120px 0 44px;
+  background: #ffffff;
+}
+
+.support-section .support-card {
+  width: min(1160px, calc(100% - 40px)) !important;
+  min-height: 219px !important;
+  margin: 0 auto !important;
+  padding: 52px 60px !important;
+}
+
+.support-section .support-card p {
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+}
+
+.support-section .support-card button {
+  min-width: 274px !important;
+  min-height: 60px !important;
+  padding: 0 26px !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+}
+
+.full-footer {
+  margin-top: 0 !important;
+  height: 210px !important;
+  min-height: 210px !important;
+  box-sizing: border-box !important;
+  padding: 50px 0 18px !important;
+}
+
+.full-footer > .section-shell {
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  position: relative !important;
+}
+
+.footer-main {
+  align-items: start !important;
+}
+
+.footer-main strong {
+  font-size: 20px !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+}
+
+.footer-main strong span {
+  font-weight: 800 !important;
+}
+
+.footer-main small {
+  margin-top: 7px !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+.footer-main a {
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+}
+
+.footer-disclaimer {
+  position: absolute !important;
+  top: 50% !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin: 0 !important;
+  padding-top: 18px !important;
+  font-size: 11px !important;
+  line-height: 1.45 !important;
+}
+
+html[data-theme="dark"] .support-section {
+  background: #171a1a;
+}
+
+@media (max-width: 860px) {
+  .extension-section .extension-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .extension-section .extension-preview {
+    width: min(535px, 100%) !important;
+    height: auto !important;
+    min-height: 345px !important;
+    justify-self: center !important;
+  }
+
+  .extension-section .preview-card {
+    position: static !important;
+    transform: none !important;
+    margin: 28px auto 0 !important;
+  }
+}
+
+@media (max-width: 820px) {
+  body {
+    padding-top: 64px !important;
+  }
+
+  html {
+    scroll-padding-top: 76px;
+  }
+}
+
+@media (max-width: 760px) {
+  .support-section {
+    padding: 72px 0 32px;
+  }
+
+  .support-section .support-card {
+    width: min(100% - 28px, 1160px) !important;
+    min-height: 0 !important;
+    padding: 30px 24px !important;
+  }
+
+  .support-section .support-card p {
+    font-size: 15px !important;
+  }
+
+  .support-section .support-card button {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 52px !important;
+    font-size: 19px !important;
+  }
+
+  .full-footer {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 24px 0 !important;
+  }
+
+  .full-footer > .section-shell {
+    height: auto !important;
+    min-height: 0 !important;
+    position: static !important;
+  }
+
+  .footer-main {
+    align-items: start !important;
+  }
+
+  .footer-main strong {
+    font-size: 18px !important;
+  }
+
+  .footer-main small {
+    font-size: 12px !important;
+  }
+
+  .footer-main a {
+    font-size: 13px !important;
+  }
+
+  .footer-disclaimer {
+    position: static !important;
+    margin-top: 26px !important;
+    padding-top: 14px !important;
+    font-size: 10px !important;
+  }
+}

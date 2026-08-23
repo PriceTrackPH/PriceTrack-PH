@@ -1,0 +1,154 @@
+/* Hide only browser/Recharts focus outlines inside the price-history chart.
+   This is intentionally scoped to .chart-wrap so buttons, tabs, inputs, and
+   every other focus style on the site remain unchanged. */
+.report-card .chart-wrap,
+.report-card .chart-wrap *,
+.report-card .chart-wrap:focus,
+.report-card .chart-wrap:focus-visible,
+.report-card .chart-wrap *:focus,
+.report-card .chart-wrap *:focus-visible,
+.report-card .chart-wrap [tabindex]:focus,
+.report-card .chart-wrap [tabindex]:focus-visible,
+.report-card .chart-wrap .recharts-wrapper:focus,
+.report-card .chart-wrap .recharts-wrapper:focus-visible,
+.report-card .chart-wrap .recharts-surface:focus,
+.report-card .chart-wrap .recharts-surface:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Fade only the filled area under the price line. The line and data-point
+   circles are separate Recharts elements, so this mask does not change them. */
+.report-card .chart-wrap .recharts-area-area {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, .72) 45%,
+    rgba(0, 0, 0, 0) 100%
+  ) !important;
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, .72) 45%,
+    rgba(0, 0, 0, 0) 100%
+  ) !important;
+  -webkit-mask-size: 100% 100% !important;
+  mask-size: 100% 100% !important;
+  -webkit-mask-repeat: no-repeat !important;
+  mask-repeat: no-repeat !important;
+}
+
+/* Permanent marker on every real data point: small, solid, and the exact same
+   color as the graph line. Recharts can inherit the Area fillOpacity, so force
+   the point layer and circles back to full opacity. */
+.report-card .chart-wrap .recharts-area-dots,
+.report-card .chart-wrap .recharts-area-dots circle,
+.report-card .chart-wrap circle.recharts-dot,
+.report-card .chart-wrap .recharts-dot {
+  opacity: 1 !important;
+  fill-opacity: 1 !important;
+  stroke-opacity: 1 !important;
+}
+
+.report-card .chart-wrap circle.recharts-dot,
+.report-card .chart-wrap .recharts-area-dots circle,
+.report-card .chart-wrap .recharts-dot {
+  r: 4px !important;
+  fill: #13c89a !important;
+  stroke: none !important;
+  stroke-width: 0 !important;
+}
+
+/* Keep the existing hover marker unchanged: larger white-center mint ring. */
+.report-card .chart-wrap .recharts-active-dot circle,
+.report-card .chart-wrap .recharts-active-dot .recharts-dot {
+  r: 5px !important;
+  opacity: 1 !important;
+  fill-opacity: 1 !important;
+  stroke-opacity: 1 !important;
+  fill: #ffffff !important;
+  stroke: #13c89a !important;
+  stroke-width: 2 !important;
+}
+
+/* Keep the graph-to-date gap at 20px by moving the actual Recharts tick groups. */
+.report-card .chart-wrap .recharts-xAxis {
+  transform: none !important;
+}
+
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick {
+  transform: translateY(20px) !important;
+}
+
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-tick-value {
+  transform: none !important;
+}
+
+/* Recharts centers edge labels on the first/last data coordinates. Shift each
+   edge label by half its own rendered width so the visible text stays inside
+   the plotted area at every browser zoom level. */
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-ticks > g:first-child text {
+  text-anchor: middle !important;
+  transform-box: fill-box !important;
+  transform-origin: center !important;
+  transform: translateX(50%) !important;
+}
+
+.report-card .chart-wrap .recharts-xAxis .recharts-cartesian-axis-ticks > g:last-child text {
+  text-anchor: middle !important;
+  transform-box: fill-box !important;
+  transform-origin: center !important;
+  transform: translateX(-50%) !important;
+}
+
+/* Give the Y-axis price labels a little more breathing room from the first date. */
+.report-card .chart-wrap .recharts-yAxis .recharts-cartesian-axis-tick-value {
+  transform: translateX(-6px) !important;
+}
+
+/* Do not draw a divider on the chart itself; the X-axis labels extend slightly
+   below the responsive SVG container. */
+.report-card .chart-wrap {
+  padding-bottom: 0 !important;
+  border-bottom: 0 !important;
+}
+
+/* Keep the date-to-divider gap at about 20px and divider-to-buttons at 20px. */
+.report-card .report-actions-wrap {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  margin-top: 46px !important;
+  padding-top: 20px !important;
+  border-top: 1px solid var(--report-border) !important;
+}
+
+/* Remove the old floating pseudo-divider completely. */
+.report-card .report-actions-wrap::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Browser zoom reduces the CSS viewport width. At the same responsive point as
+   the rest of the report, match the old site's stacked full-width actions. */
+@media (max-width: 860px) {
+  .report-card .report-actions-wrap {
+    margin-top: 60px !important;
+  }
+
+  .report-card .report-actions {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .report-card .report-actions .track-price-button,
+  .report-card .report-actions .shopee-outbound-button {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    justify-content: center !important;
+  }
+}

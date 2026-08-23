@@ -1,0 +1,96 @@
+/* Dark-mode readability fix scoped only to the database product report card. */
+html[data-theme="dark"] .report-section > .section-label,
+html[data-theme="dark"] .report-card .price-verdict > span {
+  color: #00F8B9 !important;
+}
+
+html[data-theme="dark"] .report-card,
+html[data-theme="dark"] .report-card .report-top,
+html[data-theme="dark"] .report-card .history-panel {
+  background: #171a1a !important;
+}
+
+html[data-theme="dark"] .report-card {
+  border-color: #35383a !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .22) !important;
+}
+
+html[data-theme="dark"] .report-card .product-details h2,
+html[data-theme="dark"] .report-card .current-price-row strong,
+html[data-theme="dark"] .report-card .price-verdict strong,
+html[data-theme="dark"] .report-card .stats-grid strong,
+html[data-theme="dark"] .report-card .history-heading h3,
+html[data-theme="dark"] .report-card .track-price-button {
+  color: #ebe7dc !important;
+}
+
+html[data-theme="dark"] .report-card .stats-grid .green-value {
+  color: #00F8B9 !important;
+}
+
+/* Match the LIVE DATABASE label to the report mint and use 7px vertical padding. */
+.report-card .live-badge {
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+}
+
+html[data-theme="dark"] .report-card .live-badge {
+  color: #00F8B9 !important;
+}
+
+html[data-theme="dark"] .report-card .market-line,
+html[data-theme="dark"] .report-card .variation-line,
+html[data-theme="dark"] .report-card .variation-control,
+html[data-theme="dark"] .report-card .product-details > p,
+html[data-theme="dark"] .report-card .price-verdict p,
+html[data-theme="dark"] .report-card .stats-grid span,
+html[data-theme="dark"] .report-card .history-heading p {
+  color: #aaa69c !important;
+}
+
+html[data-theme="dark"] .report-card .stats-grid small,
+html[data-theme="dark"] .report-card .outbound-disclosure {
+  color: #85827a !important;
+}
+
+html[data-theme="dark"] .report-card .stats-grid,
+html[data-theme="dark"] .report-card .stats-grid > div + div,
+html[data-theme="dark"] .report-card .price-verdict,
+html[data-theme="dark"] .report-card .report-actions-wrap {
+  border-color: #35383a !important;
+}
+
+html[data-theme="dark"] .report-card .stats-grid > div {
+  background: #1c1c17 !important;
+}
+
+html[data-theme="dark"] .report-card .variation-control select,
+html[data-theme="dark"] .report-card .range-tabs button.active,
+html[data-theme="dark"] .report-card .track-price-button {
+  background: #1b1e1f !important;
+  border-color: #35383a !important;
+  color: #ebe7dc !important;
+}
+
+html[data-theme="dark"] .report-card .range-tabs {
+  background: #242624 !important;
+}
+
+html[data-theme="dark"] .report-card .range-tabs button {
+  color: #aaa69c !important;
+}
+
+html[data-theme="dark"] .report-card .recharts-cartesian-grid line {
+  stroke: #333638 !important;
+}
+
+html[data-theme="dark"] .report-card .recharts-cartesian-axis-tick-value,
+html[data-theme="dark"] .report-card .recharts-text {
+  fill: #aaa69c !important;
+}
+
+html[data-theme="dark"] .report-card .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: #202425 !important;
+  border-color: #3a3f40 !important;
+  color: #ebe7dc !important;
+}

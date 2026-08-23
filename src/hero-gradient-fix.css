@@ -1,0 +1,439 @@
+/* Final hero background match to the reference site. */
+.hero-band {
+  background:
+    radial-gradient(
+      ellipse 24% 145% at 82.5% 50%,
+      rgba(111, 255, 225, .46) 0%,
+      rgba(111, 255, 225, .46) 12%,
+      rgba(111, 255, 225, 0) 100%
+    ),
+    linear-gradient(
+      90deg,
+      #f2f2ff 0%,
+      #fbfbff 58%,
+      #ffffff 68%,
+      #ffffff 100%
+    ) !important;
+}
+
+/* Final hero headline size: +1px from the previous desktop range. */
+.hero-inner h1 {
+  font-size: clamp(53px, 5.15vw, 73px) !important;
+}
+
+/* Match the reference eyebrow with a real mint line before the label. */
+.hero-inner .eyebrow {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+}
+
+.hero-inner .eyebrow::before {
+  content: "";
+  width: 24px !important;
+  height: 2px !important;
+  flex: 0 0 24px !important;
+  border-radius: 999px !important;
+  background: #13c89a !important;
+}
+
+.hero-inner .eyebrow::after {
+  content: "INDEPENDENT PRICE TRACKER";
+  color: #0aa57f !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  letter-spacing: .16em !important;
+  line-height: 1 !important;
+}
+
+/* Final hero trust-row text size. */
+.trust-row {
+  font-size: 13px !important;
+}
+
+/* Final hero description text size. */
+.hero-inner > p {
+  font-size: 19px !important;
+}
+
+/* Final hero search-bar sizing and marketplace-ready link icon. */
+.search-box {
+  width: min(900px, 100%) !important;
+  height: 70px !important;
+  min-height: 70px !important;
+}
+
+.search-box button {
+  height: 56px !important;
+  min-height: 56px !important;
+  min-width: 180px !important;
+  padding: 0 24px !important;
+  border-radius: 9px !important;
+  font-size: 17px !important;
+}
+
+/* Keep the text field visually clean while typing/focused. */
+.search-box input,
+.search-box input:focus,
+.search-box input:focus-visible {
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  font-size: 17px !important;
+}
+
+.search-box .link-mark {
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  display: inline-block !important;
+  flex: 0 0 auto !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #77778c !important;
+  background: transparent !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  transform: none !important;
+}
+
+/* Use the PriceTrack primary color for marketplace outbound actions. */
+.shopee-outbound-button {
+  background: #21185f !important;
+  border: 1px solid #4b4388 !important;
+  color: #ffffff !important;
+}
+
+.shopee-outbound-button:hover {
+  border-color: #625aa0 !important;
+  filter: brightness(1.08) !important;
+}
+
+/* Keep variation controls visually integrated with the report card. */
+.report-card .variation-control select {
+  min-height: 30px !important;
+  padding: 4px 30px 4px 10px !important;
+  border: 1px solid #e2e1eb !important;
+  border-radius: 7px !important;
+  outline: none !important;
+  background: #f8f8fb !important;
+  color: #211b5c !important;
+  box-shadow: none !important;
+}
+
+.report-card .variation-control select:hover {
+  border-color: #d5d3df !important;
+  background: #fbfbfd !important;
+}
+
+.report-card .variation-control select:focus,
+.report-card .variation-control select:focus-visible {
+  border-color: #c9c6d8 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(33, 24, 95, .05) !important;
+}
+
+.report-card .variation-control select option {
+  background: #ffffff;
+  color: #211b5c;
+}
+
+/* Branded custom variation picker so the open menu matches PriceTrack colors. */
+.report-card .variation-control {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  overflow: visible !important;
+}
+
+.report-card .variation-label {
+  flex: 0 0 auto;
+}
+
+.report-card .variation-picker {
+  position: relative;
+  display: inline-block;
+  min-width: 260px;
+  max-width: min(430px, 52vw);
+  z-index: 60;
+}
+
+.report-card .variation-picker-button {
+  width: 100%;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 5px 12px;
+  border: 1px solid #d9d3f7;
+  border-radius: 7px;
+  background: #f2efff;
+  color: #21185f;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.report-card .variation-picker-button:hover,
+.report-card .variation-picker.open .variation-picker-button,
+.report-card .variation-picker-button:focus-visible {
+  border-color: #13c89a;
+  background: #f7f5ff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(19, 200, 154, .12);
+}
+
+.report-card .variation-picker-button > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* No green arrows/checkmarks inside the variation picker. */
+.report-card .variation-chevron,
+.report-card .variation-check {
+  display: none !important;
+}
+
+.report-card .variation-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: max(100%, 300px);
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid #d9d3f7;
+  border-radius: 9px;
+  background: #fbfaff;
+  box-shadow: 0 14px 34px rgba(33, 24, 95, .18);
+  z-index: 100;
+}
+
+.report-card .variation-option {
+  width: 100%;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #21185f;
+  font-size: 11px;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+
+.report-card .variation-option:hover,
+.report-card .variation-option:focus-visible {
+  background: rgba(19, 200, 154, .12);
+  outline: none;
+}
+
+.report-card .variation-option.selected {
+  background: #21185f;
+  color: #ffffff;
+}
+
+.report-card .variation-option-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-card .variation-option small {
+  color: #0d9c73;
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.report-card .variation-option.selected small {
+  color: #8cf1d2;
+}
+
+/* Let the custom variation menu float over the stats row instead of being clipped. */
+@media (min-width: 861px) {
+  .report-card .report-top {
+    position: relative !important;
+    z-index: 4 !important;
+    overflow: visible !important;
+  }
+
+  .report-card .product-summary,
+  .report-card .product-details {
+    overflow: visible !important;
+  }
+
+  .report-card .stats-grid {
+    position: relative !important;
+    z-index: 1 !important;
+  }
+}
+
+/* Match out-of-stock status accents to the LIVE DATABASE mint in light mode. */
+.report-card .out-of-stock-badge {
+  border: 1px solid rgba(13, 156, 115, .18) !important;
+  background: #d8f6eb !important;
+  color: #0d9c73 !important;
+}
+
+.report-card .price-verdict.out-of-stock > span {
+  color: #0d9c73 !important;
+}
+
+.report-card .history-heading p {
+  white-space: normal !important;
+}
+
+/* Dark mode: keep the header readable and make the entire hero dark, including the left side. */
+html[data-theme="dark"] .site-header {
+  background: rgba(23, 26, 26, .97) !important;
+  border-bottom-color: #303435 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .site-header .brand {
+  color: #ebe8df !important;
+}
+
+html[data-theme="dark"] .site-header .brand span {
+  color: #32efc2 !important;
+}
+
+html[data-theme="dark"] .site-header .site-nav a {
+  color: #aaa69c !important;
+}
+
+html[data-theme="dark"] .site-header .site-nav a:hover {
+  color: #32efc2 !important;
+}
+
+html[data-theme="dark"] .hero-band {
+  background:
+    radial-gradient(
+      ellipse 34% 150% at 82% 50%,
+      rgba(0, 123, 98, .62) 0%,
+      rgba(0, 100, 80, .34) 34%,
+      rgba(0, 100, 80, 0) 100%
+    ),
+    linear-gradient(
+      90deg,
+      #171a1a 0%,
+      #171a1a 57%,
+      #14342f 72%,
+      #0a5144 100%
+    ) !important;
+  border-bottom-color: #2f3435 !important;
+}
+
+html[data-theme="dark"] .hero-inner h1 {
+  color: #dedbd3 !important;
+}
+
+html[data-theme="dark"] .hero-inner h1 em {
+  color: #32efc2 !important;
+}
+
+html[data-theme="dark"] .hero-inner > p,
+html[data-theme="dark"] .trust-row {
+  color: #aaa69c !important;
+}
+
+html[data-theme="dark"] .hero-inner .eyebrow::before {
+  background: #32efc2 !important;
+}
+
+html[data-theme="dark"] .hero-inner .eyebrow::after {
+  color: #32efc2 !important;
+}
+
+html[data-theme="dark"] .report-card .variation-control select {
+  border-color: #343839 !important;
+  background: #1b1e1f !important;
+  color: #ebe7dc !important;
+}
+
+html[data-theme="dark"] .report-card .variation-control select:hover,
+html[data-theme="dark"] .report-card .variation-control select:focus,
+html[data-theme="dark"] .report-card .variation-control select:focus-visible {
+  border-color: #444849 !important;
+  background: #202425 !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .025) !important;
+}
+
+html[data-theme="dark"] .report-card .variation-control select option {
+  background: #1b1e1f;
+  color: #ebe7dc;
+}
+
+html[data-theme="dark"] .report-card .variation-picker-button {
+  border-color: #4b4388;
+  background: #21185f;
+  color: #f7f4ff;
+}
+
+html[data-theme="dark"] .report-card .variation-picker-button:hover,
+html[data-theme="dark"] .report-card .variation-picker.open .variation-picker-button,
+html[data-theme="dark"] .report-card .variation-picker-button:focus-visible {
+  border-color: #32efc2;
+  background: #2a216d;
+  box-shadow: 0 0 0 2px rgba(50, 239, 194, .12);
+}
+
+html[data-theme="dark"] .report-card .variation-menu {
+  border-color: #4b4388;
+  background: #1a1c1d;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, .34);
+}
+
+html[data-theme="dark"] .report-card .variation-option {
+  color: #ebe7dc;
+}
+
+html[data-theme="dark"] .report-card .variation-option:hover,
+html[data-theme="dark"] .report-card .variation-option:focus-visible {
+  background: rgba(50, 239, 194, .11);
+}
+
+html[data-theme="dark"] .report-card .variation-option.selected {
+  background: #302574;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .report-card .variation-option small {
+  color: #32efc2;
+}
+
+/* Match out-of-stock status accents to the LIVE DATABASE mint in dark mode. */
+html[data-theme="dark"] .report-card .out-of-stock-badge {
+  border-color: rgba(0, 248, 185, .32) !important;
+  background: rgba(0, 248, 185, .08) !important;
+  color: #00F8B9 !important;
+}
+
+html[data-theme="dark"] .report-card .price-verdict.out-of-stock > span {
+  color: #00F8B9 !important;
+}
+
+html[data-theme="dark"] .report-card .price-verdict.out-of-stock > strong {
+  color: #ebe7dc !important;
+}
+
+html[data-theme="dark"] .report-card .price-verdict.out-of-stock > p {
+  color: #aaa69c !important;
+}

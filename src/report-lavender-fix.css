@@ -1,0 +1,37 @@
+/* Lavender accents for the database report in both themes. */
+html:not([data-theme="dark"]) .report-card .stats-grid > div {
+  background: #f2efff !important;
+}
+
+html:not([data-theme="dark"]) .report-card .range-tabs {
+  background: #f2efff !important;
+}
+
+html:not([data-theme="dark"]) .report-card .range-tabs button {
+  background: transparent !important;
+}
+
+html:not([data-theme="dark"]) .report-card .range-tabs button.active {
+  background: #e4ddff !important;
+  color: #21185f !important;
+  box-shadow: 0 1px 4px rgba(33, 24, 95, .12) !important;
+}
+
+/* Dark mode: match the sampled dark surface from the provided reference image. */
+html[data-theme="dark"] .report-card .stats-grid > div {
+  background: #1b1e1f !important;
+}
+
+html[data-theme="dark"] .report-card .range-tabs {
+  background: #1b1e1f !important;
+}
+
+html[data-theme="dark"] .report-card .range-tabs button {
+  background: transparent !important;
+}
+
+html[data-theme="dark"] .report-card .range-tabs button.active {
+  background: #242829 !important;
+  color: #f7f3ff !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .20) !important;
+}

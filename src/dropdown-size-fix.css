@@ -1,0 +1,117 @@
+/* Keep the closed variation control at its measured width. Opening the menu must
+   never make the button wider. The menu is absolutely positioned so its own
+   width cannot participate in the flex layout. */
+.report-card .variation-picker {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  max-width: min(430px, 52vw) !important;
+}
+
+/* The button fills the width measured from the longest variation label.
+   Keep exactly the same horizontal padding on both sides. */
+.report-card .variation-picker-button {
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  gap: 0 !important;
+}
+
+.report-card .variation-picker-button > span:first-child {
+  min-width: 0 !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+.report-card .variation-chevron {
+  position: absolute !important;
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 12px !important;
+  min-width: 12px !important;
+  text-align: center !important;
+  flex: none !important;
+  pointer-events: none !important;
+}
+
+/* The OPENED menu has its own width and scrollbar. It does not participate in
+   the closed button measurement. */
+.report-card .variation-menu {
+  position: absolute !important;
+  top: calc(100% + 6px) !important;
+  left: 0 !important;
+  z-index: 1000 !important;
+  width: calc(100% + 78px) !important;
+  min-width: calc(100% + 78px) !important;
+  max-width: min(510px, calc(100vw - 96px)) !important;
+  box-sizing: border-box !important;
+}
+
+.report-card .variation-option {
+  width: 100% !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-picker-button {
+  border-color: #4b4388 !important;
+  background: #21185f !important;
+  color: #f7f4ff !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-picker-button:hover,
+html:not([data-theme="dark"]) .report-card .variation-picker.open .variation-picker-button,
+html:not([data-theme="dark"]) .report-card .variation-picker-button:focus-visible {
+  border-color: #32efc2 !important;
+  background: #2a216d !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(50, 239, 194, .12) !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-menu {
+  border-color: #d9d3f7 !important;
+  background: #ffffff !important;
+  box-shadow: 0 14px 30px rgba(33, 24, 95, .14) !important;
+  scrollbar-color: #a9a9b3 #ffffff;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option {
+  color: #21185f !important;
+  background: transparent !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option:hover,
+html:not([data-theme="dark"]) .report-card .variation-option:focus-visible {
+  background: #f2efff !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option.selected {
+  background: #302574 !important;
+  color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option small {
+  color: #0d9c73 !important;
+}
+
+html:not([data-theme="dark"]) .report-card .variation-option.selected small {
+  color: #8cf1d2 !important;
+}
+
+@media (max-width: 680px) {
+  .report-card .variation-picker,
+  .report-card .variation-picker-button {
+    min-width: 0 !important;
+    max-width: calc(100vw - 96px) !important;
+  }
+
+  .report-card .variation-menu {
+    width: min(calc(100% + 78px), calc(100vw - 96px)) !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 96px) !important;
+  }
+}
