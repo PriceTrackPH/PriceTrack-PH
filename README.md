@@ -1,26 +1,17 @@
-# Shopee & Lazada Price Tracker
+# PriceTrack PH
 
-Source repository for PriceTrack PH.
+Independent marketplace price history and tracking for the Philippines.
 
-## Current migration status
+## Overview
 
-This repository is being created from the live PriceTrack project and its connected Supabase backend.
-
-Recovered from the live backend:
-
-- Supabase table model for products, variations, and price observations
-- Row-level security model for public read-only history
-- `record-price` Edge Function v3 with bulk Shopee variation support
-- Generated TypeScript database types
-
-The original editable source behind the public `chatgpt.site` deployment is not exposed by the public URL, so the web UI in this repository is a clean source reconstruction rather than a copy of minified deployment output.
+PriceTrack PH tracks public marketplace product prices, variations, stock state, and historical observations using the connected Supabase backend.
 
 ## Architecture
 
 ```text
 Chrome extension
     |
-    | POST all Shopee models/variations
+    | POST detected product/variation data
     v
 Supabase Edge Function: record-price
     |
@@ -43,7 +34,7 @@ The Supabase project URL is already included in `.env.example`. Never place a se
 ## Database model
 
 - `products`: marketplace-level product identity
-- `product_variations`: one row per Shopee/Lazada variation/model
+- `product_variations`: one row per marketplace variation/model
 - `price_observations`: historical observations for a specific variation
 - `ingest_rate_limits`: private collector rate-limit state
 
@@ -51,11 +42,12 @@ Public users can read `products`, `product_variations`, and `price_observations`
 
 ## Variation behavior
 
-The collector accepts a `variations` array so one product-page visit can submit all detected Shopee models. Price history is kept per variation, preventing a switch between two variants from being misreported as a price change on one variant.
+The collector accepts a `variations` array so one product-page visit can submit all detected models. Price history is kept per variation, preventing a switch between two variants from being misreported as a price change on one variant.
 
-## Live site
+## Brand
 
-Current public deployment: `https://shopee-price-history.vergel18.chatgpt.site/`
+User-facing name: **PriceTrack PH**  
+Technical/project slug: **pricetrack-ph**
 
 ## Repository safety
 
