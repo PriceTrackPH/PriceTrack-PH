@@ -5,7 +5,7 @@ const VARIATION_SELECTORS = [
 ].join(",");
 
 function formatVariationText(value: string) {
-  return value.replace(/\s*[,，]\s*/g, " — ");
+  return value.replace(/\s*[,，-]\s*/g, " — ");
 }
 
 /*
@@ -19,7 +19,7 @@ function formatTextNodes(element: HTMLElement) {
 
   while (node) {
     const current = node.nodeValue;
-    if (current && (current.includes(",") || current.includes("，"))) {
+    if (current && (current.includes(",") || current.includes("，") || current.includes("-"))) {
       const formatted = formatVariationText(current);
       if (formatted !== current) node.nodeValue = formatted;
     }
@@ -54,9 +54,9 @@ function measureTextWidth(text: string, element: HTMLElement) {
 }
 
 /*
- * App.tsx measures the raw database name before this file converts commas to the
- * visible " — " separator, and that old measurement also did not reserve space for
- * the chevron/gap. That is why the right side looked cramped even with equal CSS
+ * App.tsx measures the raw database name before this file converts separators to
+ * the visible " — " separator, and that old measurement also did not reserve space
+ * for the chevron/gap. That is why the right side looked cramped even with equal CSS
  * padding. Re-measure the actual visible label here and include every horizontal
  * piece of the closed button.
  *
