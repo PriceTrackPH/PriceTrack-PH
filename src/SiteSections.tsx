@@ -41,8 +41,8 @@ const footerModalContent: Record<FooterModalKey, { label: string; title: string;
     title: "Questions, bugs, or feedback?",
     body: (
       <>
-        <p>For product-tracking issues, website bugs, feature requests, or general feedback, you can contact the PriceTrack PH project through GitHub.</p>
-        <a className="footer-modal-action" href="https://github.com/PriceTrackPH/PriceTrack-PH/issues" target="_blank" rel="noreferrer">Open GitHub issues ↗</a>
+        <p>For product-tracking issues, website bugs, feature requests, or general feedback, email PriceTrack PH directly.</p>
+        <a className="footer-modal-action" href="mailto:reachvergel@gmail.com">Email reachvergel@gmail.com ↗</a>
       </>
     ),
   },
