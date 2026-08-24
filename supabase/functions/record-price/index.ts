@@ -34,6 +34,21 @@ type Observation = {
   variations?: VariationObservation[];
 };
 
+type NormalizedVariation = Required<Pick<VariationObservation, "variationId" | "variationName" | "price" | "isInStock">> & VariationObservation;
+
+type VariationRow = {
+  id: number;
+  external_variation_id: string;
+};
+
+type ObservationRow = {
+  variation_id: number;
+  price: number | string;
+  original_price: number | string | null;
+  is_in_stock: boolean;
+  observed_at: string;
+};
+
 function reply(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: cors });
 }
@@ -55,6 +70,20 @@ async function digest(value: string) {
 function validPrice(value: unknown): value is number {
   const price = Number(value);
   return Number.isFinite(price) && price > 0 && price <= 10_000_000;
+}
+
+function sameObservation(latest: ObservationRow | undefined, item: NormalizedVariation) {
+  if (!latest) return false;
+  const originalPrice = item.originalPrice == null ? null : Number(item.originalPrice);
+  return Number(latest.price) === item.price &&
+    latest.is_in_stock === item.isInStock &&
+    (latest.original_price == null
+      ? originalPrice == null
+      : Number(latest.original_price) === originalPrice);
+}
+
+function isDuplicateError(status: number, text: string) {
+  return status === 409 || /23505|duplicate key|unique constraint/i.test(text);
 }
 
 Deno.serve(async (request: Request) => {
@@ -115,7 +144,7 @@ Deno.serve(async (request: Request) => {
 
     if (submitted.length > 200) return reply({ error: "Too many variations in one product" }, 400);
 
-    const deduped = new Map<string, Required<Pick<VariationObservation, "variationId" | "variationName" | "price" | "isInStock">> & VariationObservation>();
+    const deduped = new Map<string, NormalizedVariation>();
     for (const item of submitted) {
       const variationId = String(item.variationId || "").trim().slice(0, 200);
       const variationName = String(item.variationName || "").trim().slice(0, 200);
@@ -180,73 +209,130 @@ Deno.serve(async (request: Request) => {
     if (!productResponse.ok) throw new Error(`Product upsert failed: ${await productResponse.text()}`);
     const [product] = await productResponse.json() as Array<{ id: number }>;
 
+    // Upsert every variation in one request. The old implementation made one
+    // variation upsert + one latest-price query per model, which made products
+    // with 80-100 models take a very long time to finish.
+    const nowIso = new Date().toISOString();
+    const variationPayloads = variations.map((item) => ({
+      product_id: product.id,
+      external_variation_id: item.variationId,
+      name: item.variationName,
+      sku: item.sku || null,
+      is_active: item.isInStock,
+      last_seen_at: observedAt.toISOString(),
+      updated_at: nowIso,
+      metadata: item.metadata && typeof item.metadata === "object" ? item.metadata : {},
+    }));
+
+    const variationResponse = await fetch(`${supabaseUrl}/rest/v1/product_variations?on_conflict=product_id,external_variation_id`, {
+      method: "POST",
+      headers: adminHeaders(secret, {
+        "content-type": "application/json",
+        prefer: "resolution=merge-duplicates,return=representation",
+      }),
+      body: JSON.stringify(variationPayloads),
+    });
+    if (!variationResponse.ok) throw new Error(`Variation batch upsert failed: ${await variationResponse.text()}`);
+    const variationRows = await variationResponse.json() as VariationRow[];
+    const variationRowByExternalId = new Map(variationRows.map((row) => [String(row.external_variation_id), row]));
+
+    const variationIds = variationRows.map((row) => row.id);
+    const latestByVariationId = new Map<number, ObservationRow>();
+    if (variationIds.length) {
+      const latestQuery = `${supabaseUrl}/rest/v1/price_observations?variation_id=in.(${variationIds.join(",")})&observed_date=eq.${observedDate}&select=variation_id,price,original_price,is_in_stock,observed_at&order=observed_at.desc`;
+      const latestResponse = await fetch(latestQuery, { headers });
+      if (latestResponse.ok) {
+        const rows = await latestResponse.json() as ObservationRow[];
+        for (const row of rows) {
+          if (!latestByVariationId.has(Number(row.variation_id))) latestByVariationId.set(Number(row.variation_id), row);
+        }
+      }
+    }
+
     let insertedCount = 0;
     let unchangedCount = 0;
     let failedCount = 0;
     const results: Array<{ variationId: string; variationName: string; changed: boolean }> = [];
+    const pending: Array<{
+      item: NormalizedVariation;
+      row: VariationRow;
+      payload: Record<string, unknown>;
+    }> = [];
 
     for (const item of variations) {
-      try {
-        const variationPayload: Record<string, unknown> = {
-          product_id: product.id,
-          external_variation_id: item.variationId,
-          name: item.variationName,
-          is_active: item.isInStock,
-          last_seen_at: observedAt.toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        if (item.sku) variationPayload.sku = item.sku;
-        if (item.metadata && typeof item.metadata === "object") variationPayload.metadata = item.metadata;
-
-        const variationResponse = await fetch(`${supabaseUrl}/rest/v1/product_variations?on_conflict=product_id,external_variation_id`, {
-          method: "POST",
-          headers: adminHeaders(secret, { "content-type": "application/json", prefer: "resolution=merge-duplicates,return=representation" }),
-          body: JSON.stringify(variationPayload),
-        });
-        if (!variationResponse.ok) throw new Error(`Variation upsert failed: ${await variationResponse.text()}`);
-        const [variation] = await variationResponse.json() as Array<{ id: number }>;
-
-        const normalizedOriginalPrice = item.originalPrice == null ? null : Number(item.originalPrice);
-        const latestQuery = `${supabaseUrl}/rest/v1/price_observations?variation_id=eq.${variation.id}&select=price,original_price,is_in_stock,observed_date&order=observed_at.desc&limit=1`;
-        const latestResponse = await fetch(latestQuery, { headers });
-        const latestRows = latestResponse.ok
-          ? await latestResponse.json() as Array<{ price: number | string; original_price: number | string | null; is_in_stock: boolean; observed_date: string }>
-          : [];
-        const latest = latestRows[0];
-        const unchangedToday = latest && latest.observed_date === observedDate && Number(latest.price) === item.price && latest.is_in_stock === item.isInStock && (latest.original_price == null ? normalizedOriginalPrice == null : Number(latest.original_price) === normalizedOriginalPrice);
-
-        if (unchangedToday) {
-          unchangedCount += 1;
-          results.push({ variationId: item.variationId, variationName: item.variationName, changed: false });
-          continue;
-        }
-
-        const discount = normalizedOriginalPrice && normalizedOriginalPrice > item.price
-          ? Math.round((1 - item.price / normalizedOriginalPrice) * 10000) / 100
-          : null;
-
-        const observationResponse = await fetch(`${supabaseUrl}/rest/v1/price_observations`, {
-          method: "POST",
-          headers: adminHeaders(secret, { "content-type": "application/json", prefer: "return=minimal" }),
-          body: JSON.stringify({
-            variation_id: variation.id,
-            observed_date: observedDate,
-            observed_at: observedAt.toISOString(),
-            price: item.price,
-            original_price: normalizedOriginalPrice,
-            discount_percent: discount,
-            is_in_stock: item.isInStock,
-            source: "extension",
-            metadata: { bulk_collection: Array.isArray(body.variations), variation_name: item.variationName },
-          }),
-        });
-        if (!observationResponse.ok) throw new Error(`Observation insert failed: ${await observationResponse.text()}`);
-
-        insertedCount += 1;
-        results.push({ variationId: item.variationId, variationName: item.variationName, changed: true });
-      } catch (error) {
-        console.error("Variation recording failed", item.variationId, error);
+      const row = variationRowByExternalId.get(item.variationId);
+      if (!row) {
         failedCount += 1;
+        continue;
+      }
+
+      const latest = latestByVariationId.get(row.id);
+      if (sameObservation(latest, item)) {
+        unchangedCount += 1;
+        results.push({ variationId: item.variationId, variationName: item.variationName, changed: false });
+        continue;
+      }
+
+      const normalizedOriginalPrice = item.originalPrice == null ? null : Number(item.originalPrice);
+      const discount = normalizedOriginalPrice && normalizedOriginalPrice > item.price
+        ? Math.round((1 - item.price / normalizedOriginalPrice) * 10000) / 100
+        : null;
+
+      pending.push({
+        item,
+        row,
+        payload: {
+          variation_id: row.id,
+          observed_date: observedDate,
+          observed_at: observedAt.toISOString(),
+          price: item.price,
+          original_price: normalizedOriginalPrice,
+          discount_percent: discount,
+          is_in_stock: item.isInStock,
+          source: "extension",
+          metadata: {
+            bulk_collection: Array.isArray(body.variations),
+            variation_name: item.variationName,
+          },
+        },
+      });
+    }
+
+    if (pending.length) {
+      const batchInsert = await fetch(`${supabaseUrl}/rest/v1/price_observations`, {
+        method: "POST",
+        headers: adminHeaders(secret, { "content-type": "application/json", prefer: "return=minimal" }),
+        body: JSON.stringify(pending.map((entry) => entry.payload)),
+      });
+
+      if (batchInsert.ok) {
+        insertedCount += pending.length;
+        for (const entry of pending) {
+          results.push({ variationId: entry.item.variationId, variationName: entry.item.variationName, changed: true });
+        }
+      } else {
+        // A concurrent tab can race the same observation into the unique index.
+        // Fall back only on error; the normal path stays fast and batched.
+        for (const entry of pending) {
+          const single = await fetch(`${supabaseUrl}/rest/v1/price_observations`, {
+            method: "POST",
+            headers: adminHeaders(secret, { "content-type": "application/json", prefer: "return=minimal" }),
+            body: JSON.stringify(entry.payload),
+          });
+          if (single.ok) {
+            insertedCount += 1;
+            results.push({ variationId: entry.item.variationId, variationName: entry.item.variationName, changed: true });
+          } else {
+            const text = await single.text();
+            if (isDuplicateError(single.status, text)) {
+              unchangedCount += 1;
+              results.push({ variationId: entry.item.variationId, variationName: entry.item.variationName, changed: false });
+            } else {
+              console.error("Observation insert failed", entry.item.variationId, text);
+              failedCount += 1;
+            }
+          }
+        }
       }
     }
 
