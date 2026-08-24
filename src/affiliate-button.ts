@@ -18,6 +18,6 @@ function updateAffiliateButton() {
   });
 }
 
-const observer = new MutationObserver(updateAffiliateButton);
-observer.observe(document.documentElement, { childList: true, subtree: true });
+const affiliateButtonObserver = new MutationObserver(updateAffiliateButton);
+affiliateButtonObserver.observe(document.documentElement, { childList: true, subtree: true });
 updateAffiliateButton();
