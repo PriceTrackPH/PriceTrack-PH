@@ -387,6 +387,19 @@ html[data-theme="dark"] {
   border-radius: 10px !important;
   border: 1px solid #dddfea !important;
   padding: 9px 10px !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+  color: #1d194b !important;
+  box-shadow: 0 3px 10px rgba(29, 25, 75, .08) !important;
+}
+
+html[data-theme="dark"] .report-card .daily-price-tooltip {
+  background: #1c1f20 !important;
+  background-color: #1c1f20 !important;
+  border-color: #3a3d40 !important;
+  color: #ebe7dc !important;
+  box-shadow: 0 3px 10px rgba(0,0,0,.24) !important;
 }
 
 .report-card .daily-price-tooltip-date {
