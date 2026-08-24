@@ -1,4 +1,4 @@
-const PRICETRACK_SITE = "https://shopee-price-history.vergel18.chatgpt.site";
+const PRICETRACK_SITE = "https://pricetrackph.vercel.app";
 const BRIDGE_SOURCE = "pricetrack-ph-page";
 const REQUEST_SOURCE = "pricetrack-ph-extension";
 let capturedShopeePayload = null;
