@@ -304,8 +304,6 @@ function extractPublicProduct() {
 }
 
 async function collectAllVariations(ids) {
-  // Fast path: the document-start bridge can see Shopee's PDP model response
-  // before the page finishes rendering. Do not wait for DOMContentLoaded.
   const capturedNow = normalizeShopeePayload(capturedShopeePayload, ids);
   if (capturedNow?.variations?.length) return capturedNow;
 
@@ -318,8 +316,7 @@ async function collectAllVariations(ids) {
     .catch(() => {})
     .finally(() => { fetchFinished = true; });
 
-  // Poll the bridge very briefly. This usually resolves in a few hundred ms,
-  // while the bounded direct request runs in parallel.
+  // Fast window for normal page loads.
   for (let attempt = 0; attempt < 16; attempt += 1) {
     const captured = normalizeShopeePayload(capturedShopeePayload, ids);
     if (captured?.variations?.length) return captured;
@@ -335,13 +332,14 @@ async function collectAllVariations(ids) {
     await sleep(75);
   }
 
-  // One embedded-data scan after the initial 1.2s fast window.
-  const embeddedPayload = extractEmbeddedShopeePayload(ids);
-  const embedded = normalizeShopeePayload(embeddedPayload, ids);
+  let embeddedPayload = extractEmbeddedShopeePayload(ids);
+  let embedded = normalizeShopeePayload(embeddedPayload, ids);
   if (embedded?.variations?.length) return embedded;
 
-  // Give a still-running direct request / late Shopee response one final short window.
-  for (let attempt = 0; attempt < 8; attempt += 1) {
+  // Slow/hard reload window. Shopee can take several seconds to publish PDP model
+  // data after a cache-busting reload. Keep the popup in "checking" instead of
+  // declaring a false error while the page is still rebuilding.
+  for (let attempt = 0; attempt < 40; attempt += 1) {
     const captured = normalizeShopeePayload(capturedShopeePayload, ids);
     if (captured?.variations?.length) return captured;
 
@@ -350,13 +348,40 @@ async function collectAllVariations(ids) {
       if (fetched?.variations?.length) return fetched;
     }
 
-    if (!fetchFinished && attempt === 3) {
+    if (attempt % 8 === 0) {
       window.postMessage({ source: REQUEST_SOURCE, type: "request-product-data" }, "*");
     }
-    await sleep(100);
+
+    if (attempt === 8 || attempt === 20 || attempt === 32) {
+      embeddedPayload = extractEmbeddedShopeePayload(ids);
+      embedded = normalizeShopeePayload(embeddedPayload, ids);
+      if (embedded?.variations?.length) return embedded;
+    }
+
+    // If the first direct request ended before Shopee was ready, retry once midway.
+    if (fetchFinished && attempt === 16) {
+      fetchFinished = false;
+      fetchShopeePayload(ids)
+        .then(payload => { fetchedPayload = payload; })
+        .catch(() => {})
+        .finally(() => { fetchFinished = true; });
+    }
+
+    await sleep(150);
   }
 
   return null;
+}
+
+async function waitForVisibleProduct(maxWaitMs = 6000) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < maxWaitMs) {
+    const visible = extractPublicProduct();
+    if (visible?.price) return visible;
+    window.postMessage({ source: REQUEST_SOURCE, type: "request-product-data" }, "*");
+    await sleep(250);
+  }
+  return extractPublicProduct();
 }
 
 async function automaticallyRecordPrice() {
@@ -373,15 +398,17 @@ async function automaticallyRecordPrice() {
 
   let product = await collectAllVariations(ids);
   if (!product) {
-    // The fast model-data path does not need the DOM, but the visible fallback
-    // does. Give an unfinished page only a small grace period instead of waiting
-    // for Shopee's full DOMContentLoaded event, which can take many seconds.
-    if (document.readyState === "loading") await sleep(500);
-
-    const visible = extractPublicProduct();
+    // Only use the visible-price fallback after giving Shopee enough time to
+    // expose its real model data. This prevents hard reloads from briefly
+    // showing "Price and variation data were not found" for valid products.
+    const visible = await waitForVisibleProduct(6000);
     if (!visible?.price) {
-      await storageSet(statusKey, { state: "error", message: "Price and variation data were not found", at: new Date().toISOString() });
-      return { ok: false, error: "Price and variation data were not found on the product page" };
+      await storageSet(statusKey, {
+        state: "error",
+        message: "Product data is still unavailable. Reload the Shopee page and PriceTrack will retry.",
+        at: new Date().toISOString(),
+      });
+      return { ok: false, error: "Product data was not available after the reload retry window" };
     }
 
     product = {
@@ -418,8 +445,6 @@ async function automaticallyRecordPrice() {
     null
   );
 
-  // Publish detection immediately. The popup can now show the real variation
-  // count/lowest price before the database POST finishes.
   const detectedStatus = {
     state: "detected",
     price: Number(lowest?.price ?? 0) || null,
@@ -491,8 +516,6 @@ function runAutomaticRecording() {
 
   if (recordingPromise && recordingProductKey === key) return recordingPromise;
 
-  // Opening the popup right after an automatic run should not launch a second
-  // full extraction/database request for the same product.
   if (lastCompletedRun?.key === key && Date.now() - lastCompletedRun.at < 8000) {
     return Promise.resolve(lastCompletedRun.result);
   }
