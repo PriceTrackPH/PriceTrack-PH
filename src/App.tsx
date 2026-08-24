@@ -19,11 +19,18 @@ type Variation = Tables<"product_variations">;
 type Observation = Tables<"price_observations">;
 type RangeKey = "7D" | "30D" | "90D" | "ALL";
 
+type ChartObservation = {
+  price: number;
+  timestamp: number;
+  timeLabel: string;
+};
+
 type ChartPoint = {
   price: number;
   timestamp: number;
   label: string;
   fullDate: string;
+  observations: ChartObservation[];
 };
 
 type OutboundLink = {
@@ -52,6 +59,15 @@ const chartDateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
 const fullDateFormatter = new Intl.DateTimeFormat("en-PH", {
   dateStyle: "medium",
   timeStyle: "short",
+  timeZone: MANILA_TIME_ZONE,
+});
+const dayDateFormatter = new Intl.DateTimeFormat("en-PH", {
+  dateStyle: "medium",
+  timeZone: MANILA_TIME_ZONE,
+});
+const chartTimeFormatter = new Intl.DateTimeFormat("en-PH", {
+  hour: "numeric",
+  minute: "2-digit",
   timeZone: MANILA_TIME_ZONE,
 });
 
@@ -89,6 +105,54 @@ function PriceHistoryXAxisTick({
     >
       {payload.value}
     </Text>
+  );
+}
+
+function PriceHistoryTooltip({
+  active,
+  payload,
+  variationName,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: ChartPoint }>;
+  variationName: string;
+}) {
+  if (!active || !payload?.length) return null;
+
+  const point = payload[0]?.payload;
+  if (!point) return null;
+
+  const distinctPrices = new Set(point.observations.map((observation) => observation.price));
+  const hasMultiplePrices = distinctPrices.size > 1;
+  const singleTimeLabel = point.observations[0]?.timeLabel;
+
+  return (
+    <div className="recharts-default-tooltip daily-price-tooltip">
+      <div className="daily-price-tooltip-date">
+        {hasMultiplePrices || !singleTimeLabel
+          ? point.fullDate
+          : `${point.fullDate}, ${singleTimeLabel}`}
+      </div>
+      <div className="daily-price-tooltip-variation">
+        {variationName} : {peso.format(point.price)}
+      </div>
+      {hasMultiplePrices && (
+        <>
+          <div className="daily-price-tooltip-divider" />
+          <div className="daily-price-tooltip-observations">
+            {point.observations.map((observation) => (
+              <div
+                key={`${observation.timestamp}-${observation.price}`}
+                className="daily-price-tooltip-observation"
+              >
+                <span>{observation.timeLabel}</span>
+                <span className="daily-price-tooltip-price">{peso.format(observation.price)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -197,13 +261,48 @@ function roundedAxis(points: ChartPoint[]) {
   return { domain: [bounds.min, bounds.max] as [number, number], ticks };
 }
 
-function toChartPoints(rows: Observation[]) {
+function toRawChartPoints(rows: Observation[]) {
   return rows.map((row) => ({
     price: Number(row.price),
     timestamp: Date.parse(row.observed_at),
     label: chartDateLabel(row.observed_at),
     fullDate: fullDateFormatter.format(new Date(row.observed_at)),
+    observations: [],
   }));
+}
+
+function toChartPoints(rows: Observation[]) {
+  const grouped = new Map<string, Observation[]>();
+
+  for (const row of rows) {
+    const key = chartDateKeyFormatter.format(new Date(row.observed_at));
+    const bucket = grouped.get(key);
+    if (bucket) bucket.push(row);
+    else grouped.set(key, [row]);
+  }
+
+  return Array.from(grouped.values())
+    .map((dayRows) => {
+      const sorted = [...dayRows].sort(
+        (a, b) => Date.parse(a.observed_at) - Date.parse(b.observed_at),
+      );
+      const lowest = sorted.reduce((best, row) => (
+        Number(row.price) < Number(best.price) ? row : best
+      ));
+
+      return {
+        price: Number(lowest.price),
+        timestamp: Date.parse(lowest.observed_at),
+        label: chartDateLabel(lowest.observed_at),
+        fullDate: dayDateFormatter.format(new Date(lowest.observed_at)),
+        observations: sorted.map((row) => ({
+          price: Number(row.price),
+          timestamp: Date.parse(row.observed_at),
+          timeLabel: chartTimeFormatter.format(new Date(row.observed_at)),
+        })),
+      };
+    })
+    .sort((a, b) => a.timestamp - b.timestamp);
 }
 
 function App() {
@@ -354,7 +453,7 @@ function App() {
   }, [allVariationRows, range]);
 
   const chartData = useMemo(() => toChartPoints(selectedHistory), [selectedHistory]);
-  const allVariationPoints = useMemo(() => toChartPoints(allVariationRows), [allVariationRows]);
+  const allVariationPoints = useMemo(() => toRawChartPoints(allVariationRows), [allVariationRows]);
   const reportVariationName = selectedVariation?.name ?? "Default";
   const hasMultipleVariations = variations.length > 1;
 
@@ -419,9 +518,9 @@ function App() {
   const axis = useMemo(() => roundedAxis(chartData), [chartData]);
 
   const reportStats = useMemo(() => {
-    if (!chartData.length) return null;
-    const prices = chartData.map((row) => row.price);
-    const latest = prices[prices.length - 1];
+    if (!selectedHistory.length) return null;
+    const prices = selectedHistory.map((row) => Number(row.price));
+    const latest = Number(selectedHistory[selectedHistory.length - 1].price);
     const low = Math.min(...prices);
     const high = Math.max(...prices);
     const average = prices.reduce((sum, price) => sum + price, 0) / prices.length;
@@ -433,7 +532,7 @@ function App() {
       observations: prices.length,
       aboveLow: Math.max(0, latest - low),
     };
-  }, [chartData]);
+  }, [selectedHistory]);
 
   const verdict = useMemo(() => {
     if (selectedLatestObservation?.is_in_stock === false) {
@@ -716,9 +815,13 @@ function App() {
                         />
                         <Tooltip
                           cursor={false}
-                          formatter={(value) => [peso.format(Number(value)), reportVariationName]}
-                          labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate ?? ""}
-                          contentStyle={{ borderRadius: 10, border: "1px solid #dddfea" }}
+                          content={(props) => (
+                            <PriceHistoryTooltip
+                              active={props.active}
+                              payload={props.payload as Array<{ payload?: ChartPoint }> | undefined}
+                              variationName={reportVariationName}
+                            />
+                          )}
                         />
                         <Area
                           type="monotone"
