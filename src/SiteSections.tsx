@@ -5,6 +5,7 @@ import bankQr from "./assets/donation-bank-qr.jpg";
 
 type FooterModalKey = "about" | "privacy" | "data" | "contact";
 type ContactDraft = { name: string; email: string; subject: string; message: string; savedAt: number };
+type ContactSendState = "idle" | "sending" | "sent" | "error";
 
 const CONTACT_DRAFT_KEY = "pricetrackph-contact-draft";
 const CONTACT_DRAFT_TTL = 24 * 60 * 60 * 1000;
@@ -52,6 +53,8 @@ function SiteSections() {
   const [footerModal, setFooterModal] = useState<FooterModalKey | null>(null);
   const [contactDraft, setContactDraft] = useState<Omit<ContactDraft, "savedAt">>({ name: "", email: "", subject: "", message: "" });
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [contactSendState, setContactSendState] = useState<ContactSendState>("idle");
+  const [contactSendMessage, setContactSendMessage] = useState("");
 
   useEffect(() => {
     try {
@@ -99,11 +102,39 @@ function SiteSections() {
 
   const activeFooterModal = footerModal ? footerModalContent[footerModal] : null;
 
-  const sendContactEmail = (event: React.FormEvent<HTMLFormElement>) => {
+  const updateContactDraft = (field: keyof Omit<ContactDraft, "savedAt">, value: string) => {
+    setContactDraft((current) => ({ ...current, [field]: value }));
+    if (contactSendState !== "idle") {
+      setContactSendState("idle");
+      setContactSendMessage("");
+    }
+  };
+
+  const sendContactEmail = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const subject = contactDraft.subject.trim() || "PriceTrack PH contact";
-    const body = [`Name: ${contactDraft.name.trim() || "Not provided"}`, `Email: ${contactDraft.email.trim() || "Not provided"}`, "", contactDraft.message.trim()].join("\n");
-    window.location.href = `mailto:reachvergel@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setContactSendState("sending");
+    setContactSendMessage("");
+
+    try {
+      const response = await fetch("/api/send-contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(contactDraft),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || "Message could not be sent.");
+      }
+
+      localStorage.removeItem(CONTACT_DRAFT_KEY);
+      setContactDraft({ name: "", email: "", subject: "", message: "" });
+      setContactSendState("sent");
+      setContactSendMessage("Message sent. Thank you!");
+    } catch (error) {
+      setContactSendState("error");
+      setContactSendMessage(error instanceof Error ? error.message : "Message could not be sent. Please try again.");
+    }
   };
 
   return (
@@ -127,7 +158,7 @@ function SiteSections() {
 
       {donationOpen && <div className="donation-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDonationOpen(false); }}><section className="donation-modal" role="dialog" aria-modal="true" aria-labelledby="donation-title"><button className="donation-modal-close" type="button" aria-label="Close donation window" onClick={() => setDonationOpen(false)}>×</button><div className="donation-modal-heading"><div className="section-label">SUPPORT PRICETRACK PH</div><h3 id="donation-title">Choose a QR code to donate.</h3><p>Scan the option that works best for you.</p></div><div className="donation-qr-grid">{[{ label: "GCash", src: gcashQr }, { label: "Maya", src: mayaQr }, { label: "Bank / QR Ph", src: bankQr }].map((item) => <div className="donation-qr-card" key={item.label}><img className="donation-qr-image" src={item.src} alt={`${item.label} donation QR code`} /><strong>{item.label}</strong></div>)}</div><p className="donation-thanks">Thank you for helping keep PriceTrack PH free.</p></section></div>}
 
-      {activeFooterModal && <div className="footer-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFooterModal(null); }}><section className="footer-modal" role="dialog" aria-modal="true" aria-labelledby="footer-modal-title"><button className="footer-modal-close" type="button" aria-label="Close information window" onClick={() => setFooterModal(null)}>×</button><div className="section-label">{activeFooterModal.label}</div><h3 id="footer-modal-title">{activeFooterModal.title}</h3><div className="footer-modal-body">{footerModal === "contact" ? <form className="contact-form" onSubmit={sendContactEmail}><p>For product-tracking issues, website bugs, feature requests, or general feedback, email PriceTrack PH directly.</p><label>Name<input value={contactDraft.name} onChange={(e) => setContactDraft({ ...contactDraft, name: e.target.value })} autoComplete="name" /></label><label>Email<input type="email" value={contactDraft.email} onChange={(e) => setContactDraft({ ...contactDraft, email: e.target.value })} autoComplete="email" /></label><label>Subject<input value={contactDraft.subject} onChange={(e) => setContactDraft({ ...contactDraft, subject: e.target.value })} /></label><label>Message<textarea required rows={6} value={contactDraft.message} onChange={(e) => setContactDraft({ ...contactDraft, message: e.target.value })} /></label><div className="contact-form-actions"><button className="footer-modal-action" type="submit">Email message ↗</button></div></form> : activeFooterModal.body}</div></section></div>}
+      {activeFooterModal && <div className="footer-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFooterModal(null); }}><section className="footer-modal" role="dialog" aria-modal="true" aria-labelledby="footer-modal-title"><button className="footer-modal-close" type="button" aria-label="Close information window" onClick={() => setFooterModal(null)}>×</button><div className="section-label">{activeFooterModal.label}</div><h3 id="footer-modal-title">{activeFooterModal.title}</h3><div className="footer-modal-body">{footerModal === "contact" ? <form className="contact-form" onSubmit={sendContactEmail}><p>For product-tracking issues, website bugs, feature requests, or general feedback, email PriceTrack PH directly.</p><label>Name<input value={contactDraft.name} onChange={(e) => updateContactDraft("name", e.target.value)} autoComplete="name" /></label><label>Email<input type="email" value={contactDraft.email} onChange={(e) => updateContactDraft("email", e.target.value)} autoComplete="email" /></label><label>Subject<input value={contactDraft.subject} onChange={(e) => updateContactDraft("subject", e.target.value)} /></label><label>Message<textarea required rows={6} value={contactDraft.message} onChange={(e) => updateContactDraft("message", e.target.value)} /></label><div className="contact-form-actions"><button className="footer-modal-action" type="submit" disabled={contactSendState === "sending"}>{contactSendState === "sending" ? "Sending..." : "Send message ↗"}</button></div>{contactSendMessage && <p className={`contact-send-status ${contactSendState}`}>{contactSendMessage}</p>}</form> : activeFooterModal.body}</div></section></div>}
 
       <footer className="full-footer"><div className="section-shell"><div className="footer-main"><div><strong>PriceTrack <span>PH</span></strong><small>Independent price history for smarter shopping.</small></div><nav aria-label="Footer navigation"><button type="button" onClick={() => setFooterModal("about")}>About</button><button type="button" onClick={() => setFooterModal("privacy")}>Privacy</button><button type="button" onClick={() => setFooterModal("data")}>Data policy</button><button type="button" onClick={() => setFooterModal("contact")}>Contact</button></nav></div><div className="footer-disclaimer">PriceTrack PH is independent and is not affiliated with or endorsed by the marketplaces it tracks.</div></div></footer>
     </>
