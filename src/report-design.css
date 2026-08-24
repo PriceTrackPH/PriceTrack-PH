@@ -327,6 +327,7 @@ html[data-theme="dark"] {
 
 @media (max-width: 860px) {
   .report-top {
+    flex-direction: column !important;
     padding: 22px !important;
   }
 
@@ -338,7 +339,22 @@ html[data-theme="dark"] {
   }
 
   .price-verdict {
-    padding-top: 18px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
+    box-sizing: border-box !important;
+    padding: 18px 0 0 !important;
+    border-left: 0 !important;
+    border-top: 1px solid var(--report-border) !important;
+    overflow: hidden !important;
+  }
+
+  .price-verdict > span,
+  .price-verdict strong,
+  .price-verdict p {
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
   }
 }
 
