@@ -7,6 +7,13 @@ const cors = {
   "content-type": "application/json",
 };
 
+const MAX_BODY_BYTES = 512_000;
+const MAX_VARIATIONS = 200;
+const DAILY_REQUEST_LIMIT = 200;
+const MAX_METADATA_BYTES = 4_096;
+const MAX_OBSERVATION_AGE_MS = 24 * 60 * 60 * 1000;
+const MAX_FUTURE_SKEW_MS = 15 * 60 * 1000;
+
 type VariationObservation = {
   variationId?: string;
   variationName?: string;
@@ -35,12 +42,7 @@ type Observation = {
 };
 
 type NormalizedVariation = Required<Pick<VariationObservation, "variationId" | "variationName" | "price" | "isInStock">> & VariationObservation;
-
-type VariationRow = {
-  id: number;
-  external_variation_id: string;
-};
-
+type VariationRow = { id: number; external_variation_id: string };
 type ObservationRow = {
   variation_id: number;
   price: number | string;
@@ -62,9 +64,7 @@ function adminHeaders(secret: string, extra: Record<string, string> = {}) {
 async function digest(value: string) {
   const bytes = new TextEncoder().encode(value);
   const hash = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(hash))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  return Array.from(new Uint8Array(hash)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function validPrice(value: unknown): value is number {
@@ -72,14 +72,33 @@ function validPrice(value: unknown): value is number {
   return Number.isFinite(price) && price > 0 && price <= 10_000_000;
 }
 
+function safeMetadata(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  try {
+    const json = JSON.stringify(value);
+    if (new TextEncoder().encode(json).byteLength > MAX_METADATA_BYTES) return {};
+    return JSON.parse(json) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+function validImageUrl(value: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 function sameObservation(latest: ObservationRow | undefined, item: NormalizedVariation) {
   if (!latest) return false;
   const originalPrice = item.originalPrice == null ? null : Number(item.originalPrice);
   return Number(latest.price) === item.price &&
     latest.is_in_stock === item.isInStock &&
-    (latest.original_price == null
-      ? originalPrice == null
-      : Number(latest.original_price) === originalPrice);
+    (latest.original_price == null ? originalPrice == null : Number(latest.original_price) === originalPrice);
 }
 
 function isDuplicateError(status: number, text: string) {
@@ -91,7 +110,23 @@ Deno.serve(async (request: Request) => {
   if (request.method !== "POST") return reply({ error: "Method not allowed" }, 405);
 
   try {
-    const body = await request.json() as Observation;
+    const declaredLength = Number(request.headers.get("content-length") || 0);
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+      return reply({ error: "Request body is too large" }, 413);
+    }
+
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
+      return reply({ error: "Request body is too large" }, 413);
+    }
+
+    let body: Observation;
+    try {
+      body = JSON.parse(rawBody) as Observation;
+    } catch {
+      return reply({ error: "Invalid JSON body" }, 400);
+    }
+
     const clientId = request.headers.get("x-pricetrack-client-id") || body.installationId || "";
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId)) {
       return reply({ error: "Invalid extension installation" }, 400);
@@ -103,10 +138,15 @@ Deno.serve(async (request: Request) => {
     const title = body.title?.trim().slice(0, 500) || "";
     const canonicalUrl = body.canonicalUrl?.trim() || "";
     const storeName = body.storeName?.trim().slice(0, 200) || null;
-    const imageUrl = body.imageUrl?.trim().slice(0, 2000) || null;
-    const observedAt = body.observedAt && !Number.isNaN(Date.parse(body.observedAt))
-      ? new Date(body.observedAt)
-      : new Date();
+    const imageUrl = validImageUrl(body.imageUrl?.trim().slice(0, 2000) || null);
+
+    const now = new Date();
+    const observedAt = body.observedAt && !Number.isNaN(Date.parse(body.observedAt)) ? new Date(body.observedAt) : now;
+    const observationAge = now.getTime() - observedAt.getTime();
+    if (observationAge > MAX_OBSERVATION_AGE_MS || observationAge < -MAX_FUTURE_SKEW_MS) {
+      return reply({ error: "Observation timestamp is outside the allowed window" }, 400);
+    }
+
     const observedDate = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Manila",
       year: "numeric",
@@ -124,8 +164,8 @@ Deno.serve(async (request: Request) => {
     } catch {
       return reply({ error: "Invalid product URL" }, 400);
     }
-    if (!/(^|\.)shopee\.ph$/i.test(productUrl.hostname)) {
-      return reply({ error: "Only Shopee Philippines is supported in this release" }, 400);
+    if (productUrl.protocol !== "https:" || !/(^|\.)shopee\.ph$/i.test(productUrl.hostname)) {
+      return reply({ error: "Only Shopee Philippines HTTPS URLs are supported in this release" }, 400);
     }
     const idMatch = productUrl.pathname.match(/-i\.(\d+)\.(\d+)/i) || productUrl.pathname.match(/\/product\/(\d+)\/(\d+)/i);
     if (!idMatch || idMatch[1] !== shopId || idMatch[2] !== productId) {
@@ -142,7 +182,7 @@ Deno.serve(async (request: Request) => {
           isInStock: true,
         }];
 
-    if (submitted.length > 200) return reply({ error: "Too many variations in one product" }, 400);
+    if (submitted.length > MAX_VARIATIONS) return reply({ error: "Too many variations in one product" }, 400);
 
     const deduped = new Map<string, NormalizedVariation>();
     for (const item of submitted) {
@@ -154,13 +194,13 @@ Deno.serve(async (request: Request) => {
       if (!variationId || !variationName || !validPrice(price)) continue;
       if (originalPrice != null && (!Number.isFinite(originalPrice) || originalPrice < 0 || originalPrice > 10_000_000)) continue;
       deduped.set(variationId, {
-        ...item,
         variationId,
         variationName,
         price,
         originalPrice,
         isInStock,
         sku: item.sku == null ? null : String(item.sku).trim().slice(0, 200),
+        metadata: safeMetadata(item.metadata),
       });
     }
 
@@ -174,17 +214,21 @@ Deno.serve(async (request: Request) => {
     const headers = adminHeaders(secret);
 
     const clientHash = await digest(clientId);
-    const rateQuery = `${supabaseUrl}/rest/v1/ingest_rate_limits?client_hash=eq.${clientHash}&observed_date=eq.${observedDate}&select=request_count`;
-    const rateResponse = await fetch(rateQuery, { headers });
-    const rateRows = rateResponse.ok ? await rateResponse.json() as Array<{ request_count: number }> : [];
-    const nextCount = (rateRows[0]?.request_count || 0) + 1;
-    if (nextCount > 200) return reply({ error: "Daily recording limit reached" }, 429);
-
-    await fetch(`${supabaseUrl}/rest/v1/ingest_rate_limits?on_conflict=client_hash,observed_date`, {
+    const quotaResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_ingest_quota`, {
       method: "POST",
-      headers: adminHeaders(secret, { "content-type": "application/json", prefer: "resolution=merge-duplicates" }),
-      body: JSON.stringify({ client_hash: clientHash, observed_date: observedDate, request_count: nextCount, last_request_at: new Date().toISOString() }),
+      headers: adminHeaders(secret, { "content-type": "application/json" }),
+      body: JSON.stringify({
+        p_client_hash: clientHash,
+        p_observed_date: observedDate,
+        p_limit: DAILY_REQUEST_LIMIT,
+      }),
     });
+    if (!quotaResponse.ok) {
+      console.error("Quota check failed", await quotaResponse.text());
+      return reply({ error: "Unable to verify recording quota" }, 503);
+    }
+    const quotaCount = await quotaResponse.json() as number | null;
+    if (quotaCount == null) return reply({ error: "Daily recording limit reached" }, 429);
 
     const productResponse = await fetch(`${supabaseUrl}/rest/v1/products?on_conflict=platform,external_shop_id,external_product_id`, {
       method: "POST",
@@ -199,7 +243,7 @@ Deno.serve(async (request: Request) => {
         image_url: imageUrl,
         currency: "PHP",
         last_seen_at: observedAt.toISOString(),
-        updated_at: new Date().toISOString(),
+        updated_at: now.toISOString(),
         metadata: {
           submitted_variation_count: variations.length,
           collector_format: Array.isArray(body.variations) ? "bulk_models_v1" : "legacy_single_v1",
@@ -208,10 +252,8 @@ Deno.serve(async (request: Request) => {
     });
     if (!productResponse.ok) throw new Error(`Product upsert failed: ${await productResponse.text()}`);
     const [product] = await productResponse.json() as Array<{ id: number }>;
+    if (!product?.id) throw new Error("Product upsert returned no product ID");
 
-    // Upsert every variation in one request. The old implementation made one
-    // variation upsert + one latest-price query per model, which made products
-    // with 80-100 models take a very long time to finish.
     const nowIso = new Date().toISOString();
     const variationPayloads = variations.map((item) => ({
       product_id: product.id,
@@ -221,7 +263,7 @@ Deno.serve(async (request: Request) => {
       is_active: item.isInStock,
       last_seen_at: observedAt.toISOString(),
       updated_at: nowIso,
-      metadata: item.metadata && typeof item.metadata === "object" ? item.metadata : {},
+      metadata: safeMetadata(item.metadata),
     }));
 
     const variationResponse = await fetch(`${supabaseUrl}/rest/v1/product_variations?on_conflict=product_id,external_variation_id`, {
@@ -241,11 +283,10 @@ Deno.serve(async (request: Request) => {
     if (variationIds.length) {
       const latestQuery = `${supabaseUrl}/rest/v1/price_observations?variation_id=in.(${variationIds.join(",")})&observed_date=eq.${observedDate}&select=variation_id,price,original_price,is_in_stock,observed_at&order=observed_at.desc`;
       const latestResponse = await fetch(latestQuery, { headers });
-      if (latestResponse.ok) {
-        const rows = await latestResponse.json() as ObservationRow[];
-        for (const row of rows) {
-          if (!latestByVariationId.has(Number(row.variation_id))) latestByVariationId.set(Number(row.variation_id), row);
-        }
+      if (!latestResponse.ok) throw new Error(`Observation lookup failed: ${await latestResponse.text()}`);
+      const rows = await latestResponse.json() as ObservationRow[];
+      for (const row of rows) {
+        if (!latestByVariationId.has(Number(row.variation_id))) latestByVariationId.set(Number(row.variation_id), row);
       }
     }
 
@@ -253,11 +294,7 @@ Deno.serve(async (request: Request) => {
     let unchangedCount = 0;
     let failedCount = 0;
     const results: Array<{ variationId: string; variationName: string; changed: boolean }> = [];
-    const pending: Array<{
-      item: NormalizedVariation;
-      row: VariationRow;
-      payload: Record<string, unknown>;
-    }> = [];
+    const pending: Array<{ item: NormalizedVariation; payload: Record<string, unknown> }> = [];
 
     for (const item of variations) {
       const row = variationRowByExternalId.get(item.variationId);
@@ -280,7 +317,6 @@ Deno.serve(async (request: Request) => {
 
       pending.push({
         item,
-        row,
         payload: {
           variation_id: row.id,
           observed_date: observedDate,
@@ -307,12 +343,8 @@ Deno.serve(async (request: Request) => {
 
       if (batchInsert.ok) {
         insertedCount += pending.length;
-        for (const entry of pending) {
-          results.push({ variationId: entry.item.variationId, variationName: entry.item.variationName, changed: true });
-        }
+        for (const entry of pending) results.push({ variationId: entry.item.variationId, variationName: entry.item.variationName, changed: true });
       } else {
-        // A concurrent tab can race the same observation into the unique index.
-        // Fall back only on error; the normal path stays fast and batched.
         for (const entry of pending) {
           const single = await fetch(`${supabaseUrl}/rest/v1/price_observations`, {
             method: "POST",
