@@ -114,7 +114,7 @@ function PriceHistoryTooltip({
   variationName,
 }: {
   active?: boolean;
-  payload?: Array<{ payload?: ChartPoint }>;
+  payload?: readonly { payload?: ChartPoint }[];
   variationName: string;
 }) {
   if (!active || !payload?.length) return null;
@@ -818,7 +818,7 @@ function App() {
                           content={(props) => (
                             <PriceHistoryTooltip
                               active={props.active}
-                              payload={props.payload as Array<{ payload?: ChartPoint }> | undefined}
+                              payload={props.payload as readonly { payload?: ChartPoint }[] | undefined}
                               variationName={reportVariationName}
                             />
                           )}
