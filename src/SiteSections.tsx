@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import gcashQr from "./assets/donation-gcash-qr.jpg";
 import mayaQr from "./assets/donation-maya-qr.jpg";
 import bankQr from "./assets/donation-bank-qr.jpg";
 
 type FooterModalKey = "about" | "privacy" | "data" | "contact";
 
-const footerModalContent: Record<FooterModalKey, { label: string; title: string; body: JSX.Element }> = {
+const footerModalContent: Record<FooterModalKey, { label: string; title: string; body: ReactNode }> = {
   about: {
     label: "ABOUT PRICETRACK PH",
     title: "Independent price history for smarter shopping.",
