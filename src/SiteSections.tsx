@@ -11,8 +11,8 @@ const footerModalContent: Record<FooterModalKey, { label: string; title: string;
     title: "Independent price history for smarter shopping.",
     body: (
       <>
-        <p>PriceTrack PH is an independent price-history project that helps shoppers compare today&apos;s public product price with recent history before buying.</p>
-        <p>The project is designed to support multiple online marketplaces over time and is not affiliated with or endorsed by the marketplaces it tracks. Price information can change at any time, so the original marketplace listing remains the final source for availability and checkout price.</p>
+        <p>PriceTrack PH is an independent price-history tool that helps shoppers compare current prices with past prices before buying. We currently support Shopee product tracking, with support for more online marketplaces planned over time.</p>
+        <p>PriceTrack PH is independent and is not affiliated with or endorsed by the marketplaces it tracks. Price, stock, vouchers, shipping, and checkout totals may change, so the original marketplace listing remains the final source.</p>
       </>
     ),
   },
@@ -152,55 +152,29 @@ function SiteSections() {
       </section>
 
       {donationOpen && (
-        <div
-          className="donation-modal-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setDonationOpen(false);
-          }}
-        >
+        <div className="donation-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDonationOpen(false); }}>
           <section className="donation-modal" role="dialog" aria-modal="true" aria-labelledby="donation-title">
-            <button
-              className="donation-modal-close"
-              type="button"
-              aria-label="Close donation window"
-              onClick={() => setDonationOpen(false)}
-            >
-              ×
-            </button>
-
+            <button className="donation-modal-close" type="button" aria-label="Close donation window" onClick={() => setDonationOpen(false)}>×</button>
             <div className="donation-modal-heading">
               <div className="section-label">SUPPORT PRICETRACK PH</div>
               <h3 id="donation-title">Choose a QR code to donate.</h3>
               <p>Scan the option that works best for you.</p>
             </div>
-
             <div className="donation-qr-grid">
-              {[
-                { label: "GCash", src: gcashQr },
-                { label: "Maya", src: mayaQr },
-                { label: "Bank / QR Ph", src: bankQr },
-              ].map((item) => (
+              {[{ label: "GCash", src: gcashQr }, { label: "Maya", src: mayaQr }, { label: "Bank / QR Ph", src: bankQr }].map((item) => (
                 <div className="donation-qr-card" key={item.label}>
                   <img className="donation-qr-image" src={item.src} alt={`${item.label} donation QR code`} />
                   <strong>{item.label}</strong>
                 </div>
               ))}
             </div>
-
             <p className="donation-thanks">Thank you for helping keep PriceTrack PH free.</p>
           </section>
         </div>
       )}
 
       {activeFooterModal && (
-        <div
-          className="footer-modal-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setFooterModal(null);
-          }}
-        >
+        <div className="footer-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFooterModal(null); }}>
           <section className="footer-modal" role="dialog" aria-modal="true" aria-labelledby="footer-modal-title">
             <button className="footer-modal-close" type="button" aria-label="Close information window" onClick={() => setFooterModal(null)}>×</button>
             <div className="section-label">{activeFooterModal.label}</div>
