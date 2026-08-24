@@ -16,11 +16,11 @@
   <body>
     <header class="site-header">
       <div class="site-header-inner">
-        <a class="brand" href="#top">PriceTrack <span>PH</span></a>
+        <a class="brand" href="/" data-scroll-target="top">PriceTrack <span>PH</span></a>
         <nav class="site-nav" aria-label="Primary navigation">
-          <a href="#top">How it works</a>
-          <a href="#extension">Extension</a>
-          <a href="#support">Support us</a>
+          <a href="/" data-scroll-target="top">How it works</a>
+          <a href="/" data-scroll-target="extension">Extension</a>
+          <a href="/" data-scroll-target="support">Support us</a>
         </nav>
         <div class="header-actions">
           <button class="theme-switch" id="theme-toggle" type="button" aria-label="Toggle light and dark mode">
@@ -36,21 +36,39 @@
     <script>
       (() => {
         const toggle = document.getElementById("theme-toggle");
-        if (!toggle) return;
+        if (toggle) {
+          const apply = (theme) => {
+            document.documentElement.dataset.theme = theme;
+            localStorage.setItem("pricetrack-theme", theme);
+            toggle.dataset.themeCurrent = theme;
+            toggle.setAttribute("aria-label", `Switch to ${theme === "dark" ? "light" : "dark"} mode`);
+          };
 
-        const apply = (theme) => {
-          document.documentElement.dataset.theme = theme;
-          localStorage.setItem("pricetrack-theme", theme);
-          toggle.dataset.themeCurrent = theme;
-          toggle.setAttribute("aria-label", `Switch to ${theme === "dark" ? "light" : "dark"} mode`);
-        };
+          toggle.addEventListener("click", () => {
+            const current = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+            apply(current === "dark" ? "light" : "dark");
+          });
 
-        toggle.addEventListener("click", () => {
-          const current = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-          apply(current === "dark" ? "light" : "dark");
+          apply(document.documentElement.dataset.theme || "light");
+        }
+
+        document.querySelectorAll("[data-scroll-target]").forEach((link) => {
+          link.addEventListener("click", (event) => {
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            const targetId = link.getAttribute("data-scroll-target");
+            const target = targetId ? document.getElementById(targetId) : null;
+            if (!target) return;
+            event.preventDefault();
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+            if (window.location.hash) {
+              history.replaceState(null, "", window.location.pathname + window.location.search);
+            }
+          });
         });
 
-        apply(document.documentElement.dataset.theme || "light");
+        if (window.location.hash) {
+          history.replaceState(null, "", window.location.pathname + window.location.search);
+        }
       })();
     </script>
   </body>
