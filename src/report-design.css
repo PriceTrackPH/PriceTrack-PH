@@ -365,3 +365,40 @@ html[data-theme="dark"] {
     padding: 18px !important;
   }
 }
+
+/* Daily price tooltip layout only; existing chart colors, font sizes and design remain unchanged. */
+.report-card .daily-price-tooltip {
+  border-radius: 10px !important;
+  border: 1px solid #dddfea !important;
+  padding: 9px 10px !important;
+}
+
+.report-card .daily-price-tooltip-date {
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.report-card .daily-price-tooltip-variation {
+  color: #13c89a;
+}
+
+.report-card .daily-price-tooltip-divider {
+  border-top: 1px solid var(--report-border);
+  margin: 7px 0 6px;
+}
+
+.report-card .daily-price-tooltip-observations {
+  margin-top: 3px;
+}
+
+.report-card .daily-price-tooltip-observation {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.report-card .daily-price-tooltip-price {
+  margin-left: auto;
+  text-align: right;
+}
