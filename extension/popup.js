@@ -1,4 +1,4 @@
-const SITE = "https://shopee-price-history.vergel18.chatgpt.site";
+const SITE = "https://pricetrackph.vercel.app";
 const button = document.querySelector("#open");
 const title = document.querySelector("#title");
 const detail = document.querySelector("#detail");
