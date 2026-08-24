@@ -11,8 +11,8 @@ const footerModalContent: Record<FooterModalKey, { label: string; title: string;
     title: "Independent price history for smarter shopping.",
     body: (
       <>
-        <p>PriceTrack PH records publicly visible product prices so shoppers can compare today&apos;s price with recent history before buying.</p>
-        <p>The project is independent and is not affiliated with or endorsed by Shopee. Price information can change at any time, so the original marketplace listing remains the final source for availability and checkout price.</p>
+        <p>PriceTrack PH is an independent price-history project that helps shoppers compare today&apos;s public product price with recent history before buying.</p>
+        <p>The project is designed to support multiple online marketplaces over time and is not affiliated with or endorsed by the marketplaces it tracks. Price information can change at any time, so the original marketplace listing remains the final source for availability and checkout price.</p>
       </>
     ),
   },
@@ -224,7 +224,7 @@ function SiteSections() {
               <button type="button" onClick={() => setFooterModal("contact")}>Contact</button>
             </nav>
           </div>
-          <div className="footer-disclaimer">PriceTrack PH is independent and is not affiliated with or endorsed by Shopee.</div>
+          <div className="footer-disclaimer">PriceTrack PH is independent and is not affiliated with or endorsed by the marketplaces it tracks.</div>
         </div>
       </footer>
     </>
