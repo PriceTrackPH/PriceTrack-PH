@@ -5,10 +5,12 @@ const detail = document.querySelector("#detail");
 const status = document.querySelector("#status");
 const popupToggle = document.querySelector("#popup-toggle");
 const POPUP_SETTING_KEY = "notificationsEnabled";
+const STALE_PROGRESS_MS = 20_000;
 let ids;
 let activeTabId;
 let primaryKey;
 let legacyKey;
+let retryRequested = false;
 
 function parseIds(value) {
   try {
@@ -32,60 +34,91 @@ function formatPeso(value) {
     : "";
 }
 
+function recordAgeMs(record) {
+  const time = Date.parse(record?.at || "");
+  return Number.isFinite(time) ? Math.max(0, Date.now() - time) : Infinity;
+}
+
+function requestRecording() {
+  if (retryRequested || activeTabId == null) return;
+  retryRequested = true;
+  chrome.tabs.sendMessage(activeTabId, { type: "recordPriceNow" }, () => {
+    void chrome.runtime.lastError;
+    setTimeout(() => { retryRequested = false; }, 2500);
+  });
+}
+
 function renderRecord(record) {
   status.classList.remove("error");
 
   if (record?.state === "recorded") {
     const count = Number(record.variationCount || 0);
+    const recordedCount = Number(record.recordedCount || 0);
+    const unchangedCount = Number(record.unchangedCount || 0);
+    const processedCount = recordedCount + unchangedCount;
+    const lowest = formatPeso(record.price);
+    const lowestName = record.lowestVariationName ? ` · ${record.lowestVariationName}` : "";
+
     detail.textContent = count > 0
       ? `Item ${ids.productId} · ${count} variation${count === 1 ? "" : "s"}`
       : `Item ${ids.productId}`;
 
-    const lowest = formatPeso(record.price);
-    const lowestName = record.lowestVariationName ? ` · ${record.lowestVariationName}` : "";
-    const processedCount = Number(record.recordedCount || 0) + Number(record.unchangedCount || 0);
-
-    if (count > 1 && processedCount >= count) {
-      status.textContent = `✓ All ${count} variations finished recording${lowest ? `. Lowest ${lowest}${lowestName}` : ""}.`;
-    } else if (count > 1) {
-      status.textContent = `Checked ${count} variations automatically${lowest ? `. Lowest ${lowest}${lowestName}` : ""}.`;
+    if (recordedCount === 0 && count > 0 && unchangedCount >= count) {
+      status.textContent = `✓ No price changes. All ${count} variation${count === 1 ? "" : "s"} are already up to date${lowest ? `. Lowest ${lowest}${lowestName}` : ""}.`;
+    } else if (count > 0 && processedCount >= count) {
+      status.textContent = `✓ Recorded successfully. ${count} variation${count === 1 ? "" : "s"} checked${lowest ? `. Lowest ${lowest}${lowestName}` : ""}.`;
     } else if (record.collectionMode === "visible-fallback") {
-      status.textContent = `Checked the visible price${lowest ? `: ${lowest}` : ""}. Reload the product page if Shopee variation data was still loading.`;
+      status.textContent = `✓ Recorded successfully${lowest ? `. Price ${lowest}` : ""}.`;
     } else {
-      status.textContent = `Public price checked automatically${lowest ? `: ${lowest}` : ""}.`;
+      status.textContent = `✓ Recorded successfully${lowest ? `. Lowest ${lowest}${lowestName}` : ""}.`;
     }
     return true;
   }
 
   if (record?.state === "detected") {
     const count = Number(record.variationCount || 0);
+    const lowest = formatPeso(record.price);
+    const lowestName = record.lowestVariationName ? ` · ${record.lowestVariationName}` : "";
+
     detail.textContent = count > 0
       ? `Item ${ids.productId} · ${count} variation${count === 1 ? "" : "s"}`
       : `Item ${ids.productId}`;
 
-    const lowest = formatPeso(record.price);
-    const lowestName = record.lowestVariationName ? ` · ${record.lowestVariationName}` : "";
-    status.textContent = count > 1
-      ? `Detected ${count} variations${lowest ? `. Lowest ${lowest}${lowestName}` : ""}. Saving price history…`
-      : `Product price detected${lowest ? `: ${lowest}` : ""}. Saving price history…`;
-    return true;
+    if (record.saveError) {
+      status.textContent = "Saving did not finish. Retrying…";
+      status.classList.add("error");
+      requestRecording();
+      return false;
+    }
+
+    status.textContent = count > 0
+      ? `Found ${count} variation${count === 1 ? "" : "s"}${lowest ? `. Lowest ${lowest}${lowestName}` : ""}. Saving prices…`
+      : `Product found${lowest ? ` at ${lowest}` : ""}. Saving prices…`;
+
+    if (recordAgeMs(record) > STALE_PROGRESS_MS) {
+      status.textContent = "Saving is taking longer than expected. Retrying…";
+      requestRecording();
+    }
+    return false;
   }
 
   if (record?.state === "checking") {
     detail.textContent = `Item ${ids.productId}`;
-    status.textContent = "Checking product variations…";
+    status.textContent = "Checking product…";
+    if (recordAgeMs(record) > STALE_PROGRESS_MS) requestRecording();
     return false;
   }
 
   if (record?.state === "error") {
     detail.textContent = `Item ${ids.productId}`;
-    status.textContent = record.message || "Automatic checking will retry when this product page is refreshed.";
+    status.textContent = record.message || "Checking failed. Retrying…";
     status.classList.add("error");
-    return true;
+    requestRecording();
+    return false;
   }
 
   detail.textContent = `Item ${ids.productId}`;
-  status.textContent = "Checking product variations…";
+  status.textContent = "Checking product…";
   return false;
 }
 
@@ -126,15 +159,16 @@ async function initialize() {
 
   title.textContent = "Shopee product detected";
   detail.textContent = `Item ${ids.productId}`;
-  status.textContent = "Checking product variations…";
+  status.textContent = "Checking product…";
   button.disabled = false;
 
   primaryKey = `productStatus:${ids.shopId}:${ids.productId}`;
   legacyKey = `productStatus:${ids.productId}`;
   const existing = await readStoredStatus();
 
-  if (activeTabId != null && (!existing || existing.state === "error")) {
-    chrome.tabs.sendMessage(activeTabId, { type: "recordPriceNow" }, () => void chrome.runtime.lastError);
+  const staleProgress = existing && ["checking", "detected"].includes(existing.state) && recordAgeMs(existing) > STALE_PROGRESS_MS;
+  if (activeTabId != null && (!existing || existing.state === "error" || existing.saveError || staleProgress)) {
+    requestRecording();
   }
 }
 
@@ -155,7 +189,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
 button.addEventListener("click", () => {
   const report = `${SITE}/?url=${encodeURIComponent(ids.canonicalUrl)}&autocheck=1#result`;
-  chrome.tabs.sendMessage(activeTabId, { type: "recordPriceNow" }, () => void chrome.runtime.lastError);
+  requestRecording();
   chrome.tabs.create({ url: report });
 });
 
