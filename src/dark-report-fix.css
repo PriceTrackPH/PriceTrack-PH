@@ -94,3 +94,7 @@ html[data-theme="dark"] .report-card .recharts-tooltip-wrapper .recharts-default
   border-color: #3a3f40 !important;
   color: #ebe7dc !important;
 }
+
+html[data-theme="dark"] .report-card .daily-price-tooltip-divider {
+  border-color: #3a3f40 !important;
+}
