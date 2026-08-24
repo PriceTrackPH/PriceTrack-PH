@@ -6,11 +6,13 @@ const status = document.querySelector("#status");
 const popupToggle = document.querySelector("#popup-toggle");
 const POPUP_SETTING_KEY = "notificationsEnabled";
 const STALE_PROGRESS_MS = 20_000;
+const STATUS_POLL_MS = 500;
 let ids;
 let activeTabId;
 let primaryKey;
 let legacyKey;
 let retryRequested = false;
+let statusPollTimer = null;
 
 function parseIds(value) {
   try {
@@ -39,12 +41,38 @@ function recordAgeMs(record) {
   return Number.isFinite(time) ? Math.max(0, Date.now() - time) : Infinity;
 }
 
+function stopStatusPolling() {
+  if (statusPollTimer != null) {
+    clearTimeout(statusPollTimer);
+    statusPollTimer = null;
+  }
+}
+
+function scheduleStatusPolling() {
+  stopStatusPolling();
+  statusPollTimer = setTimeout(async () => {
+    const record = await readStoredStatus();
+    if (record && ["checking", "detected"].includes(record.state)) {
+      scheduleStatusPolling();
+    }
+  }, STATUS_POLL_MS);
+}
+
 function requestRecording() {
   if (retryRequested || activeTabId == null) return;
   retryRequested = true;
-  chrome.tabs.sendMessage(activeTabId, { type: "recordPriceNow" }, () => {
-    void chrome.runtime.lastError;
-    setTimeout(() => { retryRequested = false; }, 2500);
+
+  chrome.tabs.sendMessage(activeTabId, { type: "recordPriceNow" }, async () => {
+    const hadError = Boolean(chrome.runtime.lastError);
+
+    if (!hadError) {
+      // The content script replies only after the recording promise settles.
+      // Re-read storage here so the popup always renders the final state even if
+      // chrome.storage.onChanged was missed while the popup was opening/closing.
+      await readStoredStatus();
+    }
+
+    retryRequested = false;
   });
 }
 
@@ -52,6 +80,8 @@ function renderRecord(record) {
   status.classList.remove("error");
 
   if (record?.state === "recorded") {
+    stopStatusPolling();
+
     const count = Number(record.variationCount || 0);
     const recordedCount = Number(record.recordedCount || 0);
     const unchangedCount = Number(record.unchangedCount || 0);
@@ -88,6 +118,7 @@ function renderRecord(record) {
       status.textContent = "Saving did not finish. Retrying…";
       status.classList.add("error");
       requestRecording();
+      scheduleStatusPolling();
       return false;
     }
 
@@ -99,6 +130,8 @@ function renderRecord(record) {
       status.textContent = "Saving is taking longer than expected. Retrying…";
       requestRecording();
     }
+
+    scheduleStatusPolling();
     return false;
   }
 
@@ -106,6 +139,7 @@ function renderRecord(record) {
     detail.textContent = `Item ${ids.productId}`;
     status.textContent = "Checking product…";
     if (recordAgeMs(record) > STALE_PROGRESS_MS) requestRecording();
+    scheduleStatusPolling();
     return false;
   }
 
@@ -114,11 +148,13 @@ function renderRecord(record) {
     status.textContent = record.message || "Checking failed. Retrying…";
     status.classList.add("error");
     requestRecording();
+    scheduleStatusPolling();
     return false;
   }
 
   detail.textContent = `Item ${ids.productId}`;
   status.textContent = "Checking product…";
+  scheduleStatusPolling();
   return false;
 }
 
@@ -126,7 +162,15 @@ function readStoredStatus() {
   if (!primaryKey || !legacyKey) return Promise.resolve(null);
   return new Promise(resolve => {
     chrome.storage.local.get([primaryKey, legacyKey], result => {
-      const record = result[primaryKey] || result[legacyKey] || null;
+      const primaryRecord = result[primaryKey] || null;
+      const legacyRecord = result[legacyKey] || null;
+
+      // Prefer the newest record if both keys exist. This prevents a slightly
+      // older legacy write from making the popup look stuck on "Saving...".
+      const primaryTime = Date.parse(primaryRecord?.at || "") || 0;
+      const legacyTime = Date.parse(legacyRecord?.at || "") || 0;
+      const record = primaryTime >= legacyTime ? primaryRecord : legacyRecord;
+
       renderRecord(record);
       resolve(record);
     });
@@ -180,10 +224,11 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 
   if (!ids) return;
-  if (changes[primaryKey]) {
-    renderRecord(changes[primaryKey].newValue);
-  } else if (changes[legacyKey]) {
-    renderRecord(changes[legacyKey].newValue);
+
+  if (changes[primaryKey] || changes[legacyKey]) {
+    // Always resolve both keys together and render the newest status. This makes
+    // the popup robust to write ordering between the primary and legacy keys.
+    readStoredStatus();
   }
 });
 
