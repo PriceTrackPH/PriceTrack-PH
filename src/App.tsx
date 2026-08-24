@@ -220,6 +220,26 @@ function countPriceChanges(points: ChartPoint[]) {
   return changes;
 }
 
+function formatLastChecked(value: string | null | undefined) {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return null;
+
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+  if (elapsedSeconds < 60) return "just now";
+
+  const minutes = Math.floor(elapsedSeconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr${hours === 1 ? "" : "s"} ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
+
+  return fullDateFormatter.format(new Date(timestamp));
+}
+
 function priceStep(maxPrice: number) {
   if (maxPrice < 20) return 5;
   if (maxPrice < 50) return 10;
@@ -515,6 +535,7 @@ function App() {
 
   const outboundLink = resolveOutboundLink(product);
   const priceChanges = countPriceChanges(allVariationPoints);
+  const lastCheckedLabel = formatLastChecked(product?.last_seen_at);
   const axis = useMemo(() => roundedAxis(chartData), [chartData]);
 
   const reportStats = useMemo(() => {
@@ -727,7 +748,10 @@ function App() {
                         {selectedIsOutOfStock ? "OUT OF STOCK" : "LIVE DATABASE"}
                       </span>
                     </div>
-                    <p>{priceChanges} recorded price change{priceChanges === 1 ? "" : "s"}</p>
+                    <p>
+                      {priceChanges} recorded price change{priceChanges === 1 ? "" : "s"}
+                      {lastCheckedLabel ? ` · Last checked ${lastCheckedLabel}` : ""}
+                    </p>
                   </div>
                 </div>
 
