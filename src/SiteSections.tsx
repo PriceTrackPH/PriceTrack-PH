@@ -3,14 +3,63 @@ import gcashQr from "./assets/donation-gcash-qr.jpg";
 import mayaQr from "./assets/donation-maya-qr.jpg";
 import bankQr from "./assets/donation-bank-qr.jpg";
 
+type FooterModalKey = "about" | "privacy" | "data" | "contact";
+
+const footerModalContent: Record<FooterModalKey, { label: string; title: string; body: JSX.Element }> = {
+  about: {
+    label: "ABOUT PRICETRACK PH",
+    title: "Independent price history for smarter shopping.",
+    body: (
+      <>
+        <p>PriceTrack PH records publicly visible product prices so shoppers can compare today&apos;s price with recent history before buying.</p>
+        <p>The project is independent and is not affiliated with or endorsed by Shopee. Price information can change at any time, so the original marketplace listing remains the final source for availability and checkout price.</p>
+      </>
+    ),
+  },
+  privacy: {
+    label: "PRIVACY",
+    title: "Built to work without shopper accounts.",
+    body: (
+      <>
+        <p>PriceTrack PH does not require you to create an account to view public price history.</p>
+        <p>The tracker is designed around public product information needed to identify listings, variations, availability, and recorded prices. It is not intended to collect private marketplace account information.</p>
+      </>
+    ),
+  },
+  data: {
+    label: "DATA POLICY",
+    title: "What the tracker records.",
+    body: (
+      <>
+        <p>PriceTrack PH stores product identifiers, public listing details, variation names, recorded prices, stock status, and observation times needed to build price history.</p>
+        <p>Multiple observations from the same day may be kept when the public price changes. Historical data is shown as a shopping reference and may not represent vouchers, personalized discounts, shipping fees, or the final checkout total.</p>
+      </>
+    ),
+  },
+  contact: {
+    label: "CONTACT",
+    title: "Questions, bugs, or feedback?",
+    body: (
+      <>
+        <p>For product-tracking issues, website bugs, feature requests, or general feedback, you can contact the PriceTrack PH project through GitHub.</p>
+        <a className="footer-modal-action" href="https://github.com/PriceTrackPH/PriceTrack-PH/issues" target="_blank" rel="noreferrer">Open GitHub issues ↗</a>
+      </>
+    ),
+  },
+};
+
 function SiteSections() {
   const [donationOpen, setDonationOpen] = useState(false);
+  const [footerModal, setFooterModal] = useState<FooterModalKey | null>(null);
 
   useEffect(() => {
-    if (!donationOpen) return;
+    if (!donationOpen && !footerModal) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDonationOpen(false);
+      if (event.key === "Escape") {
+        setDonationOpen(false);
+        setFooterModal(null);
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -21,7 +70,9 @@ function SiteSections() {
       window.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
     };
-  }, [donationOpen]);
+  }, [donationOpen, footerModal]);
+
+  const activeFooterModal = footerModal ? footerModalContent[footerModal] : null;
 
   return (
     <>
@@ -142,6 +193,23 @@ function SiteSections() {
         </div>
       )}
 
+      {activeFooterModal && (
+        <div
+          className="footer-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setFooterModal(null);
+          }}
+        >
+          <section className="footer-modal" role="dialog" aria-modal="true" aria-labelledby="footer-modal-title">
+            <button className="footer-modal-close" type="button" aria-label="Close information window" onClick={() => setFooterModal(null)}>×</button>
+            <div className="section-label">{activeFooterModal.label}</div>
+            <h3 id="footer-modal-title">{activeFooterModal.title}</h3>
+            <div className="footer-modal-body">{activeFooterModal.body}</div>
+          </section>
+        </div>
+      )}
+
       <footer className="full-footer">
         <div className="section-shell">
           <div className="footer-main">
@@ -150,10 +218,10 @@ function SiteSections() {
               <small>Independent price history for smarter shopping.</small>
             </div>
             <nav aria-label="Footer navigation">
-              <a href="#top">About</a>
-              <a href="#top">Privacy</a>
-              <a href="#top">Data policy</a>
-              <a href="#top">Contact</a>
+              <button type="button" onClick={() => setFooterModal("about")}>About</button>
+              <button type="button" onClick={() => setFooterModal("privacy")}>Privacy</button>
+              <button type="button" onClick={() => setFooterModal("data")}>Data policy</button>
+              <button type="button" onClick={() => setFooterModal("contact")}>Contact</button>
             </nav>
           </div>
           <div className="footer-disclaimer">PriceTrack PH is independent and is not affiliated with or endorsed by Shopee.</div>
