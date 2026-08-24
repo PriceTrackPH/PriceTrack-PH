@@ -17,6 +17,7 @@ import "./variation-white-default.css";
 import "./report-lavender-fix.css";
 import "./title-fit";
 import "./variation-display-format";
+import "./affiliate-button";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
