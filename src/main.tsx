@@ -19,6 +19,7 @@ import "./title-fit";
 import "./variation-display-format";
 import "./affiliate-button";
 import "./mobile-donation-close.css";
+import "./mobile-contact-modal.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

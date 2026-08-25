@@ -1,0 +1,94 @@
+/* Keep every overlay above the fixed site header. */
+.donation-modal-backdrop,
+.footer-modal-backdrop {
+  z-index: 10000;
+}
+
+@media (max-width: 760px) {
+  .footer-modal-backdrop {
+    place-items: center;
+    padding: 10px;
+  }
+
+  .footer-modal {
+    width: min(100%, 430px);
+    max-height: calc(100dvh - 20px);
+    box-sizing: border-box;
+    padding: 16px 14px 18px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .footer-modal-close {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    float: right;
+    width: 36px;
+    height: 36px;
+    margin: 0 0 -36px auto;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, .18);
+    font-size: 23px;
+    line-height: 1;
+  }
+
+  .footer-modal > .section-label {
+    min-height: 36px;
+    margin: 0 0 3px;
+    padding: 8px 46px 0 0;
+  }
+
+  .footer-modal h3 {
+    margin: 4px 44px 8px 0;
+    font-size: 20px;
+    line-height: 1.15;
+  }
+
+  .contact-form {
+    gap: 8px;
+  }
+
+  .contact-form > p {
+    margin: 0 0 3px;
+  }
+
+  .contact-form input,
+  .contact-form textarea {
+    padding: 8px 9px;
+  }
+
+  .contact-form input:not([type="file"]) {
+    min-height: 34px;
+  }
+
+  .contact-form textarea {
+    min-height: 82px;
+    max-height: 110px;
+  }
+
+  .contact-form .contact-file-input {
+    min-width: 0;
+    padding: 6px;
+    overflow: hidden;
+    font-size: 10px;
+  }
+
+  .contact-file-input::file-selector-button {
+    margin-right: 7px;
+    padding: 6px 8px;
+  }
+
+  .contact-attachment-note {
+    margin-top: -5px;
+  }
+
+  .contact-form-actions {
+    margin-top: 1px;
+  }
+}
