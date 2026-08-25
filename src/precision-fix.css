@@ -9,6 +9,20 @@
   z-index: 9999 !important;
 }
 
+.footer-main nav a {
+  padding: 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: 10px;
+  line-height: normal;
+  text-decoration: none;
+}
+
+.footer-main nav a:hover,
+.footer-main nav a:focus-visible {
+  color: #13c89a;
+}
+
 body {
   padding-top: 58px !important;
 }
