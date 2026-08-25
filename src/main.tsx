@@ -18,6 +18,7 @@ import "./report-lavender-fix.css";
 import "./title-fit";
 import "./variation-display-format";
 import "./affiliate-button";
+import "./mobile-donation-close.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
