@@ -66,6 +66,68 @@
           });
         });
 
+        const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
+
+        document.addEventListener("submit", (event) => {
+          const form = event.target;
+          if (!(form instanceof HTMLFormElement) || !form.classList.contains("search-box") || !isMobile()) return;
+
+          const input = form.querySelector("input");
+          const button = form.querySelector("button");
+          if (!(input instanceof HTMLInputElement) || !(button instanceof HTMLButtonElement)) return;
+
+          const submittedValue = input.value.trim();
+          if (!submittedValue) return;
+
+          let finished = false;
+          const finishCheck = () => {
+            if (finished) return;
+            const stillLoading = button.textContent?.includes("Checking") ?? false;
+            if (stillLoading) return;
+
+            const error = document.querySelector(".hero-band .error");
+            const foundStatus = document.querySelector(".hero-band .found-status");
+            const report = document.querySelector(".report-section");
+
+            if (!error && foundStatus && report) {
+              finished = true;
+
+              const nativeSetter = Object.getOwnPropertyDescriptor(
+                HTMLInputElement.prototype,
+                "value",
+              )?.set;
+              nativeSetter?.call(input, "");
+              input.dispatchEvent(new Event("input", { bubbles: true }));
+
+              requestAnimationFrame(() => {
+                report.scrollIntoView({ behavior: "smooth", block: "start" });
+              });
+            }
+          };
+
+          const observer = new MutationObserver(() => finishCheck());
+          observer.observe(document.getElementById("root") || document.body, {
+            childList: true,
+            subtree: true,
+            characterData: true,
+          });
+
+          const stop = () => observer.disconnect();
+          const timeout = window.setTimeout(() => {
+            finishCheck();
+            stop();
+          }, 15000);
+
+          const interval = window.setInterval(() => {
+            finishCheck();
+            if (finished) {
+              window.clearInterval(interval);
+              window.clearTimeout(timeout);
+              stop();
+            }
+          }, 100);
+        });
+
         if (window.location.hash) {
           history.replaceState(null, "", window.location.pathname + window.location.search);
         }
