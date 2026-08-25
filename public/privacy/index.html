@@ -8,12 +8,20 @@
   <style>
     :root{color-scheme:light dark;--navy:#1d194b;--mint:#00cfa1;--bg:#f7f8fb;--card:#fff;--text:#242238;--muted:#68657a;--line:#e4e3ec}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 Arial,sans-serif}
+    .site-header{position:sticky;top:0;z-index:10;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:blur(12px)}
+    .header-inner{display:flex;align-items:center;justify-content:space-between;width:min(920px,calc(100% - 32px));height:64px;margin:0 auto}.header-inner a{text-decoration:none}.home-link{padding:9px 13px;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:13px;font-weight:700}.home-link:hover,.home-link:focus-visible{border-color:var(--mint);color:#008e70}
     main{width:min(820px,calc(100% - 32px));margin:48px auto;padding:40px;border:1px solid var(--line);border-radius:18px;background:var(--card);box-shadow:0 18px 50px rgba(29,25,75,.08)}
     h1,h2{color:var(--navy);line-height:1.25}h1{margin:0 0 8px;font-size:34px}h2{margin:30px 0 8px;font-size:19px}p,li{color:var(--muted)}ul{padding-left:22px}a{color:#008e70}.brand{font-weight:800;color:var(--navy)}.brand span{color:var(--mint)}.updated{margin:0 0 28px;font-size:13px}
     @media(prefers-color-scheme:dark){:root{--bg:#111514;--card:#171b1a;--text:#f3f2f7;--muted:#c2becd;--line:#303532;--navy:#f3f2f7}}
   </style>
 </head>
 <body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="https://pricetrackph.vercel.app">PriceTrack <span>PH</span></a>
+      <a class="home-link" href="https://pricetrackph.vercel.app">Back to PriceTrack PH</a>
+    </div>
+  </header>
   <main>
     <div class="brand">PriceTrack <span>PH</span></div>
     <h1>Privacy Policy</h1>
