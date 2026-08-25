@@ -1,0 +1,55 @@
+.contact-optional {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.contact-form .contact-file-input {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.contact-file-input::file-selector-button {
+  margin-right: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.contact-attachment-note {
+  margin-top: -7px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.contact-attachment-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-muted);
+  font-size: 10px;
+}
+
+.contact-attachment-selected span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contact-attachment-selected button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #e46a6a;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}

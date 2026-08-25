@@ -1,7 +1,17 @@
 const CONTACT_TO = "reachvergel@gmail.com";
+const ATTACHMENT_MAX_BYTES = 2 * 1024 * 1024;
+const ATTACHMENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
 function clean(value, maxLength) {
   return String(value ?? "").trim().slice(0, maxLength);
+}
+
+function hasExpectedSignature(contentType, bytes) {
+  if (contentType === "application/pdf") return bytes.subarray(0, 5).toString("ascii") === "%PDF-";
+  if (contentType === "image/png") return bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  if (contentType === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (contentType === "image/webp") return bytes.subarray(0, 4).toString("ascii") === "RIFF" && bytes.subarray(8, 12).toString("ascii") === "WEBP";
+  return false;
 }
 
 export default async function handler(req, res) {
@@ -19,6 +29,8 @@ export default async function handler(req, res) {
   const email = clean(req.body?.email, 200);
   const subject = clean(req.body?.subject, 180) || "PriceTrack PH contact";
   const message = clean(req.body?.message, 5000);
+  const rawAttachment = req.body?.attachment;
+  let attachment;
 
   if (!message) {
     return res.status(400).json({ error: "Please enter a message." });
@@ -26,6 +38,24 @@ export default async function handler(req, res) {
 
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: "Please enter a valid email address." });
+  }
+
+  if (rawAttachment != null) {
+    const filename = clean(rawAttachment.filename, 180).replace(/[\\/\r\n]/g, "_");
+    const contentType = clean(rawAttachment.contentType, 100);
+    const content = String(rawAttachment.content ?? "").replace(/\s/g, "");
+
+    if (!filename || !ATTACHMENT_TYPES.has(contentType) || !/^[A-Za-z0-9+/]*={0,2}$/.test(content)) {
+      return res.status(400).json({ error: "Attachment must be a JPG, PNG, WebP, or PDF file." });
+    }
+    const bytes = Buffer.from(content, "base64");
+    if (!content || bytes.length > ATTACHMENT_MAX_BYTES) {
+      return res.status(400).json({ error: "Attachment must be 2 MB or smaller." });
+    }
+    if (!hasExpectedSignature(contentType, bytes)) {
+      return res.status(400).json({ error: "Attachment content does not match its file type." });
+    }
+    attachment = { filename, content, content_type: contentType };
   }
 
   const text = [
@@ -47,6 +77,7 @@ export default async function handler(req, res) {
         to: [CONTACT_TO],
         subject: `[PriceTrack PH] ${subject}`,
         text,
+        ...(attachment ? { attachments: [attachment] } : {}),
         ...(email ? { reply_to: email } : {}),
       }),
     });

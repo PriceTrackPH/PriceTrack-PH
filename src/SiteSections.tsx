@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import gcashQr from "./assets/donation-gcash-qr.jpg";
 import mayaQr from "./assets/donation-maya-qr.jpg";
 import bankQr from "./assets/donation-bank-qr.jpg";
+import "./contact-attachment.css";
 
 type FooterModalKey = "about" | "privacy" | "data" | "contact";
 type ContactDraft = { name: string; email: string; subject: string; message: string; savedAt: number };
@@ -9,6 +10,10 @@ type ContactSendState = "idle" | "sending" | "sent" | "error";
 
 const CONTACT_DRAFT_KEY = "pricetrackph-contact-draft";
 const CONTACT_DRAFT_TTL = 24 * 60 * 60 * 1000;
+const CONTACT_ATTACHMENT_MAX_BYTES = 2 * 1024 * 1024;
+const CONTACT_ATTACHMENT_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+
+type ContactAttachment = { filename: string; contentType: string; content: string };
 
 const footerModalContent: Record<FooterModalKey, { label: string; title: string; body: ReactNode }> = {
   about: {
@@ -56,6 +61,8 @@ function SiteSections() {
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [contactSendState, setContactSendState] = useState<ContactSendState>("idle");
   const [contactSendMessage, setContactSendMessage] = useState("");
+  const [contactAttachment, setContactAttachment] = useState<ContactAttachment | null>(null);
+  const contactAttachmentInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -111,6 +118,55 @@ function SiteSections() {
     }
   };
 
+  const selectContactAttachment = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    setContactSendState("idle");
+    setContactSendMessage("");
+
+    if (!file) {
+      setContactAttachment(null);
+      return;
+    }
+    if (!CONTACT_ATTACHMENT_TYPES.includes(file.type)) {
+      event.target.value = "";
+      setContactAttachment(null);
+      setContactSendState("error");
+      setContactSendMessage("Use a JPG, PNG, WebP, or PDF file.");
+      return;
+    }
+    if (file.size > CONTACT_ATTACHMENT_MAX_BYTES) {
+      event.target.value = "";
+      setContactAttachment(null);
+      setContactSendState("error");
+      setContactSendMessage("Attachment must be 2 MB or smaller.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const content = result.includes(",") ? result.slice(result.indexOf(",") + 1) : "";
+      if (!content) {
+        setContactSendState("error");
+        setContactSendMessage("Attachment could not be read.");
+        return;
+      }
+      setContactAttachment({ filename: file.name, contentType: file.type, content });
+    };
+    reader.onerror = () => {
+      event.target.value = "";
+      setContactAttachment(null);
+      setContactSendState("error");
+      setContactSendMessage("Attachment could not be read.");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeContactAttachment = () => {
+    setContactAttachment(null);
+    if (contactAttachmentInput.current) contactAttachmentInput.current.value = "";
+  };
+
   const sendContactEmail = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setContactSendState("sending");
@@ -120,7 +176,7 @@ function SiteSections() {
       const response = await fetch("/api/send-contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(contactDraft),
+        body: JSON.stringify({ ...contactDraft, attachment: contactAttachment }),
       });
 
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
@@ -130,6 +186,7 @@ function SiteSections() {
 
       localStorage.removeItem(CONTACT_DRAFT_KEY);
       setContactDraft({ name: "", email: "", subject: "", message: "" });
+      removeContactAttachment();
       setContactSendState("sent");
       setContactSendMessage("Message sent. Thank you!");
     } catch (error) {
@@ -159,7 +216,18 @@ function SiteSections() {
 
       {donationOpen && <div className="donation-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDonationOpen(false); }}><section className="donation-modal" role="dialog" aria-modal="true" aria-labelledby="donation-title"><button className="donation-modal-close" type="button" aria-label="Close donation window" onClick={() => setDonationOpen(false)}>×</button><div className="donation-modal-heading"><div className="section-label">SUPPORT PRICETRACK PH</div><h3 id="donation-title">Choose a QR code to donate.</h3><p>Scan the option that works best for you.</p></div><div className="donation-qr-grid">{[{ label: "GCash", src: gcashQr }, { label: "Maya", src: mayaQr }, { label: "Bank / QR Ph", src: bankQr }].map((item) => <div className="donation-qr-card" key={item.label}><img className="donation-qr-image" src={item.src} alt={`${item.label} donation QR code`} /><strong>{item.label}</strong></div>)}</div><p className="donation-thanks">Thank you for helping keep PriceTrack PH free.</p></section></div>}
 
-      {activeFooterModal && <div className="footer-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFooterModal(null); }}><section className="footer-modal" role="dialog" aria-modal="true" aria-labelledby="footer-modal-title"><button className="footer-modal-close" type="button" aria-label="Close information window" onClick={() => setFooterModal(null)}>×</button><div className="section-label">{activeFooterModal.label}</div><h3 id="footer-modal-title">{activeFooterModal.title}</h3><div className="footer-modal-body">{footerModal === "contact" ? <form className="contact-form" onSubmit={sendContactEmail}><p>For product-tracking issues, website bugs, feature requests, or general feedback, email PriceTrack PH directly.</p><label>Name<input value={contactDraft.name} onChange={(e) => updateContactDraft("name", e.target.value)} autoComplete="name" /></label><label>Email<input type="email" value={contactDraft.email} onChange={(e) => updateContactDraft("email", e.target.value)} autoComplete="email" /></label><label>Subject<input value={contactDraft.subject} onChange={(e) => updateContactDraft("subject", e.target.value)} /></label><label>Message<textarea required rows={6} value={contactDraft.message} onChange={(e) => updateContactDraft("message", e.target.value)} /></label><div className="contact-form-actions"><button className="footer-modal-action" type="submit" disabled={contactSendState === "sending"}>{contactSendState === "sending" ? "Sending..." : "Send message ↗"}</button></div>{contactSendMessage && <p className={`contact-send-status ${contactSendState}`}>{contactSendMessage}</p>}</form> : activeFooterModal.body}</div></section></div>}
+      {activeFooterModal && <div className="footer-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFooterModal(null); }}><section className="footer-modal" role="dialog" aria-modal="true" aria-labelledby="footer-modal-title"><button className="footer-modal-close" type="button" aria-label="Close information window" onClick={() => setFooterModal(null)}>×</button><div className="section-label">{activeFooterModal.label}</div><h3 id="footer-modal-title">{activeFooterModal.title}</h3><div className="footer-modal-body">{footerModal === "contact" ? <form className="contact-form" onSubmit={sendContactEmail}>
+        <p>For product-tracking issues, website bugs, feature requests, or general feedback, email PriceTrack PH directly.</p>
+        <label>Name<input value={contactDraft.name} onChange={(e) => updateContactDraft("name", e.target.value)} autoComplete="name" /></label>
+        <label>Email<input type="email" value={contactDraft.email} onChange={(e) => updateContactDraft("email", e.target.value)} autoComplete="email" /></label>
+        <label>Subject<input value={contactDraft.subject} onChange={(e) => updateContactDraft("subject", e.target.value)} /></label>
+        <label>Message<textarea required rows={6} value={contactDraft.message} onChange={(e) => updateContactDraft("message", e.target.value)} /></label>
+        <label>Attachment <span className="contact-optional">(optional)</span><input ref={contactAttachmentInput} className="contact-file-input" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" onChange={selectContactAttachment} /></label>
+        <div className="contact-attachment-note">JPG, PNG, WebP, or PDF · maximum 2 MB</div>
+        {contactAttachment && <div className="contact-attachment-selected"><span title={contactAttachment.filename}>{contactAttachment.filename}</span><button type="button" onClick={removeContactAttachment}>Remove</button></div>}
+        <div className="contact-form-actions"><button className="footer-modal-action" type="submit" disabled={contactSendState === "sending"}>{contactSendState === "sending" ? "Sending..." : "Send message ↗"}</button></div>
+        {contactSendMessage && <p className={`contact-send-status ${contactSendState}`}>{contactSendMessage}</p>}
+      </form> : activeFooterModal.body}</div></section></div>}
 
       <footer className="full-footer"><div className="section-shell"><div className="footer-main"><div><strong>PriceTrack <span>PH</span></strong><small>Independent price history for smarter shopping.</small></div><nav aria-label="Footer navigation"><button type="button" onClick={() => setFooterModal("about")}>About</button><button type="button" onClick={() => { window.location.href = "/privacy/"; }}>Privacy</button><button type="button" onClick={() => setFooterModal("data")}>Data policy</button><button type="button" onClick={() => setFooterModal("contact")}>Contact</button></nav></div><div className="footer-disclaimer">PriceTrack PH is independent and is not affiliated with or endorsed by the marketplaces it tracks.</div></div></footer>
     </>
