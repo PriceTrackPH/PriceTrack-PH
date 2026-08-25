@@ -8,7 +8,11 @@
 </head>
 <body>
   <main>
-    <header><img src="assets/pricetrack-ph-logo.png" alt="PriceTrack PH"></header>
+    <header>
+      <div class="brand-mark" aria-hidden="true"><span></span></div>
+      <div class="brand-copy"><strong>PriceTrack <b>PH</b></strong><small>Shopee price history companion</small></div>
+      <span class="version" id="version">v1.0.1</span>
+    </header>
     <section id="detected" class="detected">
       <span class="check">✓</span>
       <div><strong id="title">Checking this page…</strong><p id="detail">Public product information only</p></div>
@@ -24,7 +28,7 @@
       </label>
     </div>
     <button id="open" disabled>View price history <span>→</span></button>
-    <p id="status" role="status">Automatically saves today’s first price and any later changes.</p>
+    <div class="status-line"><span class="privacy-dot"></span><p id="status" role="status">Automatically saves today’s first price and any later changes.</p></div>
   </main>
   <script src="popup.js"></script>
 </body>
