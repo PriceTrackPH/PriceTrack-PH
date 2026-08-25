@@ -1,6 +1,6 @@
 # PriceTrack PH Chrome Extension
 
-Current public release candidate: **v1.0.1**.
+Current public release candidate: **v1.0.0**.
 
 This extension runs on Shopee Philippines product pages, detects Shopee model/variation data as early as possible, and sends public product price observations to the PriceTrack PH website API.
 
@@ -16,7 +16,7 @@ Install **PriceTrack PH** from its official Chrome Web Store listing. The PriceT
 4. Select this `extension` folder.
 5. Open a Shopee Philippines product page and click the PriceTrack PH extension icon to view detection/recording status.
 
-## v1.0.1 behavior
+## v1.0.0 behavior
 
 - Starts variation detection at `document_start` instead of waiting for the full Shopee page load.
 - Captures Shopee product API responses through the page bridge and also uses bounded fallback requests.
