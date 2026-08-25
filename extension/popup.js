@@ -4,7 +4,6 @@ const title = document.querySelector("#title");
 const detail = document.querySelector("#detail");
 const status = document.querySelector("#status");
 const popupToggle = document.querySelector("#popup-toggle");
-const version = document.querySelector("#version");
 const POPUP_SETTING_KEY = "notificationsEnabled";
 const STALE_PROGRESS_MS = 20_000;
 const STATUS_POLL_MS = 500;
@@ -189,7 +188,6 @@ function initializePopupToggle() {
 }
 
 async function initialize() {
-  version.textContent = `v${chrome.runtime.getManifest().version}`;
   initializePopupToggle();
 
   const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
