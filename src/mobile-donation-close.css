@@ -1,0 +1,27 @@
+@media (max-width: 760px) {
+  .donation-modal {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .donation-modal-close {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    float: right;
+    width: 42px;
+    height: 42px;
+    margin: 0 0 -42px auto;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: 0 4px 18px rgba(0,0,0,.18);
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .donation-modal-heading {
+    padding-right: 52px;
+  }
+}
