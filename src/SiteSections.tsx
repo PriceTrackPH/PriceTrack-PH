@@ -49,6 +49,7 @@ const footerModalContent: Record<FooterModalKey, { label: string; title: string;
 };
 
 function SiteSections() {
+  const chromeWebStoreUrl = import.meta.env.VITE_CHROME_WEB_STORE_URL as string | undefined;
   const [donationOpen, setDonationOpen] = useState(false);
   const [footerModal, setFooterModal] = useState<FooterModalKey | null>(null);
   const [contactDraft, setContactDraft] = useState<Omit<ContactDraft, "savedAt">>({ name: "", email: "", subject: "", message: "" });
@@ -146,7 +147,7 @@ function SiteSections() {
             <h2>Automatic tracking.<br />One useful button.</h2>
             <p>Open a Shopee product and PriceTrack PH checks its public price automatically. Click the extension only when you want to view the complete report.</p>
             <ol className="steps-list"><li><span>1</span>Detects the product you are viewing</li><li><span>2</span>Saves each day&apos;s first price and any later changes</li><li><span>3</span>Opens the full report from one button</li></ol>
-            <button className="download-beta" type="button" title="Chrome extension source will be added to this repository next">Download Chrome beta <span>↘</span></button>
+            {chromeWebStoreUrl ? <a className="chrome-install" href={chromeWebStoreUrl} target="_blank" rel="noreferrer">Add to Chrome <span>↗</span></a> : <span className="chrome-install chrome-install-disabled" aria-disabled="true" title="The public Chrome Web Store listing will be linked here after approval">Chrome Web Store — coming soon</span>}
           </div>
           <div className="extension-preview" aria-label="PriceTrack extension preview"><div className="browser-dots"><span /><span /><span /></div><div className="preview-card"><strong>PriceTrack <em>PH</em></strong><div className="detected-box"><b>✓</b><div><strong>Shopee product detected</strong><small>Ready to check this item</small></div></div><button type="button">View price history <span>→</span></button><small>Opens PriceTrack PH in a new tab</small></div></div>
         </div>

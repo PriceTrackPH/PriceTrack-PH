@@ -63,8 +63,7 @@ select:focus-visible {
   gap: 11px;
 }
 
-.theme-switch button,
-.beta-pill {
+.theme-switch button {
   min-height: 30px;
 }
 
@@ -318,10 +317,16 @@ select:focus-visible {
   font-size: 12px !important;
 }
 
-.download-beta {
+.chrome-install {
   min-height: 44px;
   padding: 0 18px !important;
   border-radius: 7px !important;
+  text-decoration: none;
+}
+
+.chrome-install-disabled {
+  cursor: not-allowed !important;
+  opacity: .68;
 }
 
 .extension-preview {

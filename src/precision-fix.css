@@ -30,7 +30,7 @@ html {
   font-size: 16px !important;
 }
 
-.extension-section .download-beta {
+.extension-section .chrome-install {
   height: 50px !important;
   min-height: 50px !important;
   box-sizing: border-box !important;
@@ -38,7 +38,7 @@ html {
   box-shadow: 0 8px 18px rgba(0, 0, 0, .22) !important;
 }
 
-.extension-section .download-beta span {
+.extension-section .chrome-install span {
   color: #ffffff !important;
 }
 
