@@ -1,19 +1,29 @@
-const MAX_REDIRECTS = 10;
-const MAX_HTML_BYTES = 500_000;
+const MAX_REDIRECTS = 12;
+const MAX_HTML_BYTES = 700_000;
 
 function isAllowedShopeeHost(hostname) {
   const host = hostname.toLowerCase();
-  return host === 'shopee.ph' || host.endsWith('.shopee.ph') || host === 'ph.shp.ee';
+  return (
+    host === 'shopee.ph' ||
+    host.endsWith('.shopee.ph') ||
+    host === 'ph.shp.ee' ||
+    host === 'shope.ee' ||
+    host.endsWith('.shope.ee')
+  );
 }
 
 function decodeLoose(value) {
   let current = String(value || '')
     .replace(/&amp;/gi, '&')
+    .replace(/&#x26;/gi, '&')
     .replace(/\\u002f/gi, '/')
     .replace(/\\u003a/gi, ':')
+    .replace(/\\u003f/gi, '?')
+    .replace(/\\u003d/gi, '=')
+    .replace(/\\u0026/gi, '&')
     .replace(/\\\//g, '/');
 
-  for (let i = 0; i < 3; i += 1) {
+  for (let i = 0; i < 5; i += 1) {
     try {
       const decoded = decodeURIComponent(current);
       if (decoded === current) break;
@@ -38,8 +48,8 @@ function extractIdsFromText(rawValue, resolvedUrl = null) {
       /shopee:\/\/product\/(\d+)\/(\d+)/i,
       /(?:^|[?&#])shopid=(\d+).*?(?:^|[?&#])itemid=(\d+)/i,
       /(?:^|[?&#])shop_id=(\d+).*?(?:^|[?&#])item_id=(\d+)/i,
-      /["']shop(?:id|Id|_id)["']\s*[:=]\s*["']?(\d+)["']?.{0,1500}?["']item(?:id|Id|_id)["']\s*[:=]\s*["']?(\d+)/is,
-      /["']item(?:id|Id|_id)["']\s*[:=]\s*["']?(\d+)["']?.{0,1500}?["']shop(?:id|Id|_id)["']\s*[:=]\s*["']?(\d+)/is,
+      /["']shop(?:id|Id|_id)["']\s*[:=]\s*["']?(\d+)["']?.{0,2000}?["']item(?:id|Id|_id)["']\s*[:=]\s*["']?(\d+)/is,
+      /["']item(?:id|Id|_id)["']\s*[:=]\s*["']?(\d+)["']?.{0,2000}?["']shop(?:id|Id|_id)["']\s*[:=]\s*["']?(\d+)/is,
     ];
 
     for (let index = 0; index < directPatterns.length; index += 1) {
@@ -52,11 +62,7 @@ function extractIdsFromText(rawValue, resolvedUrl = null) {
     const shopMatches = [...value.matchAll(/(?:shopid|shopId|shop_id)["'\s:=]+["']?(\d{5,})/g)];
     const itemMatches = [...value.matchAll(/(?:itemid|itemId|item_id)["'\s:=]+["']?(\d{5,})/g)];
     if (shopMatches.length && itemMatches.length) {
-      return {
-        shopId: shopMatches[0][1],
-        productId: itemMatches[0][1],
-        resolvedUrl,
-      };
+      return { shopId: shopMatches[0][1], productId: itemMatches[0][1], resolvedUrl };
     }
   }
 
@@ -64,7 +70,7 @@ function extractIdsFromText(rawValue, resolvedUrl = null) {
 }
 
 function parseCandidate(value, depth = 0) {
-  if (!value || depth > 5) return null;
+  if (!value || depth > 7) return null;
 
   const normalized = decodeLoose(value);
   const fromText = extractIdsFromText(normalized, normalized);
@@ -90,23 +96,37 @@ function parseCandidate(value, depth = 0) {
   return null;
 }
 
-function extractNestedUrls(body) {
+function extractNestedCandidates(body) {
   const normalized = decodeLoose(body);
-  const urls = new Set();
+  const candidates = new Set();
 
   const httpMatches = normalized.match(/https?:\/\/[^\s"'<>]+/gi) || [];
-  for (const value of httpMatches) urls.add(value);
+  for (const value of httpMatches) candidates.add(value);
 
   const shopeeSchemeMatches = normalized.match(/shopee:\/\/[^\s"'<>]+/gi) || [];
-  for (const value of shopeeSchemeMatches) urls.add(value);
+  for (const value of shopeeSchemeMatches) candidates.add(value);
 
   const metaRefreshMatches = [...normalized.matchAll(/url\s*=\s*["']?([^"'\s>]+)/gi)];
-  for (const match of metaRefreshMatches) urls.add(match[1]);
+  for (const match of metaRefreshMatches) candidates.add(match[1]);
 
-  const hrefMatches = [...normalized.matchAll(/(?:href|content|url)["'\s:=]+["'](https?:\/\/[^"']+)["']/gi)];
-  for (const match of hrefMatches) urls.add(match[1]);
+  const hrefMatches = [...normalized.matchAll(/(?:href|content|url)["'\s:=]+["']([^"']+)["']/gi)];
+  for (const match of hrefMatches) candidates.add(match[1]);
 
-  return [...urls].slice(0, 250);
+  const wrapperNames = [
+    'origin_link', 'originLink', 'target_url', 'targetUrl', 'redirect_url', 'redirectUrl',
+    'landing_url', 'landingUrl', 'landing_page_url', 'landingPageUrl', 'deep_link', 'deepLink',
+    'deeplink', 'fallback_url', 'fallbackUrl', 'web_url', 'webUrl', 'url'
+  ];
+
+  for (const name of wrapperNames) {
+    const re = new RegExp(`${name}["'\\s:=]+["']?([^"'\\s<>]+)`, 'gi');
+    for (const match of normalized.matchAll(re)) candidates.add(match[1]);
+  }
+
+  const relativeRedirects = [...normalized.matchAll(/(?:location(?:\.href)?|location\.replace|location\.assign)\s*\(?\s*["']([^"']+)["']/gi)];
+  for (const match of relativeRedirects) candidates.add(match[1]);
+
+  return [...candidates].slice(0, 400);
 }
 
 async function fetchWithManualRedirects(source) {
@@ -117,9 +137,7 @@ async function fetchWithManualRedirects(source) {
     if (parsedCurrent) return parsedCurrent;
 
     const currentUrl = new URL(current);
-    if (!isAllowedShopeeHost(currentUrl.hostname)) {
-      throw new Error('Redirect left allowed Shopee hosts.');
-    }
+    if (!isAllowedShopeeHost(currentUrl.hostname)) throw new Error('Redirect left allowed Shopee hosts.');
 
     const response = await fetch(current, {
       method: 'GET',
@@ -141,11 +159,7 @@ async function fetchWithManualRedirects(source) {
       const nextUrl = new URL(location, current).toString();
       const parsedNext = parseCandidate(nextUrl);
       if (parsedNext) return parsedNext;
-
-      if (!isAllowedShopeeHost(new URL(nextUrl).hostname)) {
-        throw new Error('Redirect left allowed Shopee hosts.');
-      }
-
+      if (!isAllowedShopeeHost(new URL(nextUrl).hostname)) throw new Error('Redirect left allowed Shopee hosts.');
       current = nextUrl;
       continue;
     }
@@ -156,18 +170,36 @@ async function fetchWithManualRedirects(source) {
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('text/') || contentType.includes('json') || !contentType) {
       const body = (await response.text()).slice(0, MAX_HTML_BYTES);
-      const bodyMatch = extractIdsFromText(body, response.url || current);
-      if (bodyMatch) return bodyMatch;
+      const bodyVariants = [body, decodeLoose(body)];
 
-      for (const nestedUrl of extractNestedUrls(body)) {
-        const nestedDirect = extractIdsFromText(nestedUrl, response.url || current);
-        if (nestedDirect) return nestedDirect;
+      for (const variant of bodyVariants) {
+        const bodyMatch = extractIdsFromText(variant, response.url || current);
+        if (bodyMatch) return bodyMatch;
 
-        if (/^https?:\/\//i.test(nestedUrl)) {
-          const nested = parseCandidate(nestedUrl);
+        for (const nestedValue of extractNestedCandidates(variant)) {
+          const decodedNested = decodeLoose(nestedValue);
+          const directNested = extractIdsFromText(decodedNested, response.url || current);
+          if (directNested) return directNested;
+
+          let absolute = decodedNested;
+          try {
+            absolute = new URL(decodedNested, current).toString();
+          } catch {}
+
+          const nested = parseCandidate(absolute);
           if (nested) return nested;
+
+          try {
+            const nestedUrl = new URL(absolute);
+            if (isAllowedShopeeHost(nestedUrl.hostname) && absolute !== current) {
+              current = absolute;
+              break;
+            }
+          } catch {}
         }
       }
+
+      if (current !== source && current !== (response.url || source)) continue;
     }
 
     break;
@@ -185,9 +217,7 @@ export default async function handler(req, res) {
   }
 
   const raw = typeof req.query?.url === 'string' ? req.query.url.trim() : '';
-  if (!raw || raw.length > 2048) {
-    return res.status(400).json({ error: 'A valid Shopee link is required.' });
-  }
+  if (!raw || raw.length > 2048) return res.status(400).json({ error: 'A valid Shopee link is required.' });
 
   let source;
   try {
@@ -205,10 +235,7 @@ export default async function handler(req, res) {
 
   try {
     const resolved = await fetchWithManualRedirects(source.toString());
-    if (!resolved) {
-      return res.status(422).json({ error: 'The short link resolved, but no Shopee product IDs were found.' });
-    }
-
+    if (!resolved) return res.status(422).json({ error: 'The short link resolved, but no Shopee product IDs were found.' });
     return res.status(200).json(resolved);
   } catch {
     return res.status(502).json({ error: 'Could not resolve that Shopee short link right now.' });
