@@ -67,6 +67,69 @@
         });
 
         const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
+        const looksLikeUrl = (value) => /^https?:\/\//i.test(value);
+        let resolvingExactTitle = false;
+
+        const setInputValue = (input, value) => {
+          const nativeSetter = Object.getOwnPropertyDescriptor(
+            HTMLInputElement.prototype,
+            "value",
+          )?.set;
+          nativeSetter?.call(input, value);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        };
+
+        const removeTitleSearchError = () => {
+          document.querySelector(".title-search-error")?.remove();
+        };
+
+        const showTitleSearchError = (form, message) => {
+          removeTitleSearchError();
+          const error = document.createElement("div");
+          error.className = "error title-search-error";
+          error.setAttribute("role", "alert");
+          error.textContent = message;
+          form.insertAdjacentElement("afterend", error);
+        };
+
+        document.addEventListener("submit", async (event) => {
+          const form = event.target;
+          if (!(form instanceof HTMLFormElement) || !form.classList.contains("search-box")) return;
+
+          const input = form.querySelector("input");
+          if (!(input instanceof HTMLInputElement)) return;
+
+          const submittedValue = input.value.trim();
+          if (!submittedValue || looksLikeUrl(submittedValue) || resolvingExactTitle) return;
+
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          removeTitleSearchError();
+          resolvingExactTitle = true;
+
+          try {
+            const response = await fetch(`/api/find-product-by-title?title=${encodeURIComponent(submittedValue)}`, {
+              headers: { Accept: "application/json" },
+            });
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok || typeof payload.productUrl !== "string" || !payload.productUrl.trim()) {
+              showTitleSearchError(
+                form,
+                payload.error || "No exact product title match found in the PriceTrack database.",
+              );
+              return;
+            }
+
+            setInputValue(input, payload.productUrl.trim());
+            resolvingExactTitle = false;
+            form.requestSubmit();
+          } catch {
+            showTitleSearchError(form, "Could not search the PriceTrack database right now.");
+          } finally {
+            resolvingExactTitle = false;
+          }
+        }, true);
 
         document.addEventListener("submit", (event) => {
           const form = event.target;
@@ -91,13 +154,7 @@
 
             if (!error && foundStatus && report) {
               finished = true;
-
-              const nativeSetter = Object.getOwnPropertyDescriptor(
-                HTMLInputElement.prototype,
-                "value",
-              )?.set;
-              nativeSetter?.call(input, "");
-              input.dispatchEvent(new Event("input", { bubbles: true }));
+              setInputValue(input, "");
 
               requestAnimationFrame(() => {
                 report.scrollIntoView({ behavior: "smooth", block: "start" });
