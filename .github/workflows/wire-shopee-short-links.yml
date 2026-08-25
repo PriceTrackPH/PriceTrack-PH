@@ -1,0 +1,80 @@
+name: Wire Shopee short-link resolver
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/resolve-shopee-link.js'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-app:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch App.tsx
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/App.tsx')
+          s = p.read_text()
+          marker = '''function parseShopeeUrl(value: string) {
+            const url = new URL(value.trim());
+            if (!/(^|\\.)shopee\\.ph$/i.test(url.hostname)) {
+              throw new Error("Please paste a Shopee Philippines product link.");
+            }
+            const match =
+              url.pathname.match(/-i\\.(\\d+)\\.(\\d+)/i) ||
+              url.pathname.match(/\\/product\\/(\\d+)\\/(\\d+)/i);
+            if (!match) throw new Error("Could not find the Shopee shop and product IDs in that link.");
+            return { shopId: match[1], productId: match[2] };
+          }
+          '''
+          if marker not in s:
+            raise SystemExit('parseShopeeUrl marker not found')
+          replacement = marker + '''\nasync function resolveShopeeUrl(value: string) {
+            const trimmed = value.trim();
+            const url = new URL(trimmed);
+            const host = url.hostname.toLowerCase();
+
+            if (/(^|\\.)shopee\\.ph$/i.test(host) && host !== "s.shopee.ph") {
+              return parseShopeeUrl(trimmed);
+            }
+
+            if (host !== "s.shopee.ph" && host !== "ph.shp.ee") {
+              throw new Error("Please paste a Shopee Philippines product link.");
+            }
+
+            const response = await fetch(`/api/resolve-shopee-link?url=${encodeURIComponent(trimmed)}`);
+            const payload = await response.json().catch(() => ({})) as {
+              shopId?: string;
+              productId?: string;
+              error?: string;
+            };
+
+            if (!response.ok || !payload.shopId || !payload.productId) {
+              throw new Error(payload.error || "Could not resolve that Shopee short link.");
+            }
+
+            return { shopId: payload.shopId, productId: payload.productId };
+          }
+          '''
+          s = s.replace(marker, replacement, 1)
+          old = '      const ids = parseShopeeUrl(query);'
+          new = '      const ids = await resolveShopeeUrl(query);'
+          if old not in s:
+            raise SystemExit('handleSubmit marker not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+      - name: Commit app wiring
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.tsx
+          git commit -m "Support Shopee mobile short links"
+          git push
