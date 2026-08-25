@@ -1,5 +1,13 @@
 @media (max-width: 760px) {
+  .donation-modal-backdrop {
+    padding: 18px;
+  }
+
   .donation-modal {
+    width: min(92vw, 430px);
+    max-height: min(82dvh, 720px);
+    box-sizing: border-box;
+    padding: 18px 14px 20px;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
@@ -11,17 +19,73 @@
     display: grid;
     place-items: center;
     float: right;
-    width: 42px;
-    height: 42px;
-    margin: 0 0 -42px auto;
+    width: 40px;
+    height: 40px;
+    margin: 0 0 -40px auto;
     border-radius: 999px;
     background: var(--surface);
     box-shadow: 0 4px 18px rgba(0,0,0,.18);
-    font-size: 28px;
+    font-size: 26px;
     line-height: 1;
   }
 
   .donation-modal-heading {
-    padding-right: 52px;
+    padding-right: 50px;
+  }
+
+  .donation-modal-heading .section-label {
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .donation-modal-heading h3 {
+    margin-top: 6px;
+    font-size: 22px;
+    line-height: 1.15;
+  }
+
+  .donation-modal-heading p {
+    font-size: 11px;
+  }
+
+  .donation-qr-grid {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .donation-qr-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .donation-qr-card {
+    flex: 0 0 100%;
+    min-width: 100%;
+    box-sizing: border-box;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    padding: 12px;
+  }
+
+  .donation-qr-image {
+    width: min(100%, 330px);
+    margin: 0 auto;
+  }
+
+  .donation-qr-card strong {
+    margin-top: 9px;
+    font-size: 12px;
+  }
+
+  .donation-thanks {
+    margin-top: 14px;
+    font-size: 10px;
   }
 }
