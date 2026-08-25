@@ -35,6 +35,18 @@ header {
 
 header b { color: #00a984; }
 
+.version {
+  margin-left: auto;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: #fff;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .detected {
   display: flex;
   gap: 11px;
