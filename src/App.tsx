@@ -168,6 +168,33 @@ function parseShopeeUrl(value: string) {
   return { shopId: match[1], productId: match[2] };
 }
 
+async function resolveShopeeUrl(value: string) {
+  const trimmed = value.trim();
+  const url = new URL(trimmed);
+  const host = url.hostname.toLowerCase();
+
+  if (/(^|\.)shopee\.ph$/i.test(host) && host !== "s.shopee.ph") {
+    return parseShopeeUrl(trimmed);
+  }
+
+  if (host !== "s.shopee.ph" && host !== "ph.shp.ee") {
+    throw new Error("Please paste a Shopee Philippines product link.");
+  }
+
+  const response = await fetch(`/api/resolve-shopee-link?url=${encodeURIComponent(trimmed)}`);
+  const payload = await response.json().catch(() => ({})) as {
+    shopId?: string;
+    productId?: string;
+    error?: string;
+  };
+
+  if (!response.ok || !payload.shopId || !payload.productId) {
+    throw new Error(payload.error || "Could not resolve that Shopee short link.");
+  }
+
+  return { shopId: payload.shopId, productId: payload.productId };
+}
+
 function latestObservation(rows: Observation[], variationId: number) {
   return rows
     .filter((row) => row.variation_id === variationId)
@@ -436,7 +463,7 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const ids = parseShopeeUrl(query);
+      const ids = await resolveShopeeUrl(query);
       await loadProduct(ids.shopId, ids.productId);
       setHasSearched(true);
     } catch (cause) {
