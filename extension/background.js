@@ -16,11 +16,8 @@ function productReportUrl(value) {
   }
 }
 
-chrome.commands.onCommand.addListener(async (command, commandTab) => {
-  if (command !== "open-price-history") return;
-  const [activeTab] = commandTab?.url
-    ? [commandTab]
-    : await chrome.tabs.query({ active: true, currentWindow: true });
-  const reportUrl = productReportUrl(activeTab?.url || "");
+chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type !== "openPriceHistoryShortcut") return;
+  const reportUrl = productReportUrl(message.url || "");
   if (reportUrl) chrome.tabs.create({ url: reportUrl });
 });
