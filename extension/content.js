@@ -1,4 +1,4 @@
-const PRICETRACK_SITE = "https://pricetrackph.vercel.app";
+const PRICETRACK_SITE = "https://pricetrackph.com";
 const BRIDGE_SOURCE = "pricetrack-ph-page";
 const REQUEST_SOURCE = "pricetrack-ph-extension";
 let capturedShopeePayload = null;
