@@ -196,6 +196,26 @@ async function resolveShopeeUrl(value: string) {
   return { shopId: payload.shopId, productId: payload.productId };
 }
 
+async function resolveProductQuery(value: string) {
+  const trimmed = value.trim();
+  if (/^https?:\/\//i.test(trimmed)) return resolveShopeeUrl(trimmed);
+
+  const response = await fetch(`/api/find-product-by-title?title=${encodeURIComponent(trimmed)}`, {
+    headers: { Accept: "application/json" },
+  });
+  const payload = await response.json().catch(() => ({})) as {
+    shopId?: string;
+    productId?: string;
+    error?: string;
+  };
+
+  if (!response.ok || !payload.shopId || !payload.productId) {
+    throw new Error(payload.error || "No exact product title match found in the PriceTrack database.");
+  }
+
+  return { shopId: payload.shopId, productId: payload.productId };
+}
+
 function latestObservation(rows: Observation[], variationId: number) {
   return rows
     .filter((row) => row.variation_id === variationId)
@@ -464,7 +484,7 @@ function ReportApp() {
     setLoading(true);
     setError(null);
     try {
-      const ids = await resolveShopeeUrl(query);
+      const ids = await resolveProductQuery(query);
       await loadProduct(ids.shopId, ids.productId);
       setHasSearched(true);
     } catch (cause) {
