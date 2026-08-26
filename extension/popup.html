@@ -23,12 +23,12 @@
         <span class="slider"></span>
       </label>
     </div>
-    <button id="shortcut-settings" class="shortcut-settings" type="button">
-      <span><strong>Keyboard shortcut</strong><small id="shortcut-value">Not set</small></span>
-      <b>Set key →</b>
-    </button>
     <button id="open" disabled>View price history <span>→</span></button>
     <p id="status" role="status">Automatically saves today’s first price and any later changes.</p>
+    <div class="shortcut-controls" aria-label="Keyboard shortcut controls">
+      <button id="shortcut-toggle" class="icon-button" type="button" aria-label="Enable keyboard shortcut" title="Keyboard shortcut disabled">⏻</button>
+      <button id="shortcut-settings" class="icon-button" type="button" aria-label="Open keyboard shortcut settings" title="Keyboard shortcut settings">⚙</button>
+    </div>
   </main>
   <script src="popup.js"></script>
 </body>
