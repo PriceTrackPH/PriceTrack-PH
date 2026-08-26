@@ -13,6 +13,7 @@ import type { XAxisTickContentProps } from "recharts";
 import type { Tables } from "./database.types";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import shopeeLogo from "./assets/shopee-logo.png";
+import AdminHealth from "./AdminHealth";
 
 type Product = Tables<"products">;
 type Variation = Tables<"product_variations">;
@@ -352,7 +353,7 @@ function toChartPoints(rows: Observation[]) {
     .sort((a, b) => a.timestamp - b.timestamp);
 }
 
-function App() {
+function ReportApp() {
   const [query, setQuery] = useState("");
   const [product, setProduct] = useState<Product | null>(null);
   const [variations, setVariations] = useState<Variation[]>([]);
@@ -925,6 +926,13 @@ function App() {
       </footer>
     </div>
   );
+}
+
+function App() {
+  const pathname = window.location.pathname;
+  return pathname === "/admin/health" || pathname === "/admin/health/"
+    ? <AdminHealth />
+    : <ReportApp />;
 }
 
 export default App;

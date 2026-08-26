@@ -61,6 +61,20 @@ function adminHeaders(secret: string, extra: Record<string, string> = {}) {
   return headers;
 }
 
+async function recordDiagnostic(supabaseUrl: string, secret: string, event: Record<string, unknown>) {
+  if (!supabaseUrl || !secret) return;
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/diagnostic_events`, {
+      method: "POST",
+      headers: adminHeaders(secret, { "content-type": "application/json", prefer: "return=minimal" }),
+      body: JSON.stringify(event),
+    });
+    if (!response.ok) console.error("Diagnostic insert failed", response.status);
+  } catch (error) {
+    console.error("Diagnostic insert failed", error);
+  }
+}
+
 async function digest(value: string) {
   const bytes = new TextEncoder().encode(value);
   const hash = await crypto.subtle.digest("SHA-256", bytes);
@@ -213,6 +227,21 @@ Deno.serve(async (request: Request) => {
     if (!supabaseUrl || !secret) return reply({ error: "Collector is not configured" }, 503);
     const headers = adminHeaders(secret);
 
+    let previousVariationCount: number | null = null;
+    const existingProductQuery = new URLSearchParams({
+      platform: `eq.${platform}`,
+      external_shop_id: `eq.${shopId}`,
+      external_product_id: `eq.${productId}`,
+      select: "metadata",
+      limit: "1",
+    });
+    const existingProductResponse = await fetch(`${supabaseUrl}/rest/v1/products?${existingProductQuery}`, { headers });
+    if (existingProductResponse.ok) {
+      const [existingProduct] = await existingProductResponse.json() as Array<{ metadata?: Record<string, unknown> }>;
+      const storedCount = Number(existingProduct?.metadata?.submitted_variation_count);
+      if (Number.isInteger(storedCount) && storedCount >= 0) previousVariationCount = storedCount;
+    }
+
     const clientHash = await digest(clientId);
     const quotaResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_ingest_quota`, {
       method: "POST",
@@ -293,6 +322,7 @@ Deno.serve(async (request: Request) => {
     let insertedCount = 0;
     let unchangedCount = 0;
     let failedCount = 0;
+    let duplicateConflictCount = 0;
     const results: Array<{ variationId: string; variationName: string; changed: boolean }> = [];
     const pending: Array<{ item: NormalizedVariation; payload: Record<string, unknown> }> = [];
 
@@ -357,6 +387,7 @@ Deno.serve(async (request: Request) => {
           } else {
             const text = await single.text();
             if (isDuplicateError(single.status, text)) {
+              duplicateConflictCount += 1;
               unchangedCount += 1;
               results.push({ variationId: entry.item.variationId, variationName: entry.item.variationName, changed: false });
             } else {
@@ -371,6 +402,36 @@ Deno.serve(async (request: Request) => {
     const inStock = variations.filter((item) => item.isInStock);
     const lowest = (inStock.length ? inStock : variations).reduce((best, current) => current.price < best.price ? current : best);
     const status = failedCount === variations.length ? 500 : insertedCount > 0 ? 201 : 200;
+
+    const diagnosticBase = {
+      source: "record-price",
+      shop_id: shopId,
+      product_id: productId,
+      variation_count: variations.length,
+      recorded_count: insertedCount,
+      unchanged_count: unchangedCount,
+      failed_count: failedCount,
+      status_code: status,
+    };
+    const diagnosticEvents: Array<Record<string, unknown>> = [{
+      ...diagnosticBase,
+      event_type: failedCount > 0 ? "record_partial" : "record_success",
+    }];
+    if (duplicateConflictCount > 0) {
+      diagnosticEvents.push({
+        ...diagnosticBase,
+        event_type: "duplicate_blocked",
+        details: { conflict_count: duplicateConflictCount },
+      });
+    }
+    if (previousVariationCount != null && previousVariationCount !== variations.length) {
+      diagnosticEvents.push({
+        ...diagnosticBase,
+        event_type: "variation_count_changed",
+        details: { previous_count: previousVariationCount, current_count: variations.length },
+      });
+    }
+    await Promise.all(diagnosticEvents.map((event) => recordDiagnostic(supabaseUrl, secret, event)));
 
     return reply({
       ok: failedCount < variations.length,
@@ -389,6 +450,20 @@ Deno.serve(async (request: Request) => {
     }, status);
   } catch (error) {
     console.error(error);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    let secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    try {
+      const secretMap = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}");
+      secret = secretMap.default || secret;
+    } catch {
+      // Keep the legacy service-role fallback if the secret map is malformed.
+    }
+    await recordDiagnostic(supabaseUrl, secret, {
+      event_type: "record_failure",
+      source: "record-price",
+      status_code: 500,
+      error_code: "collector_exception",
+    });
     return reply({ error: "Unable to record this price" }, 500);
   }
 });

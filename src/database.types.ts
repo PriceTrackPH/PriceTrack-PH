@@ -8,10 +8,58 @@ export type Json =
 
 export type Database = {
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
+      diagnostic_events: {
+        Row: {
+          created_at: string
+          details: Json
+          error_code: string | null
+          event_type: string
+          failed_count: number | null
+          id: number
+          product_id: string | null
+          recorded_count: number | null
+          shop_id: string | null
+          source: string
+          status_code: number | null
+          unchanged_count: number | null
+          variation_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          error_code?: string | null
+          event_type: string
+          failed_count?: number | null
+          id?: number
+          product_id?: string | null
+          recorded_count?: number | null
+          shop_id?: string | null
+          source?: string
+          status_code?: number | null
+          unchanged_count?: number | null
+          variation_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          error_code?: string | null
+          event_type?: string
+          failed_count?: number | null
+          id?: number
+          product_id?: string | null
+          recorded_count?: number | null
+          shop_id?: string | null
+          source?: string
+          status_code?: number | null
+          unchanged_count?: number | null
+          variation_count?: number | null
+        }
+        Relationships: []
+      }
       ingest_rate_limits: {
         Row: {
           client_hash: string
@@ -189,7 +237,9 @@ export type Database = {
       }
     }
     Views: { [_ in never]: never }
-    Functions: { [_ in never]: never }
+    Functions: {
+      delete_expired_diagnostic_events: { Args: never; Returns: number }
+    }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
   }
