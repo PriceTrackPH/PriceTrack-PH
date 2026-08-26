@@ -174,24 +174,16 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 #status { text-align: center; margin: 11px 3px; }
 #status.error { color: #b22e24; }
 
-.shortcut-controls {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 14px;
-  margin-top: 14px;
-}
-
-.icon-button {
+.header-settings {
   width: auto;
+  margin-left: 1px;
   padding: 0;
   border-radius: 0;
   background: transparent;
   color: #8b899a;
-  font-size: 22px;
+  font-size: 18px;
   line-height: 1;
 }
 
-.icon-button:hover,
-.icon-button:focus-visible { color: var(--navy); }
-.icon-button.enabled { color: #00a984; }
+.header-settings:hover,
+.header-settings:focus-visible { color: var(--navy); }
