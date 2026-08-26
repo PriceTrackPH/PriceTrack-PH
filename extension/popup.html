@@ -8,7 +8,12 @@
 </head>
 <body>
   <main>
-    <header><span class="dot"></span><strong>PriceTrack <b>PH</b></strong><span class="version">v1.0.1</span></header>
+    <header>
+      <span class="dot"></span>
+      <strong>PriceTrack <b>PH</b></strong>
+      <span class="version">v1.0.1</span>
+      <button id="shortcut-settings" class="header-settings" type="button" aria-label="Open settings" title="PriceTrack settings">⚙</button>
+    </header>
     <section id="detected" class="detected">
       <span class="check">✓</span>
       <div><strong id="title">Checking this page…</strong><p id="detail">Public product information only</p></div>
@@ -25,10 +30,6 @@
     </div>
     <button id="open" disabled>View price history <span>→</span></button>
     <p id="status" role="status">Automatically saves today’s first price and any later changes.</p>
-    <div class="shortcut-controls" aria-label="Keyboard shortcut controls">
-      <button id="shortcut-toggle" class="icon-button" type="button" aria-label="Enable keyboard shortcut" title="Keyboard shortcut disabled">⏻</button>
-      <button id="shortcut-settings" class="icon-button" type="button" aria-label="Open keyboard shortcut settings" title="Keyboard shortcut settings">⚙</button>
-    </div>
   </main>
   <script src="popup.js"></script>
 </body>
