@@ -374,7 +374,8 @@ function toChartPoints(rows: Observation[]) {
 }
 
 function ReportApp() {
-  const [query, setQuery] = useState("");
+  const initialProductUrl = new URLSearchParams(window.location.search).get("url")?.trim() || "";
+  const [query, setQuery] = useState(initialProductUrl);
   const [product, setProduct] = useState<Product | null>(null);
   const [variations, setVariations] = useState<Variation[]>([]);
   const [observations, setObservations] = useState<Observation[]>([]);
@@ -388,7 +389,7 @@ function ReportApp() {
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadProduct(shopId: string, productId: string) {
+  async function loadProduct(shopId: string, productId: string, requireHistory = false) {
     if (!supabase) throw new Error("Supabase is not configured yet.");
 
     const { data: found, error: productError } = await supabase
@@ -427,6 +428,10 @@ function ReportApp() {
       history = data ?? [];
     }
 
+    if (requireHistory && (!modelRows.length || !history.length)) {
+      throw new Error("Price recording is still being saved.");
+    }
+
     const variationsWithLatest = modelRows
       .map((item) => ({ item, latest: latestObservation(history, item.id) }))
       .filter((entry) => entry.latest);
@@ -447,13 +452,30 @@ function ReportApp() {
   useEffect(() => {
     let active = true;
 
-    async function loadFeaturedProduct() {
+    async function loadInitialProduct() {
       if (!supabase) {
         setFeaturedLoading(false);
         return;
       }
 
       try {
+        if (initialProductUrl) {
+          const ids = await resolveShopeeUrl(initialProductUrl);
+          let lastError: unknown;
+          for (let attempt = 0; attempt < 10 && active; attempt += 1) {
+            try {
+              await loadProduct(ids.shopId, ids.productId, true);
+              setQuery("");
+              setHasSearched(true);
+              return;
+            } catch (cause) {
+              lastError = cause;
+              if (attempt < 9) await new Promise((resolve) => window.setTimeout(resolve, 1000));
+            }
+          }
+          throw lastError;
+        }
+
         const { data, error: featuredError } = await supabase
           .from("products")
           .select("external_shop_id,external_product_id")
@@ -468,12 +490,16 @@ function ReportApp() {
         }
       } catch (cause) {
         console.error("Unable to load featured product", cause);
+        if (initialProductUrl && active) {
+          setHasSearched(true);
+          setError(cause instanceof Error ? cause.message : "Unable to load this product.");
+        }
       } finally {
         if (active) setFeaturedLoading(false);
       }
     }
 
-    loadFeaturedProduct();
+    loadInitialProduct();
     return () => {
       active = false;
     };
