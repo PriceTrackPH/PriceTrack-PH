@@ -5,8 +5,9 @@ const detail = document.querySelector("#detail");
 const status = document.querySelector("#status");
 const popupToggle = document.querySelector("#popup-toggle");
 const shortcutSettings = document.querySelector("#shortcut-settings");
-const shortcutValue = document.querySelector("#shortcut-value");
+const shortcutToggle = document.querySelector("#shortcut-toggle");
 const POPUP_SETTING_KEY = "notificationsEnabled";
+const SHORTCUT_ENABLED_KEY = "shortcutEnabled";
 const STALE_PROGRESS_MS = 20_000;
 const STATUS_POLL_MS = 500;
 let ids;
@@ -190,13 +191,31 @@ function initializePopupToggle() {
 }
 
 function initializeShortcutSettings() {
-  chrome.commands.getAll((commands) => {
-    const command = commands.find((item) => item.name === "open-price-history");
-    shortcutValue.textContent = command?.shortcut || "Not set";
+  const renderEnabled = (enabled) => {
+    shortcutToggle.classList.toggle("enabled", enabled);
+    shortcutToggle.setAttribute("aria-pressed", String(enabled));
+    shortcutToggle.setAttribute("aria-label", `${enabled ? "Disable" : "Enable"} keyboard shortcut`);
+    shortcutToggle.title = `Keyboard shortcut ${enabled ? "enabled" : "disabled"}`;
+  };
+
+  chrome.storage.local.get([SHORTCUT_ENABLED_KEY, "shortcutKey"], (result) => {
+    renderEnabled(result[SHORTCUT_ENABLED_KEY] === true);
+  });
+
+  shortcutToggle.addEventListener("click", () => {
+    chrome.storage.local.get([SHORTCUT_ENABLED_KEY, "shortcutKey"], (result) => {
+      const enabled = result[SHORTCUT_ENABLED_KEY] !== true;
+      if (enabled && !result.shortcutKey) {
+        chrome.runtime.openOptionsPage();
+        return;
+      }
+      chrome.storage.local.set({ [SHORTCUT_ENABLED_KEY]: enabled });
+      renderEnabled(enabled);
+    });
   });
 
   shortcutSettings.addEventListener("click", () => {
-    chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+    chrome.runtime.openOptionsPage();
   });
 }
 
