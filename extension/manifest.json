@@ -29,10 +29,9 @@
       "32": "icons/icon-32.png"
     }
   },
-  "commands": {
-    "open-price-history": {
-      "description": "Open this Shopee product in PriceTrack PH"
-    }
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   },
   "content_scripts": [
     {
