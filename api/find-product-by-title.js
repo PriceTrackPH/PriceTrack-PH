@@ -21,7 +21,8 @@ export default async function handler(req, res) {
   const endpoint = new URL('/rest/v1/products', supabaseUrl);
   endpoint.searchParams.set('select', 'external_shop_id,external_product_id,product_url,name');
   endpoint.searchParams.set('platform', 'eq.shopee');
-  endpoint.searchParams.set('name', `eq.${title}`);
+  const escapedTitle = title.replace(/([\\%_])/g, '\\$1');
+  endpoint.searchParams.set('name', `ilike.${escapedTitle}`);
   endpoint.searchParams.set('limit', '2');
 
   try {
