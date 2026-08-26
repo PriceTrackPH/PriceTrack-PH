@@ -1,9 +1,11 @@
-const SITE = "https://pricetrackph.vercel.app";
+const SITE = "https://pricetrackph.com";
 const button = document.querySelector("#open");
 const title = document.querySelector("#title");
 const detail = document.querySelector("#detail");
 const status = document.querySelector("#status");
 const popupToggle = document.querySelector("#popup-toggle");
+const shortcutSettings = document.querySelector("#shortcut-settings");
+const shortcutValue = document.querySelector("#shortcut-value");
 const POPUP_SETTING_KEY = "notificationsEnabled";
 const STALE_PROGRESS_MS = 20_000;
 const STATUS_POLL_MS = 500;
@@ -187,8 +189,20 @@ function initializePopupToggle() {
   });
 }
 
+function initializeShortcutSettings() {
+  chrome.commands.getAll((commands) => {
+    const command = commands.find((item) => item.name === "open-price-history");
+    shortcutValue.textContent = command?.shortcut || "Not set";
+  });
+
+  shortcutSettings.addEventListener("click", () => {
+    chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+  });
+}
+
 async function initialize() {
   initializePopupToggle();
+  initializeShortcutSettings();
 
   const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
   activeTabId = activeTab?.id;
