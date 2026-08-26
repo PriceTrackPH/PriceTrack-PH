@@ -5,6 +5,44 @@ let capturedShopeePayload = null;
 let recordingPromise = null;
 let recordingProductKey = null;
 let lastCompletedRun = null;
+let shortcutEnabled = false;
+let shortcutKey = "";
+
+function shortcutFromEvent(event) {
+  const ignoredKeys = new Set(["Control", "Alt", "Shift", "Meta"]);
+  if (ignoredKeys.has(event.key)) return "";
+  const parts = [];
+  if (event.ctrlKey) parts.push("Ctrl");
+  if (event.altKey) parts.push("Alt");
+  if (event.shiftKey) parts.push("Shift");
+  if (event.metaKey) parts.push("Meta");
+  const key = event.key === " " ? "Space" : event.key.length === 1 ? event.key.toUpperCase() : event.key;
+  parts.push(key);
+  return parts.join("+");
+}
+
+function isEditableTarget(target) {
+  return target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+}
+
+chrome.storage.local.get(["shortcutEnabled", "shortcutKey"], (result) => {
+  shortcutEnabled = result.shortcutEnabled === true;
+  shortcutKey = typeof result.shortcutKey === "string" ? result.shortcutKey : "";
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local") return;
+  if (changes.shortcutEnabled) shortcutEnabled = changes.shortcutEnabled.newValue === true;
+  if (changes.shortcutKey) shortcutKey = typeof changes.shortcutKey.newValue === "string" ? changes.shortcutKey.newValue : "";
+});
+
+document.addEventListener("keydown", (event) => {
+  if (!shortcutEnabled || !shortcutKey || event.repeat || isEditableTarget(event.target)) return;
+  if (shortcutFromEvent(event) !== shortcutKey) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  chrome.runtime.sendMessage({ type: "openPriceHistoryShortcut", url: location.href });
+}, true);
 
 window.addEventListener("message", event => {
   if (event.source !== window) return;
