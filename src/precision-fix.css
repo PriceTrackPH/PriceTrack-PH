@@ -357,6 +357,30 @@ html[data-theme="dark"] .support-section {
 .health-event-type.record_failure, .health-event-type.record_partial { color: #ff817d; }
 .health-event-type.duplicate_blocked, .health-event-type.variation_count_changed { color: #ffd278; }
 .health-empty { color: #aeb6b2; padding: 28px 0 8px; }
+
+/* Follow the site's Light setting instead of forcing the admin page dark. */
+html:not([data-theme="dark"]) .health-page { background: #f7f8f7; color: #17201d; }
+html:not([data-theme="dark"]) .health-heading p,
+html:not([data-theme="dark"]) .health-events-heading span,
+html:not([data-theme="dark"]) .health-status span,
+html:not([data-theme="dark"]) .health-stats span,
+html:not([data-theme="dark"]) .health-events th,
+html:not([data-theme="dark"]) .health-empty { color: #65706c; }
+html:not([data-theme="dark"]) .health-heading a,
+html:not([data-theme="dark"]) .health-kicker,
+html:not([data-theme="dark"]) .health-event-type { color: #087e68; }
+html:not([data-theme="dark"]) .health-login,
+html:not([data-theme="dark"]) .health-status,
+html:not([data-theme="dark"]) .health-events,
+html:not([data-theme="dark"]) .health-stats { border-color: #d9e0dd; background: #fff; }
+html:not([data-theme="dark"]) .health-stats div { background: #fff; border-color: #d9e0dd; }
+html:not([data-theme="dark"]) .health-login input { border-color: #cbd5d1; background: #fff; color: #17201d; }
+html:not([data-theme="dark"]) .health-events th,
+html:not([data-theme="dark"]) .health-events td { border-color: #e1e6e4; }
+html:not([data-theme="dark"]) .health-event-type.record_failure,
+html:not([data-theme="dark"]) .health-event-type.record_partial { color: #b42318; }
+html:not([data-theme="dark"]) .health-event-type.duplicate_blocked,
+html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color: #9a6700; }
 @media (max-width: 760px) {
   .health-page { padding: 28px 14px; }
   .health-heading, .health-events-heading { display: block; }
