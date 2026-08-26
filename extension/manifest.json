@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PriceTrack PH",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Detect Shopee product variations immediately at page start, then save price history in the background.",
   "permissions": [
     "activeTab",
@@ -10,7 +10,7 @@
   "host_permissions": [
     "https://shopee.ph/*",
     "https://*.shopee.ph/*",
-    "https://pricetrackph.vercel.app/*"
+    "https://pricetrackph.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -27,6 +27,11 @@
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png"
+    }
+  },
+  "commands": {
+    "open-price-history": {
+      "description": "Open this Shopee product in PriceTrack PH"
     }
   },
   "content_scripts": [
