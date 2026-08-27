@@ -113,7 +113,7 @@ Values must never be written in this file.
 - Per-variation graph with 7D, 30D, 90D and ALL ranges and hover details.
 - Last-checked label and transparent tracking language.
 - Light and dark themes.
-- Mobile/responsive improvements, including donation and contact modals.
+- Mobile/responsive improvements, including the contact modal.
 - Clean product navigation URLs: visible `#result` is removed after loading.
 - Variation dropdown scroll is contained and no longer moves the page at its boundaries.
 - Removed the redundant homepage “Automatic tracking” and “Built on trust” sections; existing extension links now open the published Chrome Web Store listing directly.
@@ -141,7 +141,7 @@ Values must never be written in this file.
 - Privacy policy published at `https://pricetrackph.com/privacy/`.
 - Privacy-page internal buttons use the custom domain.
 - Contact form sends through a server endpoint, supports attachments, includes send states, and saves a temporary draft.
-- Donation interface and responsive/mobile behavior added.
+- Donation/support interface was removed from the public website on August 27, 2026 at the user’s request.
 - Affiliate links are clearly labeled; direct Shopee links remain available.
 
 ### Monitoring and security
