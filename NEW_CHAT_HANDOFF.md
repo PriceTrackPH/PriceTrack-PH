@@ -116,6 +116,7 @@ Values must never be written in this file.
 - Mobile/responsive improvements, including donation and contact modals.
 - Clean product navigation URLs: visible `#result` is removed after loading.
 - Variation dropdown scroll is contained and no longer moves the page at its boundaries.
+- Removed the redundant homepage “Automatic tracking” and “Built on trust” sections; existing extension links now open the published Chrome Web Store listing directly.
 
 ### Chrome extension
 
@@ -152,6 +153,7 @@ Values must never be written in this file.
 - Admin and Supabase secret keys remain server-side.
 - Production build verified after monitoring implementation.
 - User confirmed the production Shopee stress test and monitoring review completed on August 27, 2026.
+- Removed the “Back to PriceTrack PH” link from the private admin-health heading.
 
 ### SEO and indexing
 
