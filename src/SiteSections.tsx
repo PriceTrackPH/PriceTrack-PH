@@ -1,7 +1,4 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
-import gcashQr from "./assets/donation-gcash-qr.jpg";
-import mayaQr from "./assets/donation-maya-qr.jpg";
-import bankQr from "./assets/donation-bank-qr.jpg";
 import "./contact-attachment.css";
 
 type FooterModalKey = "about" | "privacy" | "data" | "contact";
@@ -54,7 +51,6 @@ const footerModalContent: Record<FooterModalKey, { label: string; title: string;
 };
 
 function SiteSections() {
-  const [donationOpen, setDonationOpen] = useState(false);
   const [footerModal, setFooterModal] = useState<FooterModalKey | null>(null);
   const [contactDraft, setContactDraft] = useState<Omit<ContactDraft, "savedAt">>({ name: "", email: "", subject: "", message: "" });
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -91,10 +87,9 @@ function SiteSections() {
   }, [contactDraft, draftLoaded]);
 
   useEffect(() => {
-    if (!donationOpen && !footerModal) return;
+    if (!footerModal) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setDonationOpen(false);
         setFooterModal(null);
       }
     };
@@ -105,7 +100,7 @@ function SiteSections() {
       window.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
     };
-  }, [donationOpen, footerModal]);
+  }, [footerModal]);
 
   const activeFooterModal = footerModal ? footerModalContent[footerModal] : null;
 
@@ -196,10 +191,6 @@ function SiteSections() {
 
   return (
     <>
-      <section className="support-section" id="support"><div className="section-shell support-card"><div><div className="section-label">KEEP THE TRACKER FREE</div><h3>Support independent price tracking.</h3><p>Donations help pay for daily price checks, storage, and alerts. All core history remains free.</p></div><button type="button" onClick={() => setDonationOpen(true)}>♡ Donate to PriceTrack PH</button></div></section>
-
-      {donationOpen && <div className="donation-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDonationOpen(false); }}><section className="donation-modal" role="dialog" aria-modal="true" aria-labelledby="donation-title"><button className="donation-modal-close" type="button" aria-label="Close donation window" onClick={() => setDonationOpen(false)}>×</button><div className="donation-modal-heading"><div className="section-label">SUPPORT PRICETRACK PH</div><h3 id="donation-title">Choose a QR code to donate.</h3><p>Scan the option that works best for you.</p></div><div className="donation-qr-grid">{[{ label: "GCash", src: gcashQr }, { label: "Maya", src: mayaQr }, { label: "Bank / QR Ph", src: bankQr }].map((item) => <div className="donation-qr-card" key={item.label}><img className="donation-qr-image" src={item.src} alt={`${item.label} donation QR code`} /><strong>{item.label}</strong></div>)}</div><p className="donation-thanks">Thank you for helping keep PriceTrack PH free.</p></section></div>}
-
       {activeFooterModal && <div className="footer-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFooterModal(null); }}><section className="footer-modal" role="dialog" aria-modal="true" aria-labelledby="footer-modal-title"><button className="footer-modal-close" type="button" aria-label="Close information window" onClick={() => setFooterModal(null)}>×</button><div className="section-label">{activeFooterModal.label}</div><h3 id="footer-modal-title">{activeFooterModal.title}</h3><div className="footer-modal-body">{footerModal === "contact" ? <form className="contact-form" onSubmit={sendContactEmail}>
         <p>For product-tracking issues, website bugs, feature requests, or general feedback, email PriceTrack PH directly.</p>
         <label>Name<input value={contactDraft.name} onChange={(e) => updateContactDraft("name", e.target.value)} autoComplete="name" /></label>
