@@ -18,6 +18,20 @@ let primaryKey;
 let legacyKey;
 let retryRequested = false;
 let statusPollTimer = null;
+let activeShortcutKey = "";
+
+function shortcutFromEvent(event) {
+  const ignoredKeys = new Set(["Control", "Alt", "Shift", "Meta", "Tab", "Escape"]);
+  if (ignoredKeys.has(event.key)) return "";
+  const parts = [];
+  if (event.ctrlKey) parts.push("Ctrl");
+  if (event.altKey) parts.push("Alt");
+  if (event.shiftKey) parts.push("Shift");
+  if (event.metaKey) parts.push("Meta");
+  const key = event.key === " " ? "Space" : event.key.length === 1 ? event.key.toUpperCase() : event.key;
+  parts.push(key);
+  return parts.join("+");
+}
 
 function parseIds(value) {
   try {
@@ -194,6 +208,7 @@ function initializePopupToggle() {
 
 function initializeShortcutSettings() {
   const renderShortcut = (shortcut) => {
+    activeShortcutKey = shortcut || "";
     shortcutInput.value = shortcut || "";
     shortcutState.textContent = shortcut ? `${shortcut} — shortcut on` : "No key — shortcut off";
   };
@@ -224,21 +239,23 @@ function initializeShortcutSettings() {
   });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !shortcutPanel.hidden) closePanel();
+    if (event.key === "Escape" && !shortcutPanel.hidden) {
+      closePanel();
+      return;
+    }
+    if (!shortcutPanel.hidden || !activeShortcutKey || event.repeat || !ids) return;
+    if (shortcutFromEvent(event) !== activeShortcutKey) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const report = `${SITE}/?url=${encodeURIComponent(ids.canonicalUrl)}&autocheck=1#result`;
+    requestRecording();
+    chrome.tabs.create({ url: report });
   });
 
   shortcutInput.addEventListener("keydown", (event) => {
     event.preventDefault();
-    const ignoredKeys = new Set(["Control", "Alt", "Shift", "Meta", "Tab", "Escape"]);
-    if (ignoredKeys.has(event.key)) return;
-    const parts = [];
-    if (event.ctrlKey) parts.push("Ctrl");
-    if (event.altKey) parts.push("Alt");
-    if (event.shiftKey) parts.push("Shift");
-    if (event.metaKey) parts.push("Meta");
-    const key = event.key === " " ? "Space" : event.key.length === 1 ? event.key.toUpperCase() : event.key;
-    parts.push(key);
-    const shortcutKey = parts.join("+");
+    const shortcutKey = shortcutFromEvent(event);
+    if (!shortcutKey) return;
     chrome.storage.local.set({ shortcutKey, shortcutEnabled: true }, () => renderShortcut(shortcutKey));
   });
 
