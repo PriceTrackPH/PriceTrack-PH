@@ -4,7 +4,11 @@ const title = document.querySelector("#title");
 const detail = document.querySelector("#detail");
 const status = document.querySelector("#status");
 const popupToggle = document.querySelector("#popup-toggle");
-const shortcutSettings = document.querySelector("#shortcut-settings");
+const versionSettings = document.querySelector("#version-settings");
+const shortcutPanel = document.querySelector("#shortcut-panel");
+const shortcutInput = document.querySelector("#shortcut-input");
+const shortcutState = document.querySelector("#shortcut-state");
+const shortcutClear = document.querySelector("#shortcut-clear");
 const POPUP_SETTING_KEY = "notificationsEnabled";
 const STALE_PROGRESS_MS = 20_000;
 const STATUS_POLL_MS = 500;
@@ -189,8 +193,57 @@ function initializePopupToggle() {
 }
 
 function initializeShortcutSettings() {
-  shortcutSettings.addEventListener("click", () => {
-    chrome.runtime.openOptionsPage();
+  const renderShortcut = (shortcut) => {
+    shortcutInput.value = shortcut || "";
+    shortcutState.textContent = shortcut ? `${shortcut} — shortcut on` : "No key — shortcut off";
+  };
+
+  const closePanel = () => {
+    shortcutPanel.hidden = true;
+    versionSettings.setAttribute("aria-expanded", "false");
+  };
+
+  chrome.storage.local.get("shortcutKey", (result) => {
+    renderShortcut(typeof result.shortcutKey === "string" ? result.shortcutKey : "");
+  });
+
+  versionSettings.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const willOpen = shortcutPanel.hidden;
+    shortcutPanel.hidden = !willOpen;
+    versionSettings.setAttribute("aria-expanded", String(willOpen));
+    if (willOpen) shortcutInput.focus();
+  });
+
+  shortcutPanel.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  document.addEventListener("click", () => {
+    if (!shortcutPanel.hidden) closePanel();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !shortcutPanel.hidden) closePanel();
+  });
+
+  shortcutInput.addEventListener("keydown", (event) => {
+    event.preventDefault();
+    const ignoredKeys = new Set(["Control", "Alt", "Shift", "Meta", "Tab", "Escape"]);
+    if (ignoredKeys.has(event.key)) return;
+    const parts = [];
+    if (event.ctrlKey) parts.push("Ctrl");
+    if (event.altKey) parts.push("Alt");
+    if (event.shiftKey) parts.push("Shift");
+    if (event.metaKey) parts.push("Meta");
+    const key = event.key === " " ? "Space" : event.key.length === 1 ? event.key.toUpperCase() : event.key;
+    parts.push(key);
+    const shortcutKey = parts.join("+");
+    chrome.storage.local.set({ shortcutKey, shortcutEnabled: true }, () => renderShortcut(shortcutKey));
+  });
+
+  shortcutClear.addEventListener("click", () => {
+    chrome.storage.local.set({ shortcutKey: "", shortcutEnabled: false }, () => renderShortcut(""));
   });
 }
 
