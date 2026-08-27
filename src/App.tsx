@@ -1044,7 +1044,7 @@ function ReportApp() {
 
                 <div className="report-actions-wrap">
                   <div className="report-actions">
-                    <a className="track-price-button" href="#extension">☆ Track price</a>
+                    <a className="track-price-button" href="https://chromewebstore.google.com/detail/ilabeaeblpcleaipmnppibbfhjknlmeo" target="_blank" rel="noreferrer">☆ Track price</a>
                     {outboundLink && (
                       <a
                         className="shopee-outbound-button"
