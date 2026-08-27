@@ -16,7 +16,7 @@ body {
   font-family: Arial, sans-serif;
 }
 
-main { padding: 20px; }
+main { position: relative; padding: 20px; }
 
 header {
   display: flex;
@@ -36,6 +36,7 @@ header {
 header b { color: #00a984; }
 
 .version {
+  width: auto;
   margin-left: auto;
   padding: 3px 6px;
   border: 1px solid var(--line);
@@ -45,6 +46,56 @@ header b { color: #00a984; }
   font-size: 8px;
   font-weight: 700;
   line-height: 1;
+  cursor: pointer;
+}
+
+.version:hover,
+.version:focus-visible,
+.version[aria-expanded="true"] {
+  border-color: #9edbcb;
+  color: #008f70;
+}
+
+.shortcut-panel {
+  position: absolute;
+  top: 47px;
+  right: 20px;
+  z-index: 20;
+  width: 240px;
+  padding: 14px;
+  border: 1px solid #d8d7e3;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(29, 25, 75, .18);
+}
+
+.shortcut-panel[hidden] { display: none; }
+.shortcut-panel > strong { display: block; font-size: 12px; }
+.shortcut-panel > p { margin: 5px 0 11px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.shortcut-panel input {
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: 0;
+  background: #f8f8fb;
+  color: var(--navy);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+.shortcut-panel input:focus { border-color: #78d8c0; box-shadow: 0 0 0 2px rgba(0, 223, 174, .14); }
+.shortcut-panel-footer { display: flex; align-items: center; gap: 10px; margin-top: 9px; }
+.shortcut-panel-footer span { flex: 1; color: var(--muted); font-size: 9px; }
+.shortcut-panel-footer button {
+  width: auto;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 9px;
 }
 
 .detected {
@@ -173,17 +224,3 @@ button span { float: right; }
 button:disabled { opacity: .45; cursor: not-allowed; }
 #status { text-align: center; margin: 11px 3px; }
 #status.error { color: #b22e24; }
-
-.header-settings {
-  width: auto;
-  margin-left: 1px;
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
-  color: #8b899a;
-  font-size: 18px;
-  line-height: 1;
-}
-
-.header-settings:hover,
-.header-settings:focus-visible { color: var(--navy); }
