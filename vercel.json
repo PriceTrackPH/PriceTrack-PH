@@ -6,7 +6,7 @@
     },
     {
       "source": "/product/shopee/:shopId/:productId",
-      "destination": "/"
+      "destination": "/api/product-page?shopId=:shopId&productId=:productId"
     },
     {
       "source": "/admin/health",
