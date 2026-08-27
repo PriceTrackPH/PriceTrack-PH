@@ -151,6 +151,7 @@ Values must never be written in this file.
 - Public users cannot read diagnostic records.
 - Admin and Supabase secret keys remain server-side.
 - Production build verified after monitoring implementation.
+- User confirmed the production Shopee stress test and monitoring review completed on August 27, 2026.
 
 ### SEO and indexing
 
@@ -179,18 +180,16 @@ Values must never be written in this file.
 ### Next recommended
 
 1. **Bing Webmaster Tools** — import `pricetrackph.com` from Google Search Console and submit the existing sitemap.
-2. **Production stress test** — test 15–20 varied Shopee products, including single variation, many variations, out-of-stock variations, Mall/non-Mall stores, mobile/short links, and repeated visits.
-3. **Review monitoring results** — check `/admin/health`, Vercel logs, Supabase logs, contact reports, and Chrome Web Store reviews after real user traffic.
-4. **Google indexing follow-up** — review Pages/Performance after Google has had time to crawl; do not repeatedly request the same URL.
+2. **Google indexing follow-up** — review Pages/Performance after Google has had time to crawl; do not repeatedly request the same URL.
 
 ### Research / later releases
 
-5. **Shopee Affiliate/Open API investigation** — determine whether an official integration is available and worthwhile without weakening privacy or reliability.
-6. **Extension v1.0.2 planning** — group meaningful improvements before another Web Store review. Possible listing/package name: `PriceTrack PH – Shopee Price Tracker`.
-7. **Search improvement only if needed** — current exact case-insensitive title fallback works; consider fuzzy suggestions/results only after observing real failed searches.
-8. **Responsive quality pass** — continue checking unusual screen sizes and long product/variation names.
-9. **Lazada support** — only after Shopee behavior is stable and the data model/collector approach is proven.
-10. **TikTok Shop investigation** — much later and only if technically and legally practical.
+3. **Shopee Affiliate/Open API investigation** — determine whether an official integration is available and worthwhile without weakening privacy or reliability.
+4. **Extension v1.0.2 planning** — group meaningful improvements before another Web Store review. Possible listing/package name: `PriceTrack PH – Shopee Price Tracker`.
+5. **Search improvement only if needed** — current exact case-insensitive title fallback works; consider fuzzy suggestions/results only after observing real failed searches.
+6. **Responsive quality pass** — continue checking unusual screen sizes and long product/variation names.
+7. **Lazada support** — only after Shopee behavior is stable and the data model/collector approach is proven.
+8. **TikTok Shop investigation** — much later and only if technically and legally practical.
 
 ## Explicitly removed / not current backlog
 
@@ -244,4 +243,3 @@ After material work, update all applicable sections:
 - Remove stale backlog items after checking the current code.
 - Keep secrets and personal credentials out.
 - Commit this file with the related change when practical, or in a dedicated documentation commit.
-
