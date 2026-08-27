@@ -245,6 +245,7 @@
   width: max(100%, 300px);
   max-height: 260px;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 6px;
   border: 1px solid #d9d3f7;
   border-radius: 9px;
