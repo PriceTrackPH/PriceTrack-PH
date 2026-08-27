@@ -303,7 +303,7 @@ function applyProductMetadata(product: Product) {
 
 function showPermanentProductUrl(product: Product, mode: "push" | "replace") {
   const path = productReportPath(product);
-  const url = `${path}#result`;
+  const url = path;
   if (mode === "push") window.history.pushState(null, "", url);
   else window.history.replaceState(null, "", url);
   applyProductMetadata(product);
