@@ -92,7 +92,6 @@ export default function AdminHealth() {
             <h1>PriceTrack PH health</h1>
             <p>Sanitized recording diagnostics retained for 30 days.</p>
           </div>
-          <a href="/">Back to PriceTrack PH</a>
         </div>
 
         {!data ? (
