@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/product/shopee/:shopId/:productId",
+      "destination": "/"
+    },
+    {
       "source": "/admin/health",
       "destination": "/"
     }
