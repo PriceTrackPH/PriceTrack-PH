@@ -216,6 +216,99 @@ async function resolveProductQuery(value: string) {
   return { shopId: payload.shopId, productId: payload.productId };
 }
 
+const SITE_ORIGIN = "https://pricetrackph.com";
+
+function parseProductReportPath(pathname: string) {
+  const match = pathname.match(/^\/product\/shopee\/(\d+)\/(\d+)\/?$/i);
+  return match ? { shopId: match[1], productId: match[2] } : null;
+}
+
+function productReportPath(product: Product) {
+  return `/product/shopee/${product.external_shop_id}/${product.external_product_id}`;
+}
+
+function setMetaContent(selector: string, attribute: "name" | "property", key: string, content: string | null) {
+  let element = document.head.querySelector<HTMLMetaElement>(selector);
+  if (!content) {
+    element?.remove();
+    return;
+  }
+  if (!element) {
+    element = document.createElement("meta");
+    element.setAttribute(attribute, key);
+    document.head.append(element);
+  }
+  element.content = content;
+}
+
+function setCanonicalUrl(url: string) {
+  let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (!canonical) {
+    canonical = document.createElement("link");
+    canonical.rel = "canonical";
+    document.head.append(canonical);
+  }
+  canonical.href = url;
+}
+
+function applyProductMetadata(product: Product) {
+  const path = productReportPath(product);
+  const canonicalUrl = `${SITE_ORIGIN}${path}`;
+  const title = `${product.name} Price History | PriceTrack PH`;
+  const description = `View recorded Shopee Philippines price history, product variations and price changes for ${product.name} on PriceTrack PH.`;
+  const imageUrl = safeHttpsUrl(product.image_url);
+
+  document.title = title;
+  setCanonicalUrl(canonicalUrl);
+  setMetaContent('meta[name="description"]', "name", "description", description);
+  setMetaContent('meta[property="og:type"]', "property", "og:type", "website");
+  setMetaContent('meta[property="og:site_name"]', "property", "og:site_name", "PriceTrack PH");
+  setMetaContent('meta[property="og:title"]', "property", "og:title", title);
+  setMetaContent('meta[property="og:description"]', "property", "og:description", description);
+  setMetaContent('meta[property="og:url"]', "property", "og:url", canonicalUrl);
+  setMetaContent('meta[property="og:image"]', "property", "og:image", imageUrl);
+  setMetaContent('meta[name="twitter:card"]', "name", "twitter:card", imageUrl ? "summary_large_image" : "summary");
+  setMetaContent('meta[name="twitter:title"]', "name", "twitter:title", title);
+  setMetaContent('meta[name="twitter:description"]', "name", "twitter:description", description);
+  setMetaContent('meta[name="twitter:image"]', "name", "twitter:image", imageUrl);
+
+  let structuredData = document.head.querySelector<HTMLScriptElement>("#product-structured-data");
+  if (!structuredData) {
+    structuredData = document.createElement("script");
+    structuredData.id = "product-structured-data";
+    structuredData.type = "application/ld+json";
+    document.head.append(structuredData);
+  }
+  structuredData.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": `${canonicalUrl}#webpage`,
+    url: canonicalUrl,
+    name: title,
+    description,
+    inLanguage: "en-PH",
+    isPartOf: { "@id": `${SITE_ORIGIN}/#website` },
+    mainEntity: {
+      "@type": "Product",
+      name: product.name,
+      url: canonicalUrl,
+      ...(imageUrl ? { image: imageUrl } : {}),
+      additionalProperty: [
+        { "@type": "PropertyValue", name: "Marketplace", value: "Shopee Philippines" },
+        { "@type": "PropertyValue", name: "Shop", value: product.shop_name || "Shopee Philippines seller" },
+      ],
+    },
+  });
+}
+
+function showPermanentProductUrl(product: Product, mode: "push" | "replace") {
+  const path = productReportPath(product);
+  const url = `${path}#result`;
+  if (mode === "push") window.history.pushState(null, "", url);
+  else window.history.replaceState(null, "", url);
+  applyProductMetadata(product);
+}
+
 function latestObservation(rows: Observation[], variationId: number) {
   return rows
     .filter((row) => row.variation_id === variationId)
@@ -374,6 +467,7 @@ function toChartPoints(rows: Observation[]) {
 }
 
 function ReportApp() {
+  const initialProductRoute = parseProductReportPath(window.location.pathname);
   const initialProductUrl = new URLSearchParams(window.location.search).get("url")?.trim() || "";
   const [query, setQuery] = useState(initialProductUrl);
   const [product, setProduct] = useState<Product | null>(null);
@@ -447,6 +541,7 @@ function ReportApp() {
     setObservations(history);
     setSelectedVariationId(defaultVariation?.id ?? modelRows[0]?.id ?? null);
     setVariationMenuOpen(false);
+    return found;
   }
 
   useEffect(() => {
@@ -459,18 +554,20 @@ function ReportApp() {
       }
 
       try {
-        if (initialProductUrl) {
-          const ids = await resolveShopeeUrl(initialProductUrl);
+        if (initialProductRoute || initialProductUrl) {
+          const ids = initialProductRoute ?? await resolveShopeeUrl(initialProductUrl);
           let lastError: unknown;
-          for (let attempt = 0; attempt < 10 && active; attempt += 1) {
+          const attempts = initialProductUrl ? 10 : 1;
+          for (let attempt = 0; attempt < attempts && active; attempt += 1) {
             try {
-              await loadProduct(ids.shopId, ids.productId, true);
+              const found = await loadProduct(ids.shopId, ids.productId, Boolean(initialProductUrl));
+              showPermanentProductUrl(found, "replace");
               setQuery("");
               setHasSearched(true);
               return;
             } catch (cause) {
               lastError = cause;
-              if (attempt < 9) await new Promise((resolve) => window.setTimeout(resolve, 1000));
+              if (attempt < attempts - 1) await new Promise((resolve) => window.setTimeout(resolve, 1000));
             }
           }
           throw lastError;
@@ -490,7 +587,7 @@ function ReportApp() {
         }
       } catch (cause) {
         console.error("Unable to load featured product", cause);
-        if (initialProductUrl && active) {
+        if ((initialProductRoute || initialProductUrl) && active) {
           setHasSearched(true);
           setError(cause instanceof Error ? cause.message : "Unable to load this product.");
         }
@@ -505,13 +602,20 @@ function ReportApp() {
     };
   }, []);
 
+  useEffect(() => {
+    const reloadForHistoryNavigation = () => window.location.reload();
+    window.addEventListener("popstate", reloadForHistoryNavigation);
+    return () => window.removeEventListener("popstate", reloadForHistoryNavigation);
+  }, []);
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
     setError(null);
     try {
       const ids = await resolveProductQuery(query);
-      await loadProduct(ids.shopId, ids.productId);
+      const found = await loadProduct(ids.shopId, ids.productId);
+      showPermanentProductUrl(found, "push");
       setHasSearched(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to load this product.");
