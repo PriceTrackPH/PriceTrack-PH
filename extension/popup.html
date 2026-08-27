@@ -11,9 +11,17 @@
     <header>
       <span class="dot"></span>
       <strong>PriceTrack <b>PH</b></strong>
-      <span class="version">v1.0.1</span>
-      <button id="shortcut-settings" class="header-settings" type="button" aria-label="Open settings" title="PriceTrack settings">⚙</button>
+      <button id="version-settings" class="version" type="button" aria-expanded="false" aria-controls="shortcut-panel" title="Keyboard shortcut settings">v1.0.1</button>
     </header>
+    <section id="shortcut-panel" class="shortcut-panel" hidden>
+      <strong>Keyboard shortcut</strong>
+      <p>Click the field, then press the key you want to use on Shopee.</p>
+      <input id="shortcut-input" type="text" readonly placeholder="Press a key" aria-label="Keyboard shortcut key">
+      <div class="shortcut-panel-footer">
+        <span id="shortcut-state">No key — shortcut off</span>
+        <button id="shortcut-clear" type="button">Clear</button>
+      </div>
+    </section>
     <section id="detected" class="detected">
       <span class="check">✓</span>
       <div><strong id="title">Checking this page…</strong><p id="detail">Public product information only</p></div>
