@@ -54,7 +54,6 @@ const footerModalContent: Record<FooterModalKey, { label: string; title: string;
 };
 
 function SiteSections() {
-  const chromeWebStoreUrl = import.meta.env.VITE_CHROME_WEB_STORE_URL as string | undefined;
   const [donationOpen, setDonationOpen] = useState(false);
   const [footerModal, setFooterModal] = useState<FooterModalKey | null>(null);
   const [contactDraft, setContactDraft] = useState<Omit<ContactDraft, "savedAt">>({ name: "", email: "", subject: "", message: "" });
@@ -197,21 +196,6 @@ function SiteSections() {
 
   return (
     <>
-      <section className="extension-section" id="extension">
-        <div className="section-shell extension-grid">
-          <div className="extension-copy">
-            <div className="section-label">AUTOMATIC PRICE CHECKS</div>
-            <h2>Automatic tracking.<br />One useful button.</h2>
-            <p>Open a Shopee product and PriceTrack PH checks its public price automatically. Click the extension only when you want to view the complete report.</p>
-            <ol className="steps-list"><li><span>1</span>Detects the product you are viewing</li><li><span>2</span>Saves each day&apos;s first price and any later changes</li><li><span>3</span>Opens the full report from one button</li></ol>
-            {chromeWebStoreUrl ? <a className="chrome-install" href={chromeWebStoreUrl} target="_blank" rel="noreferrer">Add to Chrome <span>↗</span></a> : <span className="chrome-install chrome-install-disabled" aria-disabled="true" title="The public Chrome Web Store listing will be linked here after approval">Chrome Web Store — coming soon</span>}
-          </div>
-          <div className="extension-preview" aria-label="PriceTrack extension preview"><div className="browser-dots"><span /><span /><span /></div><div className="preview-card"><strong>PriceTrack <em>PH</em></strong><div className="detected-box"><b>✓</b><div><strong>Shopee product detected</strong><small>Ready to check this item</small></div></div><button type="button">View price history <span>→</span></button><small>Opens PriceTrack PH in a new tab</small></div></div>
-        </div>
-      </section>
-
-      <section className="trust-section" id="how-it-works"><div className="section-shell"><div className="section-label">BUILT ON TRUST</div><h2>Clear about where the money<br />comes from.</h2><div className="trust-columns"><article><span>01</span><h3>No hidden tracking</h3><p>We only collect product information required to build useful public price history.</p></article><article><span>02</span><h3>Ads stay separate</h3><p>Advertisements will be clearly marked and never imitate product or navigation buttons.</p></article><article><span>03</span><h3>Affiliate disclosure</h3><p>If a purchase link earns commission, you will see the disclosure before clicking it.</p></article></div></div></section>
-
       <section className="support-section" id="support"><div className="section-shell support-card"><div><div className="section-label">KEEP THE TRACKER FREE</div><h3>Support independent price tracking.</h3><p>Donations help pay for daily price checks, storage, and alerts. All core history remains free.</p></div><button type="button" onClick={() => setDonationOpen(true)}>♡ Donate to PriceTrack PH</button></div></section>
 
       {donationOpen && <div className="donation-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDonationOpen(false); }}><section className="donation-modal" role="dialog" aria-modal="true" aria-labelledby="donation-title"><button className="donation-modal-close" type="button" aria-label="Close donation window" onClick={() => setDonationOpen(false)}>×</button><div className="donation-modal-heading"><div className="section-label">SUPPORT PRICETRACK PH</div><h3 id="donation-title">Choose a QR code to donate.</h3><p>Scan the option that works best for you.</p></div><div className="donation-qr-grid">{[{ label: "GCash", src: gcashQr }, { label: "Maya", src: mayaQr }, { label: "Bank / QR Ph", src: bankQr }].map((item) => <div className="donation-qr-card" key={item.label}><img className="donation-qr-image" src={item.src} alt={`${item.label} donation QR code`} /><strong>{item.label}</strong></div>)}</div><p className="donation-thanks">Thank you for helping keep PriceTrack PH free.</p></section></div>}
