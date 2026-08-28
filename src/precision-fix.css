@@ -347,6 +347,21 @@ html[data-theme="dark"] .support-section {
 .health-stats div:last-child { border-right: 0; }
 .health-stats span { display: block; color: #aeb6b2; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
 .health-stats strong { display: block; margin-top: 8px; font-size: 30px; }
+.health-affiliate { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(210px, .65fr); gap: 22px 28px; margin: 18px 0; border: 1px solid #303936; border-radius: 18px; background: #171d1b; padding: 24px; }
+.health-affiliate h2 { margin: 7px 0 8px; }
+.health-affiliate p { margin: 0; color: #aeb6b2; line-height: 1.55; }
+.health-affiliate-count { align-self: center; padding-left: 24px; border-left: 1px solid #303936; }
+.health-affiliate-count span, .health-affiliate-count small { display: block; color: #aeb6b2; }
+.health-affiliate-count span { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.health-affiliate-count strong { display: block; margin: 6px 0 3px; font-size: 36px; }
+.health-affiliate-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; }
+.health-affiliate-actions button, .health-affiliate-actions label { min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; position: relative; overflow: hidden; border: 1px solid #11d4aa; border-radius: 10px; padding: 11px 16px; background: #11d4aa; color: #07100d; font: inherit; font-weight: 800; cursor: pointer; }
+.health-affiliate-actions label { background: transparent; color: #11d4aa; }
+.health-affiliate-actions button:disabled, .health-affiliate-actions label.disabled { opacity: .5; cursor: not-allowed; }
+.health-affiliate-actions input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.health-affiliate .health-affiliate-message { grid-column: 1 / -1; margin: -4px 0 0; padding: 11px 13px; border-radius: 10px; }
+.health-affiliate .health-affiliate-message.error { color: #ffaaa6; background: rgba(255, 129, 125, .1); }
+.health-affiliate .health-affiliate-message.success { color: #73e7c9; background: rgba(17, 212, 170, .1); }
 .health-events-heading { display: flex; justify-content: space-between; gap: 20px; align-items: baseline; }
 .health-events-heading h2 { margin-top: 0; }
 .health-table-wrap { overflow-x: auto; }
@@ -372,7 +387,15 @@ html:not([data-theme="dark"]) .health-event-type { color: #087e68; }
 html:not([data-theme="dark"]) .health-login,
 html:not([data-theme="dark"]) .health-status,
 html:not([data-theme="dark"]) .health-events,
+html:not([data-theme="dark"]) .health-affiliate,
 html:not([data-theme="dark"]) .health-stats { border-color: #d9e0dd; background: #fff; }
+html:not([data-theme="dark"]) .health-affiliate p,
+html:not([data-theme="dark"]) .health-affiliate-count span,
+html:not([data-theme="dark"]) .health-affiliate-count small { color: #65706c; }
+html:not([data-theme="dark"]) .health-affiliate-count { border-color: #d9e0dd; }
+html:not([data-theme="dark"]) .health-affiliate-actions label { color: #087e68; border-color: #087e68; }
+html:not([data-theme="dark"]) .health-affiliate .health-affiliate-message.success { color: #087e68; }
+html:not([data-theme="dark"]) .health-affiliate .health-affiliate-message.error { color: #b42318; }
 html:not([data-theme="dark"]) .health-stats div { background: #fff; border-color: #d9e0dd; }
 html:not([data-theme="dark"]) .health-login input { border-color: #cbd5d1; background: #fff; color: #17201d; }
 html:not([data-theme="dark"]) .health-events th,
@@ -390,4 +413,7 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
   .health-status button { grid-column: 1; grid-row: auto; margin-top: 12px; }
   .health-stats { grid-template-columns: repeat(2, 1fr); }
   .health-stats div { border-bottom: 1px solid #303936; }
+  .health-affiliate { grid-template-columns: 1fr; }
+  .health-affiliate-count { padding: 18px 0 0; border-left: 0; border-top: 1px solid #303936; }
+  .health-affiliate-actions { grid-column: 1; display: grid; }
 }
