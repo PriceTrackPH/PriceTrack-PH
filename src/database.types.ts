@@ -239,6 +239,14 @@ export type Database = {
     Views: { [_ in never]: never }
     Functions: {
       delete_expired_diagnostic_events: { Args: never; Returns: number }
+      import_product_affiliate_links: {
+        Args: { entries: Json }
+        Returns: {
+          not_found_count: number
+          skipped_existing_count: number
+          updated_count: number
+        }[]
+      }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
