@@ -196,20 +196,6 @@ export default function AdminHealth() {
           </form>
         ) : (
           <>
-            <section className={`health-status ${isHealthy ? "healthy" : "attention"}`}>
-              <strong>{isHealthy ? "Recording looks healthy" : "Review recent recording issues"}</strong>
-              <span>Last successful recording: {dateLabel(data.summary.lastSuccess)}</span>
-              <button type="button" onClick={() => void load()} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</button>
-            </section>
-
-            <section className="health-stats" aria-label="30-day diagnostic summary">
-              <div><span>Events</span><strong>{data.summary.total}</strong></div>
-              <div><span>Failures</span><strong>{data.summary.failures}</strong></div>
-              <div><span>Partial</span><strong>{data.summary.partial}</strong></div>
-              <div><span>Duplicates blocked</span><strong>{data.summary.duplicates}</strong></div>
-              <div><span>Variation changes</span><strong>{data.summary.variationChanges}</strong></div>
-            </section>
-
             <section className="health-affiliate" aria-labelledby="affiliate-links-heading">
               <div className="health-affiliate-copy">
                 <span className="health-kicker">SHOPEE AFFILIATE BATCH</span>
@@ -245,6 +231,20 @@ export default function AdminHealth() {
                   Import complete: {importResult.updated} updated · {importResult.skippedExisting} existing skipped · {importResult.notFound} not found · {importResult.failed} Shopee failures · {importResult.invalid} invalid
                 </p>
               )}
+            </section>
+
+            <section className={`health-status ${isHealthy ? "healthy" : "attention"}`}>
+              <strong>{isHealthy ? "Recording looks healthy" : "Review recent recording issues"}</strong>
+              <span>Last successful recording: {dateLabel(data.summary.lastSuccess)}</span>
+              <button type="button" onClick={() => void load()} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</button>
+            </section>
+
+            <section className="health-stats" aria-label="30-day diagnostic summary">
+              <div><span>Events</span><strong>{data.summary.total}</strong></div>
+              <div><span>Failures</span><strong>{data.summary.failures}</strong></div>
+              <div><span>Partial</span><strong>{data.summary.partial}</strong></div>
+              <div><span>Duplicates blocked</span><strong>{data.summary.duplicates}</strong></div>
+              <div><span>Variation changes</span><strong>{data.summary.variationChanges}</strong></div>
             </section>
 
             <section className="health-events">
