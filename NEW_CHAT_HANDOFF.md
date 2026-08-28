@@ -147,6 +147,7 @@ Values must never be written in this file.
 - Affiliate links are clearly labeled; direct Shopee links remain available.
 - Fixed the product-report affiliate action on August 28, 2026: the left `Affiliate link` opens the imported Shopee affiliate URL, the right `View on Shopee` opens the original product URL, and the obsolete placeholder script that disabled the affiliate button was removed. The disclosure now states that affiliate purchases may support PriceTrack PH at no extra cost and that a direct Shopee link is also available.
 - Fixed an affiliate-metadata loss incident on August 28, 2026: the price recorder now merges existing product metadata instead of replacing it, so imported affiliate URLs survive later recordings. The affected AquaFlask Quench affiliate link was restored and verified.
+- Google Drive affiliate-batch backup integration was published on August 28, 2026. The chosen `PriceTrack PH` Drive folder contains `Exports` and `Imports` subfolders. Exported XLSX and successfully imported CSV files can be archived automatically through the included Apps Script bridge; Apps Script deployment and the two Vercel environment values remain a one-time activation step.
 - Shopee Affiliate batch Custom Link workflow was tested successfully on August 28, 2026: the returned CSV maps `Original Link` to `Convert Link`, and the generated link opened the correct AquaFlask product.
 
 ### Monitoring and security
