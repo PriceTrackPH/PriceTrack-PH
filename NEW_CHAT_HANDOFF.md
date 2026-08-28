@@ -145,6 +145,7 @@ Values must never be written in this file.
 - Contact form sends through a server endpoint, supports attachments, includes send states, and saves a temporary draft.
 - Donation/support interface was removed from the public website on August 27, 2026 at the user’s request.
 - Affiliate links are clearly labeled; direct Shopee links remain available.
+- Fixed the product-report affiliate action on August 28, 2026: the left `Affiliate link` opens the imported Shopee affiliate URL, the right `View on Shopee` opens the original product URL, and the obsolete placeholder script that disabled the affiliate button was removed. The disclosure now states that affiliate purchases may support PriceTrack PH at no extra cost and that a direct Shopee link is also available.
 - Shopee Affiliate batch Custom Link workflow was tested successfully on August 28, 2026: the returned CSV maps `Original Link` to `Convert Link`, and the generated link opened the correct AquaFlask product.
 
 ### Monitoring and security
