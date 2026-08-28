@@ -159,10 +159,12 @@ Values must never be written in this file.
 - Removed the “Back to PriceTrack PH” link from the private admin-health heading.
 - Added a private Shopee Affiliate batch workflow to the admin-health dashboard:
   - Shows total products and how many still lack affiliate links.
-  - Exports only missing products as a Shopee-compatible `.xlsx` with canonical product URLs.
+  - Exports only missing products using Shopee's official Batch Custom Links `.xlsx` template, preserving its workbook structure and embedded drawing.
+  - Automatically fills `Sub_id1` with `PriceTrackPH` for every exported product.
   - Imports Shopee’s returned Custom Link `.csv` and maps `Original Link` to `Convert Link` by shop ID + item ID.
   - Never overwrites an existing affiliate link; invalid, failed and unmatched rows are counted separately.
   - The import database function is callable only by `service_role`; public, anonymous and authenticated roles are denied.
+- Admin-health dashboard order is Shopee Affiliate Batch, recording status with Refresh on the right, event summary, then recent events.
 
 ### SEO and indexing
 
