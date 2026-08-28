@@ -3,9 +3,47 @@ import zlib from "node:zlib";
 import { SHOPEE_BATCH_TEMPLATE_BASE64 } from "./shopee-batch-template.js";
 
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
+const MAX_ARCHIVE_BYTES = 6 * 1024 * 1024;
 const MAX_IMPORT_ROWS = 10000;
 const EXPORT_HEADERS = ["Original Link *", "Sub_id1", "Sub_id2", "Sub_id3", "Sub_id4", "Sub_id5"];
 const AFFILIATE_SUB_ID = "PriceTrackPH";
+
+function safeArchiveFilename(value, fallback) {
+  const cleaned = String(value || "").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+  return cleaned.slice(0, 180) || fallback;
+}
+
+async function archiveToGoogleDrive({ buffer, filename, mimeType, destination }) {
+  const endpoint = process.env.GOOGLE_DRIVE_ARCHIVE_WEB_APP_URL || "";
+  const secret = process.env.GOOGLE_DRIVE_ARCHIVE_SECRET || "";
+  if (!endpoint || !secret) return { status: "not-configured" };
+  if (!Buffer.isBuffer(buffer) || buffer.length > MAX_ARCHIVE_BYTES) return { status: "failed" };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      redirect: "follow",
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret,
+        destination,
+        filename: safeArchiveFilename(filename, `PriceTrack-PH-${destination}`),
+        mimeType,
+        base64: buffer.toString("base64"),
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    return response.ok && payload?.ok === true ? { status: "saved" } : { status: "failed" };
+  } catch (error) {
+    console.error("Google Drive affiliate archive failed", error instanceof Error ? error.message : "unknown_error");
+    return { status: "failed" };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 function send(res, status, body) {
   res.status(status).setHeader("Cache-Control", "no-store").json(body);
@@ -299,11 +337,19 @@ export default async function handler(req, res) {
       const missing = products.filter((product) => !affiliateUrl(product.metadata));
       if (String(req.query?.action || "") === "export") {
         const workbook = workbookBuffer(missing);
-        const date = new Date().toISOString().slice(0, 10);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const filename = `PriceTrack-PH-Missing-Affiliate-Links-${timestamp}.xlsx`;
+        const archive = await archiveToGoogleDrive({
+          buffer: workbook,
+          filename,
+          mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          destination: "exports",
+        });
         res.status(200);
         res.setHeader("Cache-Control", "no-store");
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        res.setHeader("Content-Disposition", `attachment; filename="PriceTrack-PH-Missing-Affiliate-Links-${date}.xlsx"`);
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        res.setHeader("X-PriceTrack-Drive-Archive", archive.status);
         return res.send(workbook);
       }
       return send(res, 200, {
@@ -326,12 +372,22 @@ export default async function handler(req, res) {
     if (!response.ok) throw new Error(`import_${response.status}`);
     const result = await response.json();
     const totals = Array.isArray(result) ? result[0] : result;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const originalFilename = safeArchiveFilename(req.body?.fileName, `Shopee-Custom-Link-Result-${timestamp}.csv`);
+    const filename = originalFilename.toLowerCase().endsWith(".csv") ? originalFilename : `${originalFilename}.csv`;
+    const archive = await archiveToGoogleDrive({
+      buffer: Buffer.from(csvText, "utf8"),
+      filename,
+      mimeType: "text/csv",
+      destination: "imports",
+    });
     return send(res, 200, {
       updated: Number(totals?.updated_count) || 0,
       skippedExisting: Number(totals?.skipped_existing_count) || 0,
       notFound: Number(totals?.not_found_count) || 0,
       failed: parsed.failed,
       invalid: parsed.invalid,
+      driveArchive: archive.status,
     });
   } catch (error) {
     console.error("Admin affiliate link operation failed", error);
