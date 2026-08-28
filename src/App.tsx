@@ -34,11 +34,6 @@ type ChartPoint = {
   observations: ChartObservation[];
 };
 
-type OutboundLink = {
-  url: string;
-  isAffiliate: boolean;
-};
-
 const peso = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
@@ -325,7 +320,7 @@ function safeHttpsUrl(value: unknown) {
   }
 }
 
-function resolveOutboundLink(product: Product | null): OutboundLink | null {
+function resolveAffiliateLink(product: Product | null) {
   if (!product) return null;
 
   const metadata = product.metadata;
@@ -345,12 +340,11 @@ function resolveOutboundLink(product: Product | null): OutboundLink | null {
 
     for (const candidate of affiliateCandidates) {
       const url = safeHttpsUrl(candidate);
-      if (url) return { url, isAffiliate: true };
+      if (url) return url;
     }
   }
 
-  const directUrl = safeHttpsUrl(product.product_url);
-  return directUrl ? { url: directUrl, isAffiliate: false } : null;
+  return null;
 }
 
 function countPriceChanges(points: ChartPoint[]) {
@@ -711,7 +705,8 @@ function ReportApp() {
     };
   }, [variations, latestByVariationId]);
 
-  const outboundLink = resolveOutboundLink(product);
+  const affiliateLink = resolveAffiliateLink(product);
+  const directShopeeLink = safeHttpsUrl(product?.product_url);
   const priceChanges = countPriceChanges(allVariationPoints);
   const lastCheckedLabel = formatLastChecked(product?.last_seen_at);
   const axis = useMemo(() => roundedAxis(chartData), [chartData]);
@@ -1044,22 +1039,31 @@ function ReportApp() {
 
                 <div className="report-actions-wrap">
                   <div className="report-actions">
-                    <a className="track-price-button" href="https://chromewebstore.google.com/detail/ilabeaeblpcleaipmnppibbfhjknlmeo" target="_blank" rel="noreferrer">☆ Track price</a>
-                    {outboundLink && (
+                    {affiliateLink && (
+                      <a
+                        className="track-price-button"
+                        href={affiliateLink}
+                        target="_blank"
+                        rel="sponsored noopener noreferrer"
+                      >
+                        Affiliate link ↗
+                      </a>
+                    )}
+                    {directShopeeLink && (
                       <a
                         className="shopee-outbound-button"
-                        href={outboundLink.url}
+                        href={directShopeeLink}
                         target="_blank"
-                        rel={outboundLink.isAffiliate ? "sponsored noopener noreferrer" : "noopener noreferrer"}
+                        rel="noopener noreferrer"
                       >
                         View on Shopee ↗
                       </a>
                     )}
                   </div>
-                  <p className={outboundLink?.isAffiliate ? "outbound-disclosure affiliate" : "outbound-disclosure"}>
-                    {outboundLink?.isAffiliate
-                      ? "Affiliate link — PriceTrack PH may earn a commission at no extra cost to you."
-                      : "No hidden redirects. Direct Shopee link; affiliate links are clearly labeled before you click."}
+                  <p className={affiliateLink ? "outbound-disclosure affiliate" : "outbound-disclosure"}>
+                    {affiliateLink
+                      ? "Affiliate purchases may support PriceTrack PH at no extra cost to you. You can also use the direct Shopee link."
+                      : "This opens the original Shopee product page directly."}
                   </p>
                 </div>
               </div>
