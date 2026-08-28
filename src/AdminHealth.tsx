@@ -41,6 +41,7 @@ type AffiliateImportResult = {
   notFound: number;
   failed: number;
   invalid: number;
+  driveArchive: "saved" | "failed" | "not-configured";
 };
 
 const eventLabels: Record<string, string> = {
@@ -68,6 +69,7 @@ export default function AdminHealth() {
   const [affiliateError, setAffiliateError] = useState("");
   const [affiliateBusy, setAffiliateBusy] = useState<"export" | "import" | "">("");
   const [importResult, setImportResult] = useState<AffiliateImportResult | null>(null);
+  const [driveArchiveMessage, setDriveArchiveMessage] = useState("");
 
   async function loadAffiliateSummary(nextToken = token) {
     if (!nextToken) return;
@@ -120,6 +122,7 @@ export default function AdminHealth() {
   async function exportMissingLinks() {
     setAffiliateBusy("export");
     setAffiliateError("");
+    setDriveArchiveMessage("");
     try {
       const response = await fetch("/api/admin-affiliate-links?action=export", {
         headers: { Authorization: `Bearer ${token}` },
@@ -129,6 +132,7 @@ export default function AdminHealth() {
         const payload = await response.json().catch(() => ({}));
         throw new Error(payload.error || "Unable to export missing affiliate links.");
       }
+      const driveArchive = response.headers.get("X-PriceTrack-Drive-Archive");
       const blob = await response.blob();
       const downloadUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -138,6 +142,13 @@ export default function AdminHealth() {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(downloadUrl);
+      setDriveArchiveMessage(
+        driveArchive === "saved"
+          ? "XLSX downloaded and backed up to Google Drive."
+          : driveArchive === "failed"
+            ? "XLSX downloaded, but its Google Drive backup failed."
+            : "XLSX downloaded. Google Drive backup is not configured yet.",
+      );
     } catch (cause) {
       setAffiliateError(cause instanceof Error ? cause.message : "Unable to export missing affiliate links.");
     } finally {
@@ -150,6 +161,7 @@ export default function AdminHealth() {
     setAffiliateBusy("import");
     setAffiliateError("");
     setImportResult(null);
+    setDriveArchiveMessage("");
     try {
       if (!file.name.toLowerCase().endsWith(".csv")) throw new Error("Select the CSV downloaded from Shopee Export Management.");
       const csvText = await file.text();
@@ -159,11 +171,18 @@ export default function AdminHealth() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ csvText }),
+        body: JSON.stringify({ csvText, fileName: file.name }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Unable to import Shopee results.");
       setImportResult(payload as AffiliateImportResult);
+      setDriveArchiveMessage(
+        payload.driveArchive === "saved"
+          ? "CSV imported and backed up to Google Drive."
+          : payload.driveArchive === "failed"
+            ? "CSV imported, but its Google Drive backup failed."
+            : "CSV imported. Google Drive backup is not configured yet.",
+      );
       await loadAffiliateSummary();
     } catch (cause) {
       setAffiliateError(cause instanceof Error ? cause.message : "Unable to import Shopee results.");
@@ -226,6 +245,11 @@ export default function AdminHealth() {
                 </label>
               </div>
               {affiliateError && <p className="health-affiliate-message error" role="alert">{affiliateError}</p>}
+              {driveArchiveMessage && (
+                <p className={`health-affiliate-message ${driveArchiveMessage.includes("failed") || driveArchiveMessage.includes("not configured") ? "error" : "success"}`} role="status">
+                  {driveArchiveMessage}
+                </p>
+              )}
               {importResult && (
                 <p className="health-affiliate-message success" role="status">
                   Import complete: {importResult.updated} updated · {importResult.skippedExisting} existing skipped · {importResult.notFound} not found · {importResult.failed} Shopee failures · {importResult.invalid} invalid
