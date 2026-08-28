@@ -1,6 +1,6 @@
 # PriceTrack PH — New Chat Handoff
 
-Last updated: **August 27, 2026**  
+Last updated: **August 28, 2026**  
 Repository: **PriceTrackPH/PriceTrack-PH**  
 Production: **https://pricetrackph.com**  
 Chrome Web Store item: **ilabeaeblpcleaipmnppibbfhjknlmeo**
@@ -37,7 +37,7 @@ Do not treat old chat suggestions as current backlog until they are checked agai
 - Google Search Console domain ownership is verified.
 - The dynamic sitemap was processed successfully and Google discovered **576 pages** on August 27, 2026.
 - Homepage live test passed and priority indexing was requested.
-- Bing Webmaster Tools is not set up yet.
+- Bing Webmaster Tools property was imported successfully from Google Search Console on August 28, 2026; Bing reports that initial data processing may take up to 48 hours.
 
 ## Current architecture
 
@@ -166,6 +166,7 @@ Values must never be written in this file.
 - Two owners are acceptable when both accounts belong to the user.
 - Sitemap processed successfully with 576 discovered pages.
 - Homepage is available to Google and indexing was requested.
+- Bing Webmaster Tools site ownership/import completed successfully; sitemap submission remains pending.
 
 ## Important incidents and lessons
 
@@ -181,8 +182,8 @@ Values must never be written in this file.
 
 ### Next recommended
 
-1. **Bing Webmaster Tools** — import `pricetrackph.com` from Google Search Console and submit the existing sitemap.
-2. **Google indexing follow-up** — review Pages/Performance after Google has had time to crawl; do not repeatedly request the same URL.
+1. **Bing sitemap submission** — submit `https://pricetrackph.com/sitemap.xml` in Bing Webmaster Tools.
+2. **Google and Bing indexing follow-up** — review search performance after both services have had time to crawl; do not repeatedly submit the same URLs.
 
 ### Research / later releases
 
