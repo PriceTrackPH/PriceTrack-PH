@@ -1,8 +1,8 @@
 # PriceTrack PH — New Chat Handoff
 
-Last updated: **August 28, 2026**  
-Repository: **PriceTrackPH/PriceTrack-PH**  
-Production: **https://pricetrackph.com**  
+Last updated: **August 28, 2026**
+Repository: **PriceTrackPH/PriceTrack-PH**
+Production: **https://pricetrackph.com**
 Chrome Web Store item: **ilabeaeblpcleaipmnppibbfhjknlmeo**
 
 ## Purpose of this file
@@ -77,6 +77,7 @@ Shopee product page
 - Sitemap: `/sitemap.xml`
 - Robots: `/robots.txt`
 - Private health dashboard: `/admin/health`
+- Private affiliate batch API: `/api/admin-affiliate-links`
 - Product title fallback API: `/api/find-product-by-title`
 - Shopee short-link resolver: `/api/resolve-shopee-link`
 - Contact endpoint: `/api/send-contact`
@@ -133,6 +134,7 @@ Values must never be written in this file.
 - Extension URLs and host permission use `https://pricetrackph.com`.
 - v1.0.0 was the initial public release.
 - v1.0.1 was published publicly on August 27, 2026 and updates users automatically.
+- Chrome Web Store developer identity verification completed successfully on August 28, 2026; the account can publish new items and future updates.
 
 ### Public site, support and privacy
 
@@ -143,6 +145,7 @@ Values must never be written in this file.
 - Contact form sends through a server endpoint, supports attachments, includes send states, and saves a temporary draft.
 - Donation/support interface was removed from the public website on August 27, 2026 at the user’s request.
 - Affiliate links are clearly labeled; direct Shopee links remain available.
+- Shopee Affiliate batch Custom Link workflow was tested successfully on August 28, 2026: the returned CSV maps `Original Link` to `Convert Link`, and the generated link opened the correct AquaFlask product.
 
 ### Monitoring and security
 
@@ -154,6 +157,12 @@ Values must never be written in this file.
 - Production build verified after monitoring implementation.
 - User confirmed the production Shopee stress test and monitoring review completed on August 27, 2026.
 - Removed the “Back to PriceTrack PH” link from the private admin-health heading.
+- Added a private Shopee Affiliate batch workflow to the admin-health dashboard:
+  - Shows total products and how many still lack affiliate links.
+  - Exports only missing products as a Shopee-compatible `.xlsx` with canonical product URLs.
+  - Imports Shopee’s returned Custom Link `.csv` and maps `Original Link` to `Convert Link` by shop ID + item ID.
+  - Never overwrites an existing affiliate link; invalid, failed and unmatched rows are counted separately.
+  - The import database function is callable only by `service_role`; public, anonymous and authenticated roles are denied.
 
 ### SEO and indexing
 
@@ -186,12 +195,12 @@ Values must never be written in this file.
 
 ### Research / later releases
 
-2. **Shopee Affiliate/Open API investigation** — determine whether an official integration is available and worthwhile without weakening privacy or reliability.
-3. **Extension v1.0.2 planning** — group meaningful improvements before another Web Store review. Possible listing/package name: `PriceTrack PH – Shopee Price Tracker`.
-4. **Search improvement only if needed** — current exact case-insensitive title fallback works; consider fuzzy suggestions/results only after observing real failed searches.
-5. **Responsive quality pass** — continue checking unusual screen sizes and long product/variation names.
-6. **Lazada support** — only after Shopee behavior is stable and the data model/collector approach is proven.
-7. **TikTok Shop investigation** — much later and only if technically and legally practical.
+2. **Extension v1.0.2 planning** — group meaningful improvements before another Web Store review. Possible listing/package name: `PriceTrack PH – Shopee Price Tracker`.
+3. **Search improvement only if needed** — current exact case-insensitive title fallback works; consider fuzzy suggestions/results only after observing real failed searches.
+4. **Responsive quality pass** — continue checking unusual screen sizes and long product/variation names.
+5. **Lazada support** — only after Shopee behavior is stable and the data model/collector approach is proven.
+6. **TikTok Shop investigation** — much later and only if technically and legally practical.
+7. **Shopee Open API** — optional later; pursue only if Third-party Partner Platform registration is approved and it provides useful access beyond the proven batch affiliate workflow.
 
 ## Explicitly removed / not current backlog
 
