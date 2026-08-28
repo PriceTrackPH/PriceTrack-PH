@@ -166,7 +166,7 @@ Values must never be written in this file.
 - Two owners are acceptable when both accounts belong to the user.
 - Sitemap processed successfully with 576 discovered pages.
 - Homepage is available to Google and indexing was requested.
-- Bing Webmaster Tools site ownership/import completed successfully; sitemap submission remains pending.
+- Bing Webmaster Tools site ownership/import and sitemap submission completed successfully on August 28, 2026.
 
 ## Important incidents and lessons
 
@@ -182,17 +182,16 @@ Values must never be written in this file.
 
 ### Next recommended
 
-1. **Bing sitemap submission** — submit `https://pricetrackph.com/sitemap.xml` in Bing Webmaster Tools.
-2. **Google and Bing indexing follow-up** — review search performance after both services have had time to crawl; do not repeatedly submit the same URLs.
+1. **Google and Bing indexing follow-up** — review search performance after both services have had time to crawl; do not repeatedly submit the same URLs.
 
 ### Research / later releases
 
-3. **Shopee Affiliate/Open API investigation** — determine whether an official integration is available and worthwhile without weakening privacy or reliability.
-4. **Extension v1.0.2 planning** — group meaningful improvements before another Web Store review. Possible listing/package name: `PriceTrack PH – Shopee Price Tracker`.
-5. **Search improvement only if needed** — current exact case-insensitive title fallback works; consider fuzzy suggestions/results only after observing real failed searches.
-6. **Responsive quality pass** — continue checking unusual screen sizes and long product/variation names.
-7. **Lazada support** — only after Shopee behavior is stable and the data model/collector approach is proven.
-8. **TikTok Shop investigation** — much later and only if technically and legally practical.
+2. **Shopee Affiliate/Open API investigation** — determine whether an official integration is available and worthwhile without weakening privacy or reliability.
+3. **Extension v1.0.2 planning** — group meaningful improvements before another Web Store review. Possible listing/package name: `PriceTrack PH – Shopee Price Tracker`.
+4. **Search improvement only if needed** — current exact case-insensitive title fallback works; consider fuzzy suggestions/results only after observing real failed searches.
+5. **Responsive quality pass** — continue checking unusual screen sizes and long product/variation names.
+6. **Lazada support** — only after Shopee behavior is stable and the data model/collector approach is proven.
+7. **TikTok Shop investigation** — much later and only if technically and legally practical.
 
 ## Explicitly removed / not current backlog
 
