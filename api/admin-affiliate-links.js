@@ -1,8 +1,11 @@
 import crypto from "node:crypto";
+import zlib from "node:zlib";
+import { SHOPEE_BATCH_TEMPLATE_BASE64 } from "./shopee-batch-template.js";
 
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 const MAX_IMPORT_ROWS = 10000;
 const EXPORT_HEADERS = ["Original Link *", "Sub_id1", "Sub_id2", "Sub_id3", "Sub_id4", "Sub_id5"];
+const AFFILIATE_SUB_ID = "PriceTrackPH";
 
 function send(res, status, body) {
   res.status(status).setHeader("Cache-Control", "no-store").json(body);
@@ -82,26 +85,6 @@ function columnName(index) {
   return result;
 }
 
-function worksheetXml(rows) {
-  const rowXml = rows.map((row, rowIndex) => {
-    const cells = row.map((value, columnIndex) => {
-      const reference = `${columnName(columnIndex)}${rowIndex + 1}`;
-      const style = rowIndex === 0 ? ' s="1"' : "";
-      return `<c r="${reference}" t="inlineStr"${style}><is><t>${xmlEscape(value)}</t></is></c>`;
-    }).join("");
-    return `<row r="${rowIndex + 1}">${cells}</row>`;
-  }).join("");
-  const lastRow = Math.max(rows.length, 1);
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:F${lastRow}"/>
-  <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
-  <cols><col min="1" max="1" width="72" customWidth="1"/><col min="2" max="6" width="18" customWidth="1"/></cols>
-  <sheetData>${rowXml}</sheetData>
-  <autoFilter ref="A1:F${lastRow}"/>
-</worksheet>`;
-}
-
 function crc32(buffer) {
   let crc = 0xffffffff;
   for (const byte of buffer) {
@@ -156,16 +139,63 @@ function zipFiles(files) {
   return Buffer.concat([...localParts, ...centralParts, end]);
 }
 
+function unzipFiles(buffer) {
+  let endOffset = buffer.length - 22;
+  while (endOffset >= 0 && buffer.readUInt32LE(endOffset) !== 0x06054b50) endOffset -= 1;
+  if (endOffset < 0) throw new Error("invalid_template_zip");
+
+  const entryCount = buffer.readUInt16LE(endOffset + 10);
+  let centralOffset = buffer.readUInt32LE(endOffset + 16);
+  const files = [];
+
+  for (let index = 0; index < entryCount; index += 1) {
+    if (buffer.readUInt32LE(centralOffset) !== 0x02014b50) throw new Error("invalid_template_entry");
+    const method = buffer.readUInt16LE(centralOffset + 10);
+    const compressedSize = buffer.readUInt32LE(centralOffset + 20);
+    const nameLength = buffer.readUInt16LE(centralOffset + 28);
+    const extraLength = buffer.readUInt16LE(centralOffset + 30);
+    const commentLength = buffer.readUInt16LE(centralOffset + 32);
+    const localOffset = buffer.readUInt32LE(centralOffset + 42);
+    const name = buffer.subarray(centralOffset + 46, centralOffset + 46 + nameLength).toString("utf8");
+
+    if (buffer.readUInt32LE(localOffset) !== 0x04034b50) throw new Error("invalid_template_local_entry");
+    const localNameLength = buffer.readUInt16LE(localOffset + 26);
+    const localExtraLength = buffer.readUInt16LE(localOffset + 28);
+    const dataOffset = localOffset + 30 + localNameLength + localExtraLength;
+    const compressed = buffer.subarray(dataOffset, dataOffset + compressedSize);
+    const content = method === 8 ? zlib.inflateRawSync(compressed) : method === 0 ? compressed : null;
+    if (!content) throw new Error("unsupported_template_compression");
+    files.push([name, content]);
+    centralOffset += 46 + nameLength + extraLength + commentLength;
+  }
+  return files;
+}
+
+function sharedStringsXml(products) {
+  const strings = [...EXPORT_HEADERS, ...products.map(canonicalUrl), AFFILIATE_SUB_ID];
+  const totalReferences = EXPORT_HEADERS.length + (products.length * 2);
+  const items = strings.map((value) => `<si><t>${xmlEscape(value)}</t></si>`).join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${totalReferences}" uniqueCount="${strings.length}">${items}</sst>`;
+}
+
+function fillTemplateWorksheet(templateXml, products) {
+  const trackingIndex = EXPORT_HEADERS.length + products.length;
+  const headerCells = EXPORT_HEADERS.map((_, index) => `<c r="${columnName(index)}1" s="1" t="s"><v>${index}</v></c>`).join("");
+  const rows = products.map((_, index) => {
+    const rowNumber = index + 2;
+    return `<row r="${rowNumber}"><c r="A${rowNumber}" t="s"><v>${EXPORT_HEADERS.length + index}</v></c><c r="B${rowNumber}" t="s"><v>${trackingIndex}</v></c></row>`;
+  }).join("");
+  return templateXml.replace(/<sheetData>[\s\S]*?<\/sheetData>/, `<sheetData><row r="1">${headerCells}</row>${rows}</sheetData>`);
+}
+
 function workbookBuffer(products) {
-  const rows = [EXPORT_HEADERS, ...products.map((product) => [canonicalUrl(product), "", "", "", "", ""])];
-  return zipFiles([
-    ["[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`],
-    ["_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
-    ["xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Missing Affiliate Links" sheetId="1" r:id="rId1"/></sheets></workbook>`],
-    ["xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
-    ["xl/worksheets/sheet1.xml", worksheetXml(rows)],
-    ["xl/styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Aptos"/></font><font><b/><sz val="11"/><name val="Aptos"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs></styleSheet>`],
-  ]);
+  const templateFiles = unzipFiles(Buffer.from(SHOPEE_BATCH_TEMPLATE_BASE64, "base64"));
+  const files = templateFiles.map(([name, content]) => {
+    if (name === "xl/sharedStrings.xml") return [name, Buffer.from(sharedStringsXml(products))];
+    if (name === "xl/worksheets/sheet1.xml") return [name, Buffer.from(fillTemplateWorksheet(content.toString("utf8"), products))];
+    return [name, content];
+  });
+  return zipFiles(files);
 }
 
 function parseCsv(text) {
