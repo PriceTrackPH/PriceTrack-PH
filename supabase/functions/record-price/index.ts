@@ -228,6 +228,7 @@ Deno.serve(async (request: Request) => {
     const headers = adminHeaders(secret);
 
     let previousVariationCount: number | null = null;
+    let existingProductMetadata: Record<string, unknown> = {};
     const existingProductQuery = new URLSearchParams({
       platform: `eq.${platform}`,
       external_shop_id: `eq.${shopId}`,
@@ -238,6 +239,9 @@ Deno.serve(async (request: Request) => {
     const existingProductResponse = await fetch(`${supabaseUrl}/rest/v1/products?${existingProductQuery}`, { headers });
     if (existingProductResponse.ok) {
       const [existingProduct] = await existingProductResponse.json() as Array<{ metadata?: Record<string, unknown> }>;
+      if (existingProduct?.metadata && typeof existingProduct.metadata === "object" && !Array.isArray(existingProduct.metadata)) {
+        existingProductMetadata = existingProduct.metadata;
+      }
       const storedCount = Number(existingProduct?.metadata?.submitted_variation_count);
       if (Number.isInteger(storedCount) && storedCount >= 0) previousVariationCount = storedCount;
     }
@@ -274,6 +278,7 @@ Deno.serve(async (request: Request) => {
         last_seen_at: observedAt.toISOString(),
         updated_at: now.toISOString(),
         metadata: {
+          ...existingProductMetadata,
           submitted_variation_count: variations.length,
           collector_format: Array.isArray(body.variations) ? "bulk_models_v1" : "legacy_single_v1",
         },
