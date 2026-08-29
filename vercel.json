@@ -16,6 +16,10 @@
       "destination": "/api/product-page?shopId=:shopId&productId=:productId"
     },
     {
+      "source": "/admin",
+      "destination": "/"
+    },
+    {
       "source": "/admin/health",
       "destination": "/"
     },
