@@ -61,7 +61,7 @@ function dateLabel(value: string | null) {
   }).format(new Date(value));
 }
 type AdminHealthProps = {
-  view?: "health" | "affiliate";
+  view?: "login" | "health" | "affiliate";
 };
 
 export default function AdminHealth({ view = "health" }: AdminHealthProps) {
@@ -74,6 +74,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [affiliateBusy, setAffiliateBusy] = useState<"export" | "import" | "">("");
   const [importResult, setImportResult] = useState<AffiliateImportResult | null>(null);
   const [driveArchiveMessage, setDriveArchiveMessage] = useState("");
+  const isLogin = view === "login";
 
   useEffect(() => {
     const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a"));
@@ -99,7 +100,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     affiliateLink.removeAttribute("data-scroll-target");
     healthLink.removeAttribute("aria-current");
     affiliateLink.removeAttribute("aria-current");
-    (view === "affiliate" ? affiliateLink : healthLink).setAttribute("aria-current", "page");
+    if (!isLogin) (view === "affiliate" ? affiliateLink : healthLink).setAttribute("aria-current", "page");
 
     return () => {
       [healthLink, affiliateLink].forEach((link, index) => {
@@ -117,7 +118,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
         }
       });
     };
-  }, [view]);
+  }, [isLogin, view]);
 
   async function loadAffiliateSummary(nextToken = token) {
     if (!nextToken) return;
@@ -146,8 +147,20 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
         cache: "no-store",
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(response.status === 401 ? "That admin token is not valid." : payload.error || "Unable to load diagnostics.");
+      if (!response.ok) {
+        const message = response.status === 401 ? "That admin token is not valid." : payload.error || "Unable to load diagnostics.";
+        if (response.status === 401 && !isLogin) {
+          sessionStorage.removeItem("pricetrack-admin-health-token");
+          window.location.replace("/admin");
+          return;
+        }
+        throw new Error(message);
+      }
       sessionStorage.setItem("pricetrack-admin-health-token", nextToken);
+      if (isLogin) {
+        window.location.replace("/admin/health");
+        return;
+      }
       setData(payload as HealthData);
       if (view === "affiliate") void loadAffiliateSummary(nextToken);
     } catch (cause) {
@@ -159,7 +172,15 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   }
 
   useEffect(() => {
-    if (token) void load(token);
+    if (isLogin) {
+      if (token) void load(token);
+      return;
+    }
+    if (!token) {
+      window.location.replace("/admin");
+      return;
+    }
+    void load(token);
   }, []);
 
   function handleSubmit(event: FormEvent) {
@@ -248,12 +269,12 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
         <div className="health-heading">
           <div>
             <span className="health-kicker">PRIVATE ADMIN</span>
-            <h1>PriceTrack PH {isAffiliate ? "affiliate" : "health"}</h1>
-            <p>{isAffiliate ? "Shopee affiliate-link batch tools." : "Recording-system status and sanitized events retained for 30 days."}</p>
+            <h1>PriceTrack PH {isLogin ? "admin" : isAffiliate ? "affiliate" : "health"}</h1>
+            <p>{isLogin ? "Enter your admin access token to continue." : isAffiliate ? "Shopee affiliate-link batch tools." : "Recording-system status and sanitized events retained for 30 days."}</p>
           </div>
         </div>
 
-        {!data ? (
+        {isLogin ? (
           <form className="health-login" onSubmit={handleSubmit}>
             <label htmlFor="health-token">Admin access token</label>
             <div>
@@ -262,6 +283,8 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
             </div>
             {error && <p role="alert">{error}</p>}
           </form>
+        ) : !data ? (
+          <div className="health-empty">{loading ? "Opening dashboard…" : error || "Opening dashboard…"}</div>
         ) : (
           <>
             {isAffiliate && <section className="health-affiliate" aria-labelledby="affiliate-links-heading">
