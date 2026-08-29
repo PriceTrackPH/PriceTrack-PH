@@ -1,0 +1,9 @@
+/* User-selected accent color for the highlighted public-page text only. */
+.site-header .brand span,
+.hero-inner h1 em,
+.hero-inner .eyebrow::after,
+.report-section > .section-label,
+.report-card .live-badge,
+.report-card .stats-grid .green-value {
+  color: #00F8B9 !important;
+}
