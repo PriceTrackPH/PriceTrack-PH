@@ -1,6 +1,6 @@
 # PriceTrack PH — New Chat Handoff
 
-Last updated: **August 28, 2026**
+Last updated: **August 29, 2026**
 Repository: **PriceTrackPH/PriceTrack-PH**
 Production: **https://pricetrackph.com**
 Chrome Web Store item: **ilabeaeblpcleaipmnppibbfhjknlmeo**
@@ -109,6 +109,7 @@ Values must never be written in this file.
 - Product lookup by Shopee link.
 - Exact product-title fallback and case-insensitive title search.
 - Shopee mobile/short/affiliate redirect resolution.
+- Fixed newer Shopee affiliate short links on August 29, 2026: the resolver now reads `shopeeph://reactPath` wrappers and canonical `shopee.ph/{shop-slug}/{shopId}/{itemId}` destinations, while preserving the older URL formats.
 - Stable permanent product URLs based on shop ID and item ID.
 - Product report with store name, image, product name, variation selector, stock status, recorded price status, and outbound Shopee/affiliate actions.
 - Per-variation graph with 7D, 30D, 90D and ALL ranges and hover details.
