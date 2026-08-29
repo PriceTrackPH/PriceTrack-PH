@@ -39,6 +39,14 @@ html:not([data-theme="dark"]) .health-status.healthy {
   border-left-color: #00DFA7 !important;
 }
 
+html:not([data-theme="dark"]) .health-login {
+  background: #F2EFFF !important;
+}
+
+html:not([data-theme="dark"]) .health-login input {
+  background: #FFFFFF !important;
+}
+
 html[data-theme="dark"] .health-kicker,
 html[data-theme="dark"] .health-event-type.record_success {
   color: #00F8B9 !important;
