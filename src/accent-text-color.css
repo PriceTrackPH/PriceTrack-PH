@@ -40,7 +40,7 @@ html:not([data-theme="dark"]) .health-status.healthy {
 }
 
 html:not([data-theme="dark"]) .health-login {
-  background: #F2EFFF !important;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FBFAFF 45%, #F2EFFF 100%) !important;
 }
 
 html:not([data-theme="dark"]) .health-login input {
