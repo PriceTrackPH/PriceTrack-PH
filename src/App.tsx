@@ -1084,9 +1084,13 @@ function ReportApp() {
 
 function App() {
   const pathname = window.location.pathname;
-  return pathname === "/admin/health" || pathname === "/admin/health/"
-    ? <AdminHealth />
-    : <ReportApp />;
+  if (pathname === "/admin/health" || pathname === "/admin/health/") {
+    return <AdminHealth view="health" />;
+  }
+  if (pathname === "/admin/monitoring" || pathname === "/admin/monitoring/") {
+    return <AdminHealth view="monitoring" />;
+  }
+  return <ReportApp />;
 }
 
 export default App;

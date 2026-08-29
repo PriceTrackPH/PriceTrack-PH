@@ -33,7 +33,7 @@ Do not treat old chat suggestions as current backlog until they are checked agai
 - Chrome extension **v1.0.1** is publicly published and automatically updates existing users.
 - New installations receive v1.0.1 immediately; existing Chrome installations update on Chrome's schedule.
 - Supabase project is **Product Tracking** (`sgitojuhoaxxnujdikbd`).
-- Private admin monitor is available at `/admin/health` and requires the server-side admin token.
+- Private admin pages are available at `/admin/health` and `/admin/monitoring` and require the same server-side admin token.
 - Google Search Console domain ownership is verified.
 - The dynamic sitemap was processed successfully and Google discovered **576 pages** on August 27, 2026.
 - Homepage live test passed and priority indexing was requested.
@@ -77,6 +77,7 @@ Shopee product page
 - Sitemap: `/sitemap.xml`
 - Robots: `/robots.txt`
 - Private health dashboard: `/admin/health`
+- Private event monitoring: `/admin/monitoring`
 - Private affiliate batch API: `/api/admin-affiliate-links`
 - Product title fallback API: `/api/find-product-by-title`
 - Shopee short-link resolver: `/api/resolve-shopee-link`
@@ -169,6 +170,7 @@ Values must never be written in this file.
   - Never overwrites an existing affiliate link; invalid, failed and unmatched rows are counted separately.
   - The import database function is callable only by `service_role`; public, anonymous and authenticated roles are denied.
 - Admin-health dashboard order is Shopee Affiliate Batch, recording status with Refresh on the right, event summary, then recent events.
+- On August 29, 2026, the private admin dashboard was split into two focused pages: `/admin/health` contains the affiliate batch and recording status, while `/admin/monitoring` contains the 30-day counters and Recent events. The header switches to Health/Monitoring only while an admin page is mounted; the homepage and product reports retain their public navigation and sections. Both routes reuse the same session token.
 
 ### SEO and indexing
 

@@ -11,6 +11,10 @@
     {
       "source": "/admin/health",
       "destination": "/"
+    },
+    {
+      "source": "/admin/monitoring",
+      "destination": "/"
     }
   ]
 }

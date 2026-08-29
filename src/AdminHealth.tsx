@@ -60,7 +60,11 @@ function dateLabel(value: string | null) {
     timeZone: "Asia/Manila",
   }).format(new Date(value));
 }
-export default function AdminHealth() {
+type AdminHealthProps = {
+  view?: "health" | "monitoring";
+};
+
+export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [token, setToken] = useState(() => sessionStorage.getItem("pricetrack-admin-health-token") || "");
   const [data, setData] = useState<HealthData | null>(null);
   const [error, setError] = useState("");
@@ -70,6 +74,49 @@ export default function AdminHealth() {
   const [affiliateBusy, setAffiliateBusy] = useState<"export" | "import" | "">("");
   const [importResult, setImportResult] = useState<AffiliateImportResult | null>(null);
   const [driveArchiveMessage, setDriveArchiveMessage] = useState("");
+
+  useEffect(() => {
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a"));
+    if (links.length < 2) return;
+
+    const [healthLink, monitoringLink] = links;
+    const original = [healthLink, monitoringLink].map((link) => ({
+      text: link.textContent || "",
+      href: link.getAttribute("href"),
+      target: link.getAttribute("target"),
+      rel: link.getAttribute("rel"),
+      scrollTarget: link.getAttribute("data-scroll-target"),
+      current: link.getAttribute("aria-current"),
+    }));
+
+    healthLink.textContent = "Health";
+    healthLink.href = "/admin/health";
+    healthLink.removeAttribute("data-scroll-target");
+    monitoringLink.textContent = "Monitoring";
+    monitoringLink.href = "/admin/monitoring";
+    monitoringLink.removeAttribute("target");
+    monitoringLink.removeAttribute("rel");
+    healthLink.removeAttribute("aria-current");
+    monitoringLink.removeAttribute("aria-current");
+    (view === "monitoring" ? monitoringLink : healthLink).setAttribute("aria-current", "page");
+
+    return () => {
+      [healthLink, monitoringLink].forEach((link, index) => {
+        const saved = original[index];
+        link.textContent = saved.text;
+        for (const [name, value] of Object.entries({
+          href: saved.href,
+          target: saved.target,
+          rel: saved.rel,
+          "data-scroll-target": saved.scrollTarget,
+          "aria-current": saved.current,
+        })) {
+          if (value === null) link.removeAttribute(name);
+          else link.setAttribute(name, value);
+        }
+      });
+    };
+  }, [view]);
 
   async function loadAffiliateSummary(nextToken = token) {
     if (!nextToken) return;
@@ -101,7 +148,7 @@ export default function AdminHealth() {
       if (!response.ok) throw new Error(response.status === 401 ? "That admin token is not valid." : payload.error || "Unable to load diagnostics.");
       sessionStorage.setItem("pricetrack-admin-health-token", nextToken);
       setData(payload as HealthData);
-      void loadAffiliateSummary(nextToken);
+      if (view === "health") void loadAffiliateSummary(nextToken);
     } catch (cause) {
       setData(null);
       setError(cause instanceof Error ? cause.message : "Unable to load diagnostics.");
@@ -192,6 +239,7 @@ export default function AdminHealth() {
   }
 
   const isHealthy = Boolean(data && data.summary.failures === 0 && data.summary.partial === 0);
+  const isMonitoring = view === "monitoring";
 
   return (
     <main className="health-page">
@@ -199,8 +247,8 @@ export default function AdminHealth() {
         <div className="health-heading">
           <div>
             <span className="health-kicker">PRIVATE ADMIN</span>
-            <h1>PriceTrack PH health</h1>
-            <p>Sanitized recording diagnostics retained for 30 days.</p>
+            <h1>PriceTrack PH {isMonitoring ? "monitoring" : "health"}</h1>
+            <p>{isMonitoring ? "Sanitized recording events retained for 30 days." : "Affiliate-link tools and recording-system status."}</p>
           </div>
         </div>
 
@@ -215,7 +263,7 @@ export default function AdminHealth() {
           </form>
         ) : (
           <>
-            <section className="health-affiliate" aria-labelledby="affiliate-links-heading">
+            {!isMonitoring && <section className="health-affiliate" aria-labelledby="affiliate-links-heading">
               <div className="health-affiliate-copy">
                 <span className="health-kicker">SHOPEE AFFILIATE BATCH</span>
                 <h2 id="affiliate-links-heading">Affiliate links</h2>
@@ -255,23 +303,23 @@ export default function AdminHealth() {
                   Import complete: {importResult.updated} updated · {importResult.skippedExisting} existing skipped · {importResult.notFound} not found · {importResult.failed} Shopee failures · {importResult.invalid} invalid
                 </p>
               )}
-            </section>
+            </section>}
 
-            <section className={`health-status ${isHealthy ? "healthy" : "attention"}`}>
+            {!isMonitoring && <section className={`health-status ${isHealthy ? "healthy" : "attention"}`}>
               <strong>{isHealthy ? "Recording looks healthy" : "Review recent recording issues"}</strong>
               <span>Last successful recording: {dateLabel(data.summary.lastSuccess)}</span>
               <button type="button" onClick={() => void load()} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</button>
-            </section>
+            </section>}
 
-            <section className="health-stats" aria-label="30-day diagnostic summary">
+            {isMonitoring && <section className="health-stats" aria-label="30-day diagnostic summary">
               <div><span>Events</span><strong>{data.summary.total}</strong></div>
               <div><span>Failures</span><strong>{data.summary.failures}</strong></div>
               <div><span>Partial</span><strong>{data.summary.partial}</strong></div>
               <div><span>Duplicates blocked</span><strong>{data.summary.duplicates}</strong></div>
               <div><span>Variation changes</span><strong>{data.summary.variationChanges}</strong></div>
-            </section>
+            </section>}
 
-            <section className="health-events">
+            {isMonitoring && <section className="health-events">
               <div className="health-events-heading">
                 <h2>Recent events</h2>
                 <span>Latest 50 · no personal data or full URLs</span>
@@ -294,7 +342,7 @@ export default function AdminHealth() {
                   </table>
                 </div>
               ) : <div className="health-empty">No diagnostic events have been recorded yet.</div>}
-            </section>
+            </section>}
           </>
         )}
       </div>
