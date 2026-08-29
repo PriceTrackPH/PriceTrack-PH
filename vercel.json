@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "/admin/monitoring",
+      "destination": "/admin/health",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/sitemap.xml",
@@ -13,7 +20,7 @@
       "destination": "/"
     },
     {
-      "source": "/admin/monitoring",
+      "source": "/admin/affiliate",
       "destination": "/"
     }
   ]

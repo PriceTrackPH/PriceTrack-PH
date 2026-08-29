@@ -55,7 +55,7 @@ const footerModalContent: Record<FooterModalKey, { label: string; title: string;
 
 function SiteSections() {
   const chromeWebStoreUrl = "https://chromewebstore.google.com/detail/ilabeaeblpcleaipmnppibbfhjknlmeo";
-  const isAdminPage = ["/admin/health", "/admin/health/", "/admin/monitoring", "/admin/monitoring/"].includes(window.location.pathname);
+  const isAdminPage = ["/admin/health", "/admin/health/", "/admin/affiliate", "/admin/affiliate/", "/admin/monitoring", "/admin/monitoring/"].includes(window.location.pathname);
   const [donationOpen, setDonationOpen] = useState(false);
   const [footerModal, setFooterModal] = useState<FooterModalKey | null>(null);
   const [contactDraft, setContactDraft] = useState<Omit<ContactDraft, "savedAt">>({ name: "", email: "", subject: "", message: "" });

@@ -33,7 +33,7 @@ Do not treat old chat suggestions as current backlog until they are checked agai
 - Chrome extension **v1.0.1** is publicly published and automatically updates existing users.
 - New installations receive v1.0.1 immediately; existing Chrome installations update on Chrome's schedule.
 - Supabase project is **Product Tracking** (`sgitojuhoaxxnujdikbd`).
-- Private admin pages are available at `/admin/health` and `/admin/monitoring` and require the same server-side admin token.
+- Private admin pages are available at `/admin/health` and `/admin/affiliate` and require the same server-side admin token.
 - Google Search Console domain ownership is verified.
 - The dynamic sitemap was processed successfully and Google discovered **576 pages** on August 27, 2026.
 - Homepage live test passed and priority indexing was requested.
@@ -77,7 +77,7 @@ Shopee product page
 - Sitemap: `/sitemap.xml`
 - Robots: `/robots.txt`
 - Private health dashboard: `/admin/health`
-- Private event monitoring: `/admin/monitoring`
+- Private affiliate batch tools: `/admin/affiliate`
 - Private affiliate batch API: `/api/admin-affiliate-links`
 - Product title fallback API: `/api/find-product-by-title`
 - Shopee short-link resolver: `/api/resolve-shopee-link`
@@ -119,7 +119,7 @@ Values must never be written in this file.
 - Mobile/responsive improvements, including the contact modal.
 - Clean product navigation URLs: visible `#result` is removed after loading.
 - Variation dropdown scroll is contained and no longer moves the page at its boundaries.
-- Restored the public “Automatic Price Checks,” “Built on Trust,” and “Keep the Tracker Free” sections below the product report on August 29, 2026. These public sections stay hidden on `/admin/health` and `/admin/monitoring`; the Chrome button opens the published Web Store listing directly.
+- Restored the public “Automatic Price Checks,” “Built on Trust,” and “Keep the Tracker Free” sections below the product report on August 29, 2026. These public sections stay hidden on `/admin/health` and `/admin/affiliate`; the Chrome button opens the published Web Store listing directly.
 - The public header’s `Extension` link scrolls to the `Automatic Price Checks` section on the current page; only the section’s `Add to Chrome` button opens the Chrome Web Store.
 
 ### Chrome extension
@@ -170,8 +170,8 @@ Values must never be written in this file.
   - Imports Shopee’s returned Custom Link `.csv` and maps `Original Link` to `Convert Link` by shop ID + item ID.
   - Never overwrites an existing affiliate link; invalid, failed and unmatched rows are counted separately.
   - The import database function is callable only by `service_role`; public, anonymous and authenticated roles are denied.
-- Admin-health dashboard order is Shopee Affiliate Batch, recording status with Refresh on the right, event summary, then recent events.
-- On August 29, 2026, private admin navigation gained `/admin/health` and `/admin/monitoring`. `/admin/health` keeps the complete dashboard in its established order: affiliate batch, recording status, 30-day counters, then Recent events. `/admin/monitoring` also provides the counters and Recent events as a dedicated view. The header switches to Health/Monitoring only while an admin page is mounted; public pages retain their normal navigation. Both routes reuse the same session token.
+- Admin-health dashboard order is recording status with Refresh on the right, event summary, then Recent events. Shopee Affiliate Batch tools live on the separate Affiliate admin page.
+- On August 29, 2026, private admin navigation was simplified to Health and Affiliate. `/admin/health` contains recording status, 30-day counters, and Recent events. `/admin/affiliate` contains the Shopee Affiliate Batch export/import tools. The removed `/admin/monitoring` route redirects to Health. The header switches to Health/Affiliate only while an admin page is mounted; public pages retain their normal navigation. Both routes reuse the same session token.
 
 ### SEO and indexing
 
