@@ -354,10 +354,6 @@ html[data-theme="dark"] .site-header .site-nav a {
   color: #aaa69c !important;
 }
 
-html[data-theme="dark"] .site-header .site-nav a:hover {
-  color: #32efc2 !important;
-}
-
 html[data-theme="dark"] .hero-band {
   background:
     radial-gradient(
