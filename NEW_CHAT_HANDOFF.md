@@ -119,7 +119,7 @@ Values must never be written in this file.
 - Mobile/responsive improvements, including the contact modal.
 - Clean product navigation URLs: visible `#result` is removed after loading.
 - Variation dropdown scroll is contained and no longer moves the page at its boundaries.
-- Removed the redundant homepage “Automatic tracking” and “Built on trust” sections; existing extension links now open the published Chrome Web Store listing directly.
+- Restored the public “Automatic Price Checks,” “Built on Trust,” and “Keep the Tracker Free” sections below the product report on August 29, 2026. These public sections stay hidden on `/admin/health` and `/admin/monitoring`; the Chrome button opens the published Web Store listing directly.
 
 ### Chrome extension
 
@@ -145,7 +145,7 @@ Values must never be written in this file.
 - Privacy policy published at `https://pricetrackph.com/privacy/`.
 - Privacy-page internal buttons use the custom domain.
 - Contact form sends through a server endpoint, supports attachments, includes send states, and saves a temporary draft.
-- Donation/support interface was removed from the public website on August 27, 2026 at the user’s request.
+- Donation/support interface was restored on August 29, 2026 at the user’s request, including the existing GCash, Maya, and Bank / QR Ph options.
 - Affiliate links are clearly labeled; direct Shopee links remain available.
 - Fixed the product-report affiliate action on August 28, 2026: the left `Affiliate link` opens the imported Shopee affiliate URL, the right `View on Shopee` opens the original product URL, and the obsolete placeholder script that disabled the affiliate button was removed. The disclosure now states that affiliate purchases may support PriceTrack PH at no extra cost and that a direct Shopee link is also available.
 - Fixed an affiliate-metadata loss incident on August 28, 2026: the price recorder now merges existing product metadata instead of replacing it, so imported affiliate URLs survive later recordings. The affected AquaFlask Quench affiliate link was restored and verified.
