@@ -77,6 +77,11 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const isLogin = view === "login";
 
   useEffect(() => {
+    document.body.classList.add("admin-page-active");
+    return () => document.body.classList.remove("admin-page-active");
+  }, []);
+
+  useEffect(() => {
     const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a"));
     if (links.length < 2) return;
 
