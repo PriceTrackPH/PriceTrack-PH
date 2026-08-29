@@ -7,3 +7,12 @@
 .report-card .stats-grid .green-value {
   color: #00F8B9 !important;
 }
+
+html[data-theme="dark"] .site-header .brand span,
+html[data-theme="dark"] .hero-inner h1 em,
+html[data-theme="dark"] .hero-inner .eyebrow::after,
+html[data-theme="dark"] .report-section > .section-label,
+html[data-theme="dark"] .report-card .live-badge,
+html[data-theme="dark"] .report-card .stats-grid .green-value {
+  color: #00F8B9 !important;
+}
