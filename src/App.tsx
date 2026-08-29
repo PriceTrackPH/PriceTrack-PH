@@ -997,3 +997,100 @@ function ReportApp() {
                           interval="preserveStartEnd"
                           axisLine={false}
                           tickLine={false}
+                          tick={(props) => (
+                            <PriceHistoryXAxisTick {...(props as XAxisTickContentProps)} />
+                          )}
+                        />
+                        <YAxis
+                          width={72}
+                          domain={axis.domain}
+                          ticks={axis.ticks}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(value) => `₱${Number(value).toLocaleString("en-PH")}`}
+                          tick={{ fill: "#777887", fontSize: 12 }}
+                        />
+                        <Tooltip
+                          cursor={false}
+                          content={(props) => (
+                            <PriceHistoryTooltip
+                              active={props.active}
+                              payload={props.payload as readonly { payload?: ChartPoint }[] | undefined}
+                              variationName={reportVariationName}
+                            />
+                          )}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="price"
+                          stroke="#13c89a"
+                          strokeWidth={3}
+                          fill="#13c89a"
+                          fillOpacity={0.14}
+                          dot={{ r: 3, fill: "#ffffff", stroke: "#13c89a", strokeWidth: 2 }}
+                          activeDot={{ r: 5, fill: "#ffffff", stroke: "#13c89a", strokeWidth: 2 }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="empty-state">No observations for this variation in the selected range yet.</div>
+                )}
+
+                <div className="report-actions-wrap">
+                  <div className="report-actions">
+                    {affiliateLink && (
+                      <a
+                        className="track-price-button"
+                        href={affiliateLink}
+                        target="_blank"
+                        rel="sponsored noopener noreferrer"
+                      >
+                        Affiliate link ↗
+                      </a>
+                    )}
+                    {directShopeeLink && (
+                      <a
+                        className="shopee-outbound-button"
+                        href={directShopeeLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        View on Shopee ↗
+                      </a>
+                    )}
+                  </div>
+                  <p className={affiliateLink ? "outbound-disclosure affiliate" : "outbound-disclosure"}>
+                    {affiliateLink
+                      ? "Affiliate purchases may support PriceTrack PH at no extra cost to you. You can also use the direct Shopee link."
+                      : "This opens the original Shopee product page directly."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="report-loading">No tracked products are available yet.</div>
+          )}
+        </section>
+      </main>
+
+      <footer>
+        <strong>PriceTrack PH</strong>
+        <span>Independent historical price observations from public marketplace pages.</span>
+      </footer>
+    </div>
+  );
+}
+
+function App() {
+  const pathname = window.location.pathname;
+  if (pathname === "/admin/health" || pathname === "/admin/health/") {
+    return <AdminHealth view="health" />;
+  }
+  if (pathname === "/admin/affiliate" || pathname === "/admin/affiliate/") {
+    return <AdminHealth view="affiliate" />;
+  }
+  return <ReportApp />;
+}
+
+export default App;
