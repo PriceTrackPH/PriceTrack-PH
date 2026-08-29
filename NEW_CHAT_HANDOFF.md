@@ -120,6 +120,7 @@ Values must never be written in this file.
 - Clean product navigation URLs: visible `#result` is removed after loading.
 - Variation dropdown scroll is contained and no longer moves the page at its boundaries.
 - Restored the public “Automatic Price Checks,” “Built on Trust,” and “Keep the Tracker Free” sections below the product report on August 29, 2026. These public sections stay hidden on `/admin/health` and `/admin/monitoring`; the Chrome button opens the published Web Store listing directly.
+- The public header’s `Extension` link scrolls to the `Automatic Price Checks` section on the current page; only the section’s `Add to Chrome` button opens the Chrome Web Store.
 
 ### Chrome extension
 
