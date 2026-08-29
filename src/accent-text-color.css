@@ -5,7 +5,7 @@
 .report-section > .section-label,
 .report-card .live-badge,
 .report-card .stats-grid .green-value {
-  color: #00F8B9 !important;
+  color: #00C694 !important;
 }
 
 html[data-theme="dark"] .site-header .brand span,
