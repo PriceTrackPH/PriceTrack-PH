@@ -8,6 +8,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  matchByDataKey,
 } from "recharts";
 import type { XAxisTickContentProps } from "recharts";
 import type { Tables } from "./database.types";
@@ -43,6 +44,7 @@ const peso = new Intl.NumberFormat("en-PH", {
 const MANILA_TIME_ZONE = "Asia/Manila";
 const DAY_MS = 86_400_000;
 const MANILA_UTC_OFFSET_MS = 8 * 60 * 60 * 1000;
+const chartAnimationMatchBy = matchByDataKey("timestamp");
 const chartDateFormatter = new Intl.DateTimeFormat("en-PH", {
   month: "short",
   day: "numeric",
@@ -1036,6 +1038,11 @@ function ReportApp() {
                         <Area
                           type="monotone"
                           dataKey="price"
+                          isAnimationActive="auto"
+                          animationBegin={0}
+                          animationDuration={550}
+                          animationEasing="ease-in-out"
+                          animationMatchBy={chartAnimationMatchBy}
                           stroke="#13c89a"
                           strokeWidth={3}
                           fill="#13c89a"
