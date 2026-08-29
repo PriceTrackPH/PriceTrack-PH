@@ -170,7 +170,7 @@ Values must never be written in this file.
   - Never overwrites an existing affiliate link; invalid, failed and unmatched rows are counted separately.
   - The import database function is callable only by `service_role`; public, anonymous and authenticated roles are denied.
 - Admin-health dashboard order is Shopee Affiliate Batch, recording status with Refresh on the right, event summary, then recent events.
-- On August 29, 2026, the private admin dashboard was split into two focused pages: `/admin/health` contains the affiliate batch and recording status, while `/admin/monitoring` contains the 30-day counters and Recent events. The header switches to Health/Monitoring only while an admin page is mounted; the homepage and product reports retain their public navigation and sections. Both routes reuse the same session token.
+- On August 29, 2026, private admin navigation gained `/admin/health` and `/admin/monitoring`. `/admin/health` keeps the complete dashboard in its established order: affiliate batch, recording status, 30-day counters, then Recent events. `/admin/monitoring` also provides the counters and Recent events as a dedicated view. The header switches to Health/Monitoring only while an admin page is mounted; public pages retain their normal navigation. Both routes reuse the same session token.
 
 ### SEO and indexing
 

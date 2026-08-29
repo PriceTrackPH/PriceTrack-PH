@@ -311,15 +311,15 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
               <button type="button" onClick={() => void load()} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</button>
             </section>}
 
-            {isMonitoring && <section className="health-stats" aria-label="30-day diagnostic summary">
+            <section className="health-stats" aria-label="30-day diagnostic summary">
               <div><span>Events</span><strong>{data.summary.total}</strong></div>
               <div><span>Failures</span><strong>{data.summary.failures}</strong></div>
               <div><span>Partial</span><strong>{data.summary.partial}</strong></div>
               <div><span>Duplicates blocked</span><strong>{data.summary.duplicates}</strong></div>
               <div><span>Variation changes</span><strong>{data.summary.variationChanges}</strong></div>
-            </section>}
+            </section>
 
-            {isMonitoring && <section className="health-events">
+            <section className="health-events">
               <div className="health-events-heading">
                 <h2>Recent events</h2>
                 <span>Latest 50 · no personal data or full URLs</span>
@@ -342,7 +342,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                   </table>
                 </div>
               ) : <div className="health-empty">No diagnostic events have been recorded yet.</div>}
-            </section>}
+            </section>
           </>
         )}
       </div>
