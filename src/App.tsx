@@ -41,6 +41,8 @@ const peso = new Intl.NumberFormat("en-PH", {
 });
 
 const MANILA_TIME_ZONE = "Asia/Manila";
+const DAY_MS = 86_400_000;
+const MANILA_UTC_OFFSET_MS = 8 * 60 * 60 * 1000;
 const chartDateFormatter = new Intl.DateTimeFormat("en-PH", {
   month: "short",
   day: "numeric",
@@ -66,6 +68,17 @@ const chartTimeFormatter = new Intl.DateTimeFormat("en-PH", {
   minute: "2-digit",
   timeZone: MANILA_TIME_ZONE,
 });
+
+function manilaCalendarWindowStart(days: number, now = Date.now()) {
+  const manilaNow = new Date(now + MANILA_UTC_OFFSET_MS);
+  const startOfToday = Date.UTC(
+    manilaNow.getUTCFullYear(),
+    manilaNow.getUTCMonth(),
+    manilaNow.getUTCDate(),
+  ) - MANILA_UTC_OFFSET_MS;
+
+  return startOfToday - (days - 1) * DAY_MS;
+}
 
 function chartDateLabel(value: string) {
   const date = new Date(value);
@@ -637,10 +650,10 @@ function ReportApp() {
   }, [observations, selectedVariationId]);
 
   const selectedHistory = useMemo(() => {
-    const now = Date.now();
     const days = range === "ALL" ? null : Number(range.replace("D", ""));
+    const windowStart = days == null ? null : manilaCalendarWindowStart(days);
     return allVariationRows.filter((row) => (
-      days == null || Date.parse(row.observed_at) >= now - days * 86_400_000
+      windowStart == null || Date.parse(row.observed_at) >= windowStart
     ));
   }, [allVariationRows, range]);
 
