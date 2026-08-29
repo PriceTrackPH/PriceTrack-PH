@@ -1084,6 +1084,9 @@ function ReportApp() {
 
 function App() {
   const pathname = window.location.pathname;
+  if (pathname === "/admin" || pathname === "/admin/") {
+    return <AdminHealth view="login" />;
+  }
   if (pathname === "/admin/health" || pathname === "/admin/health/") {
     return <AdminHealth view="health" />;
   }
