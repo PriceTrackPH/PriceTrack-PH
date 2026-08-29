@@ -46,6 +46,7 @@ function extractIdsFromText(rawValue, resolvedUrl = null) {
       /-i\.(\d+)\.(\d+)/i,
       /\/product\/(\d+)\/(\d+)/i,
       /shopee:\/\/product\/(\d+)\/(\d+)/i,
+      /(?:^|https?:\/\/(?:www\.)?shopee\.ph)\/[^/?#\s"'<>]+\/(\d{5,})\/(\d{5,})(?:[/?#\s"'<>]|$)/i,
       /(?:^|[?&#])shopid=(\d+).*?(?:^|[?&#])itemid=(\d+)/i,
       /(?:^|[?&#])shop_id=(\d+).*?(?:^|[?&#])item_id=(\d+)/i,
       /["']shop(?:id|Id|_id)["']\s*[:=]\s*["']?(\d+)["']?.{0,2000}?["']item(?:id|Id|_id)["']\s*[:=]\s*["']?(\d+)/is,
@@ -55,7 +56,7 @@ function extractIdsFromText(rawValue, resolvedUrl = null) {
     for (let index = 0; index < directPatterns.length; index += 1) {
       const match = value.match(directPatterns[index]);
       if (!match) continue;
-      if (index === 6) return { shopId: match[2], productId: match[1], resolvedUrl };
+      if (index === 7) return { shopId: match[2], productId: match[1], resolvedUrl };
       return { shopId: match[1], productId: match[2], resolvedUrl };
     }
 
@@ -83,6 +84,24 @@ function parseCandidate(value, depth = 0) {
     return null;
   }
 
+  const protocol = url.protocol.toLowerCase();
+
+  // Shopee's newer affiliate pages use an app deep-link wrapper such as
+  // shopeeph://reactPath?navigate_url=https%3A%2F%2Fshopee.ph%2F...
+  // Only inspect its nested values; the eventual web URL still has to pass
+  // the Shopee-host allowlist below.
+  if (protocol === 'shopee:' || protocol === 'shopeeph:') {
+    const directDeepLink = extractIdsFromText(`${url.pathname}${url.search}${url.hash}`, normalized);
+    if (directDeepLink) return directDeepLink;
+
+    for (const [, paramValue] of url.searchParams) {
+      const nested = parseCandidate(paramValue, depth + 1);
+      if (nested) return nested;
+    }
+
+    return null;
+  }
+
   if (!isAllowedShopeeHost(url.hostname)) return null;
 
   const direct = extractIdsFromText(`${url.pathname}${url.search}${url.hash}`, url.toString());
@@ -103,7 +122,7 @@ function extractNestedCandidates(body) {
   const httpMatches = normalized.match(/https?:\/\/[^\s"'<>]+/gi) || [];
   for (const value of httpMatches) candidates.add(value);
 
-  const shopeeSchemeMatches = normalized.match(/shopee:\/\/[^\s"'<>]+/gi) || [];
+  const shopeeSchemeMatches = normalized.match(/shopee(?:ph)?:\/\/[^\s"'<>]+/gi) || [];
   for (const value of shopeeSchemeMatches) candidates.add(value);
 
   const metaRefreshMatches = [...normalized.matchAll(/url\s*=\s*["']?([^"'\s>]+)/gi)];
@@ -115,7 +134,8 @@ function extractNestedCandidates(body) {
   const wrapperNames = [
     'origin_link', 'originLink', 'target_url', 'targetUrl', 'redirect_url', 'redirectUrl',
     'landing_url', 'landingUrl', 'landing_page_url', 'landingPageUrl', 'deep_link', 'deepLink',
-    'deeplink', 'fallback_url', 'fallbackUrl', 'web_url', 'webUrl', 'url'
+    'deeplink', 'fallback_url', 'fallbackUrl', 'web_url', 'webUrl',
+    'navigate_url', 'navigateUrl', 'url'
   ];
 
   for (const name of wrapperNames) {
