@@ -9,11 +9,6 @@
   z-index: 9999 !important;
 }
 
-.site-nav a[aria-current="page"] {
-  color: #13c89a !important;
-  font-weight: 700;
-}
-
 body {
   padding-top: 58px !important;
 }
