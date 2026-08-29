@@ -28,3 +28,40 @@ html[data-theme="dark"] .support-card .section-label,
 html[data-theme="dark"] .full-footer .footer-main strong span {
   color: #00F8B9 !important;
 }
+
+/* Admin-page accents follow the selected light or dark theme. */
+html:not([data-theme="dark"]) .health-kicker,
+html:not([data-theme="dark"]) .health-event-type.record_success {
+  color: #00DFA7 !important;
+}
+
+html:not([data-theme="dark"]) .health-status.healthy {
+  border-left-color: #00DFA7 !important;
+}
+
+html:not([data-theme="dark"]) .health-login button,
+html:not([data-theme="dark"]) .health-status button {
+  background: #00DFA7 !important;
+}
+
+html[data-theme="dark"] .health-kicker,
+html[data-theme="dark"] .health-event-type.record_success {
+  color: #00F8B9 !important;
+}
+
+html[data-theme="dark"] .health-status.healthy {
+  border-left-color: #00F8B9 !important;
+}
+
+html[data-theme="dark"] .health-login button,
+html[data-theme="dark"] .health-status button {
+  background: #00F8B9 !important;
+}
+
+/* Both affiliate actions use the site's third brand color. */
+.health-affiliate-actions button,
+.health-affiliate-actions label {
+  border-color: #21185F !important;
+  background: #21185F !important;
+  color: #FFFFFF !important;
+}
