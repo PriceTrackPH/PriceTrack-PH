@@ -512,7 +512,7 @@ function ReportApp() {
       .maybeSingle();
 
     if (productError) throw productError;
-    if (!found) throw new Error("This product isn't tracked yet. Install the PriceTrack PH extension and open this Shopee product to start recording future price changes.");
+    if (!found) throw new Error("This product hasn't been tracked yet. Open it on a PC with the PriceTrack PH Chrome extension to record its first price and variations.");
 
     const { data: models, error: variationError } = await supabase
       .from("product_variations")
@@ -818,7 +818,7 @@ function ReportApp() {
               </button>
             </form>
 
-            {hasSearched && (
+            {hasSearched && !error && product && (
               <div className="found-status" role="status">
                 Found {priceChanges} price change{priceChanges === 1 ? "" : "s"}.
               </div>
@@ -1096,7 +1096,7 @@ function ReportApp() {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : error ? null : (
             <div className="report-loading">No tracked products are available yet.</div>
           )}
         </section>

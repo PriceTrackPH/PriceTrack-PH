@@ -125,6 +125,7 @@ Values must never be written in this file.
 - Added an installable standalone web-app experience with a web manifest, 192px/512px icons, a lightweight offline page, and service-worker registration.
 - Added Android Share Target support. Sharing a Shopee link to an installed PriceTrack PH web app opens the site with the shared URL detected and processed through the existing lookup flow.
 - The web app does not bypass the existing collection boundary: recorded products can load immediately, while an untracked product still needs a trusted extension or PC collector observation before a first report exists.
+- The untracked shared-link state is phone-friendly: it explains that first recording must be completed on a PC, and it does not display a false “Found 0 price changes” result or an unrelated empty database-report card.
 
 ### Chrome extension
 

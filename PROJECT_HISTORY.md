@@ -273,6 +273,7 @@ Stores daily-check state, due time, lease state, and successful-check completion
 - Added Android Share Target support so links shared from Shopee can open PriceTrack PH with the product URL detected automatically.
 - Added standalone app presentation, 192px and 512px install icons, service-worker registration, and a lightweight offline fallback.
 - Kept phone-app lookup behavior aligned with the public website: recorded products show their reports, while first-time price collection still requires a trusted extension or PC collector observation.
+- Corrected the first phone-share result state so an untracked product shows only accurate PC-recording guidance, without a false zero-change success message or empty report card.
 
 ## Current website features
 
