@@ -33,6 +33,7 @@ Do not treat old chat suggestions as current backlog until they are checked agai
 - Chrome extension **v1.0.1** is publicly published and automatically updates existing users.
 - New installations receive v1.0.1 immediately; existing Chrome installations update on Chrome's schedule.
 - Supabase project is **Product Tracking** (`sgitojuhoaxxnujdikbd`).
+- The website is configured as an installable Progressive Web App with Android Share Target support.
 - Private admin pages are available at `/admin/health` and `/admin/affiliate` and require the same server-side admin token.
 - Google Search Console domain ownership is verified.
 - The dynamic sitemap was processed successfully and Google discovered **576 pages** on August 27, 2026.
@@ -121,6 +122,9 @@ Values must never be written in this file.
 - Variation dropdown scroll is contained and no longer moves the page at its boundaries.
 - Restored the public “Automatic Price Checks,” “Built on Trust,” and “Keep the Tracker Free” sections below the product report on August 29, 2026. These public sections stay hidden on `/admin/health` and `/admin/affiliate`; the Chrome button opens the published Web Store listing directly.
 - The public header’s `Extension` link scrolls to the `Automatic Price Checks` section on the current page; only the section’s `Add to Chrome` button opens the Chrome Web Store.
+- Added an installable standalone web-app experience with a web manifest, 192px/512px icons, a lightweight offline page, and service-worker registration.
+- Added Android Share Target support. Sharing a Shopee link to an installed PriceTrack PH web app opens the site with the shared URL detected and processed through the existing lookup flow.
+- The web app does not bypass the existing collection boundary: recorded products can load immediately, while an untracked product still needs a trusted extension or PC collector observation before a first report exists.
 
 ### Chrome extension
 

@@ -473,9 +473,19 @@ function toChartPoints(rows: Observation[]) {
     .sort((a, b) => a.timestamp - b.timestamp);
 }
 
+function sharedProductUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const directUrl = params.get("url")?.trim();
+  if (directUrl) return directUrl;
+
+  const sharedText = params.get("text")?.trim() || "";
+  const urlFromText = sharedText.match(/https?:\/\/[^\s]+/i)?.[0];
+  return urlFromText?.replace(/[),.;!?]+$/, "") || "";
+}
+
 function ReportApp() {
   const initialProductRoute = parseProductReportPath(window.location.pathname);
-  const initialProductUrl = new URLSearchParams(window.location.search).get("url")?.trim() || "";
+  const initialProductUrl = sharedProductUrl();
   const [query, setQuery] = useState(initialProductUrl);
   const [product, setProduct] = useState<Product | null>(null);
   const [variations, setVariations] = useState<Variation[]>([]);

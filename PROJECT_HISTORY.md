@@ -269,6 +269,10 @@ Stores daily-check state, due time, lease state, and successful-check completion
 - Added sold-out handling with deferred weekly rechecking instead of permanent skipping.
 - Added a warning that Shopee verification may appear during larger batches and must be completed manually.
 - Preserved the rule that the collector never bypasses verification or CAPTCHA.
+- Added the first installable PriceTrack PH Progressive Web App release.
+- Added Android Share Target support so links shared from Shopee can open PriceTrack PH with the product URL detected automatically.
+- Added standalone app presentation, 192px and 512px install icons, service-worker registration, and a lightweight offline fallback.
+- Kept phone-app lookup behavior aligned with the public website: recorded products show their reports, while first-time price collection still requires a trusted extension or PC collector observation.
 
 ## Current website features
 
@@ -279,6 +283,8 @@ Stores daily-check state, due time, lease state, and successful-check completion
 - Uses stable shop and item IDs for report routing.
 - Supports exact case-insensitive title fallback for products already in the database.
 - Displays a clear untracked state when a report does not yet exist.
+- Can be installed as a standalone web app on supported Android devices.
+- Can receive shared text or URLs through the Android Share menu and extract the included Shopee link.
 
 ### Product report
 
