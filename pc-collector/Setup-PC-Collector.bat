@@ -13,9 +13,6 @@ echo Installing the PriceTrack PH PC Collector...
 call npm install
 if errorlevel 1 goto :failed
 
-call npx playwright install chromium
-if errorlevel 1 goto :failed
-
 if not exist ".env.local" (
   copy ".env.example" ".env.local" >nul
   echo.
@@ -24,7 +21,7 @@ if not exist ".env.local" (
 )
 
 echo.
-echo Setup complete. Run Test-5-Products.bat first.
+echo Setup complete. Reload the updated PriceTrack PH extension in normal Chrome, then run Test-5-Products.bat.
 pause
 exit /b 0
 

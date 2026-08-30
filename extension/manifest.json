@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PriceTrack PH",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Detect Shopee product variations immediately at page start, then save price history in the background.",
   "permissions": [
     "activeTab",
@@ -10,7 +10,8 @@
   "host_permissions": [
     "https://shopee.ph/*",
     "https://*.shopee.ph/*",
-    "https://pricetrackph.com/*"
+    "https://pricetrackph.com/*",
+    "http://127.0.0.1:47321/*"
   ],
   "background": {
     "service_worker": "background.js"

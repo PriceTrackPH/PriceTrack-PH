@@ -1,4 +1,5 @@
 const PRICETRACK_SITE = "https://pricetrackph.com";
+const LOCAL_COLLECTOR_ENDPOINT = "http://127.0.0.1:47321/observations";
 const BRIDGE_SOURCE = "pricetrack-ph-page";
 const REQUEST_SOURCE = "pricetrack-ph-extension";
 let capturedShopeePayload = null;
@@ -496,19 +497,40 @@ async function automaticallyRecordPrice() {
 
   try {
     const installationId = await getInstallationId();
-    const response = await fetch(`${PRICETRACK_SITE}/api/observations`, {
+    const observation = {
+      platform: "shopee",
+      ...ids,
+      title: product.title,
+      imageUrl: product.imageUrl,
+      storeName: product.storeName,
+      variations: validVariations,
+      installationId,
+      observedAt: new Date().toISOString(),
+    };
+
+    let response;
+    try {
+      const localController = new AbortController();
+      const localTimeout = setTimeout(() => localController.abort(), 1200);
+      try {
+        response = await fetch(LOCAL_COLLECTOR_ENDPOINT, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(observation),
+          signal: localController.signal,
+        });
+      } finally {
+        clearTimeout(localTimeout);
+      }
+      if (!response.ok && response.status === 409) response = null;
+    } catch {
+      response = null;
+    }
+
+    if (!response) response = await fetch(`${PRICETRACK_SITE}/api/observations`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        platform: "shopee",
-        ...ids,
-        title: product.title,
-        imageUrl: product.imageUrl,
-        storeName: product.storeName,
-        variations: validVariations,
-        installationId,
-        observedAt: new Date().toISOString(),
-      }),
+      body: JSON.stringify(observation),
     });
 
     const data = await response.json().catch(() => ({}));
