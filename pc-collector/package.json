@@ -1,0 +1,13 @@
+{
+  "name": "pricetrack-ph-pc-collector",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test-five": "node collector.mjs --limit=5",
+    "check-all": "node collector.mjs --all"
+  },
+  "dependencies": {
+    "playwright": "1.62.1"
+  }
+}
