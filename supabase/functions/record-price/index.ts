@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const cors = {
   "access-control-allow-origin": "*",
-  "access-control-allow-headers": "authorization, apikey, content-type, x-pricetrack-client-id",
+  "access-control-allow-headers": "authorization, apikey, content-type, x-pricetrack-client-id, x-pricetrack-internal-token",
   "access-control-allow-methods": "POST, OPTIONS",
   "content-type": "application/json",
 };
@@ -39,6 +39,7 @@ type Observation = {
   price?: number;
   originalPrice?: number | null;
   variations?: VariationObservation[];
+  source?: "extension" | "scheduled_collector";
 };
 
 type NormalizedVariation = Required<Pick<VariationObservation, "variationId" | "variationName" | "price" | "isInStock">> & VariationObservation;
@@ -141,8 +142,20 @@ Deno.serve(async (request: Request) => {
       return reply({ error: "Invalid JSON body" }, 400);
     }
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const secretMap = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}");
+    const secret = secretMap.default || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    if (!supabaseUrl || !secret) return reply({ error: "Collector is not configured" }, 503);
+
+    const requestedSource = body.source === "scheduled_collector" ? "scheduled_collector" : "extension";
+    const internalToken = request.headers.get("x-pricetrack-internal-token") || "";
+    const internalRequest = requestedSource === "scheduled_collector" && internalToken === await digest(secret);
+    if (requestedSource === "scheduled_collector" && !internalRequest) {
+      return reply({ error: "Invalid internal collector authorization" }, 403);
+    }
+
     const clientId = request.headers.get("x-pricetrack-client-id") || body.installationId || "";
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId)) {
+    if (!internalRequest && !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId)) {
       return reply({ error: "Invalid extension installation" }, 400);
     }
 
@@ -221,10 +234,6 @@ Deno.serve(async (request: Request) => {
     const variations = Array.from(deduped.values());
     if (!variations.length) return reply({ error: "No valid variation prices were submitted" }, 400);
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const secretMap = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}");
-    const secret = secretMap.default || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    if (!supabaseUrl || !secret) return reply({ error: "Collector is not configured" }, 503);
     const headers = adminHeaders(secret);
 
     let previousVariationCount: number | null = null;
@@ -246,22 +255,24 @@ Deno.serve(async (request: Request) => {
       if (Number.isInteger(storedCount) && storedCount >= 0) previousVariationCount = storedCount;
     }
 
-    const clientHash = await digest(clientId);
-    const quotaResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_ingest_quota`, {
-      method: "POST",
-      headers: adminHeaders(secret, { "content-type": "application/json" }),
-      body: JSON.stringify({
-        p_client_hash: clientHash,
-        p_observed_date: observedDate,
-        p_limit: DAILY_REQUEST_LIMIT,
-      }),
-    });
-    if (!quotaResponse.ok) {
-      console.error("Quota check failed", await quotaResponse.text());
-      return reply({ error: "Unable to verify recording quota" }, 503);
+    if (!internalRequest) {
+      const clientHash = await digest(clientId);
+      const quotaResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_ingest_quota`, {
+        method: "POST",
+        headers: adminHeaders(secret, { "content-type": "application/json" }),
+        body: JSON.stringify({
+          p_client_hash: clientHash,
+          p_observed_date: observedDate,
+          p_limit: DAILY_REQUEST_LIMIT,
+        }),
+      });
+      if (!quotaResponse.ok) {
+        console.error("Quota check failed", await quotaResponse.text());
+        return reply({ error: "Unable to verify recording quota" }, 503);
+      }
+      const quotaCount = await quotaResponse.json() as number | null;
+      if (quotaCount == null) return reply({ error: "Daily recording limit reached" }, 429);
     }
-    const quotaCount = await quotaResponse.json() as number | null;
-    if (quotaCount == null) return reply({ error: "Daily recording limit reached" }, 429);
 
     const productResponse = await fetch(`${supabaseUrl}/rest/v1/products?on_conflict=platform,external_shop_id,external_product_id`, {
       method: "POST",
@@ -315,7 +326,7 @@ Deno.serve(async (request: Request) => {
     const variationIds = variationRows.map((row) => row.id);
     const latestByVariationId = new Map<number, ObservationRow>();
     if (variationIds.length) {
-      const latestQuery = `${supabaseUrl}/rest/v1/price_observations?variation_id=in.(${variationIds.join(",")})&observed_date=eq.${observedDate}&select=variation_id,price,original_price,is_in_stock,observed_at&order=observed_at.desc`;
+      const latestQuery = `${supabaseUrl}/rest/v1/price_observations?variation_id=in.(${variationIds.join(",")})&select=variation_id,price,original_price,is_in_stock,observed_at&order=observed_at.desc`;
       const latestResponse = await fetch(latestQuery, { headers });
       if (!latestResponse.ok) throw new Error(`Observation lookup failed: ${await latestResponse.text()}`);
       const rows = await latestResponse.json() as ObservationRow[];
@@ -360,7 +371,7 @@ Deno.serve(async (request: Request) => {
           original_price: normalizedOriginalPrice,
           discount_percent: discount,
           is_in_stock: item.isInStock,
-          source: "extension",
+          source: requestedSource,
           metadata: {
             bulk_collection: Array.isArray(body.variations),
             variation_name: item.variationName,
@@ -437,6 +448,27 @@ Deno.serve(async (request: Request) => {
       });
     }
     await Promise.all(diagnosticEvents.map((event) => recordDiagnostic(supabaseUrl, secret, event)));
+
+    const checkStatus = failedCount === 0 ? "success" : failedCount === variations.length ? "failure" : "partial";
+    const markCheckResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/mark_product_check`, {
+      method: "POST",
+      headers: adminHeaders(secret, { "content-type": "application/json" }),
+      body: JSON.stringify({
+        p_product_id: product.id,
+        p_checked_date: observedDate,
+        p_checked_at: observedAt.toISOString(),
+        p_source: requestedSource,
+        p_status: checkStatus,
+        p_variation_count: variations.length,
+        p_changed_count: insertedCount,
+        p_unchanged_count: unchangedCount,
+        p_failed_count: failedCount,
+        p_metadata: { collector_format: Array.isArray(body.variations) ? "bulk_models_v1" : "legacy_single_v1" },
+      }),
+    });
+    if (!markCheckResponse.ok) {
+      console.error("Daily check update failed", await markCheckResponse.text());
+    }
 
     return reply({
       ok: failedCount < variations.length,
