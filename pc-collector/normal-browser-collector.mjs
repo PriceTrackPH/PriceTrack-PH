@@ -140,7 +140,7 @@ async function main() {
   const controllerUrl = `http://${host}:${port}/`;
   console.log(`PriceTrack PH regular Chrome collector is ready: ${controllerUrl}`);
   console.log("Your normal browser will open. Click Start collection once.\n");
-  if (process.platform === "win32") spawn("cmd.exe", ["/d", "/s", "/c", `start "" "${controllerUrl}"`], { detached: true, stdio: "ignore" }).unref();
+  if (process.platform === "win32") spawn("explorer.exe", [controllerUrl], { detached: true, stdio: "ignore" }).unref();
   else console.log(`Open ${controllerUrl} in your regular Chrome browser.`);
   const shutdown = async () => { await releaseCurrent(); server.close(() => process.exit(0)); };
   process.once("SIGINT", shutdown); process.once("SIGTERM", shutdown);
