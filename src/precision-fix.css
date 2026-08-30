@@ -390,6 +390,17 @@ html[data-theme="dark"] .support-section {
 .health-affiliate .health-affiliate-message { grid-column: 1 / -1; margin: -4px 0 0; padding: 11px 13px; border-radius: 10px; }
 .health-affiliate .health-affiliate-message.error { color: #ffaaa6; background: rgba(255, 129, 125, .1); }
 .health-affiliate .health-affiliate-message.success { color: #73e7c9; background: rgba(17, 212, 170, .1); }
+.health-ads { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 22px 32px; margin: 18px 0; border: 1px solid #303936; border-radius: 18px; background: #171d1b; padding: 24px; }
+.health-ads h2 { margin: 7px 0 8px; }
+.health-ads p { margin: 0; color: #aeb6b2; line-height: 1.55; }
+.health-ads-control { display: flex; align-items: center; gap: 12px; }
+.health-ads-status { padding: 7px 10px; border-radius: 999px; background: rgba(255,129,125,.12); color: #ffaaa6; font-size: 12px; font-weight: 900; letter-spacing: .08em; }
+.health-ads-status.on { background: rgba(17,212,170,.12); color: #73e7c9; }
+.health-ads-control button { border: 0; border-radius: 10px; background: #11d4aa; color: #07100d; font-weight: 800; padding: 12px 16px; cursor: pointer; }
+.health-ads-control button:disabled { opacity: .5; cursor: not-allowed; }
+.health-ads-details { grid-column: 1 / -1; display: grid; gap: 5px; padding: 16px; border: 1px solid #303936; border-radius: 12px; }
+.health-ads-details span, .health-ads-details small { color: #aeb6b2; }
+.health-ads-message { grid-column: 1 / -1; padding: 11px 13px; border-radius: 10px; background: rgba(17,212,170,.1); color: #73e7c9 !important; }
 .health-events-heading { display: flex; justify-content: space-between; gap: 20px; align-items: baseline; }
 .health-events-heading h2 { margin-top: 0; }
 .health-table-wrap { overflow-x: auto; }
@@ -417,6 +428,9 @@ html:not([data-theme="dark"]) .health-status,
 html:not([data-theme="dark"]) .health-events,
 html:not([data-theme="dark"]) .health-affiliate,
 html:not([data-theme="dark"]) .health-stats { border-color: #d9e0dd; background: #fff; }
+html:not([data-theme="dark"]) .health-ads { border-color: #d9e0dd; background: #fff; }
+html:not([data-theme="dark"]) .health-ads p, html:not([data-theme="dark"]) .health-ads-details span, html:not([data-theme="dark"]) .health-ads-details small { color: #65706c; }
+html:not([data-theme="dark"]) .health-ads-details { border-color: #d9e0dd; }
 html:not([data-theme="dark"]) .health-affiliate p,
 html:not([data-theme="dark"]) .health-affiliate-count span,
 html:not([data-theme="dark"]) .health-affiliate-count small { color: #65706c; }
@@ -442,6 +456,8 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
   .health-stats { grid-template-columns: repeat(2, 1fr); }
   .health-stats div { border-bottom: 1px solid #303936; }
   .health-affiliate { grid-template-columns: 1fr; }
+  .health-ads { grid-template-columns: 1fr; }
+  .health-ads-control { align-items: flex-start; flex-direction: column; }
   .health-affiliate-count { padding: 18px 0 0; border-left: 0; border-top: 1px solid #303936; }
   .health-affiliate-actions { grid-column: 1; display: grid; }
 }

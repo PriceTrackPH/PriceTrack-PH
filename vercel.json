@@ -26,6 +26,10 @@
     {
       "source": "/admin/affiliate",
       "destination": "/"
+    },
+    {
+      "source": "/admin/ads",
+      "destination": "/"
     }
   ]
 }

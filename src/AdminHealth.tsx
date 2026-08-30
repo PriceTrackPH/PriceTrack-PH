@@ -44,6 +44,13 @@ type AffiliateImportResult = {
   driveArchive: "saved" | "failed" | "not-configured";
 };
 
+type AdSettings = {
+  adsEnabled: boolean;
+  requestedEnabled: boolean;
+  configured: boolean;
+  updatedAt: string | null;
+};
+
 const eventLabels: Record<string, string> = {
   record_success: "Recorded",
   record_partial: "Partial failure",
@@ -61,7 +68,7 @@ function dateLabel(value: string | null) {
   }).format(new Date(value));
 }
 type AdminHealthProps = {
-  view?: "login" | "health" | "affiliate";
+  view?: "login" | "health" | "affiliate" | "ads";
 };
 
 export default function AdminHealth({ view = "health" }: AdminHealthProps) {
@@ -74,6 +81,9 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [affiliateBusy, setAffiliateBusy] = useState<"export" | "import" | "">("");
   const [importResult, setImportResult] = useState<AffiliateImportResult | null>(null);
   const [driveArchiveMessage, setDriveArchiveMessage] = useState("");
+  const [adSettings, setAdSettings] = useState<AdSettings | null>(null);
+  const [adsBusy, setAdsBusy] = useState(false);
+  const [adsMessage, setAdsMessage] = useState("");
   const isLogin = view === "login";
 
   useEffect(() => {
@@ -86,6 +96,9 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     if (links.length < 2) return;
 
     const [healthLink, affiliateLink] = links;
+    const adsLink = document.createElement("a");
+    affiliateLink.after(adsLink);
+    const adminLinks = [healthLink, affiliateLink, adsLink];
     const original = [healthLink, affiliateLink].map((link) => ({
       text: link.textContent || "",
       href: link.getAttribute("href"),
@@ -105,10 +118,13 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     affiliateLink.removeAttribute("data-scroll-target");
     healthLink.removeAttribute("aria-current");
     affiliateLink.removeAttribute("aria-current");
-    if (!isLogin) (view === "affiliate" ? affiliateLink : healthLink).setAttribute("aria-current", "page");
+    adsLink.textContent = "Ads";
+    adsLink.href = "/admin/ads";
+    if (!isLogin) (view === "affiliate" ? affiliateLink : view === "ads" ? adsLink : healthLink).setAttribute("aria-current", "page");
 
     return () => {
-      [healthLink, affiliateLink].forEach((link, index) => {
+      adsLink.remove();
+      adminLinks.slice(0, 2).forEach((link, index) => {
         const saved = original[index];
         link.textContent = saved.text;
         for (const [name, value] of Object.entries({
@@ -124,6 +140,17 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
       });
     };
   }, [isLogin, view]);
+
+  async function loadAdSettings(nextToken = token) {
+    if (!nextToken) return;
+    const response = await fetch("/api/site-settings", {
+      headers: { Authorization: `Bearer ${nextToken}` },
+      cache: "no-store",
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "Unable to load ad settings.");
+    setAdSettings(payload as AdSettings);
+  }
 
   async function loadAffiliateSummary(nextToken = token) {
     if (!nextToken) return;
@@ -168,6 +195,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
       }
       setData(payload as HealthData);
       if (view === "affiliate") void loadAffiliateSummary(nextToken);
+      if (view === "ads") void loadAdSettings(nextToken).catch((cause) => setAdsMessage(cause instanceof Error ? cause.message : "Unable to load ad settings."));
     } catch (cause) {
       setData(null);
       setError(cause instanceof Error ? cause.message : "Unable to load diagnostics.");
@@ -265,8 +293,29 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     }
   }
 
+  async function updateAds(enabled: boolean) {
+    setAdsBusy(true);
+    setAdsMessage("");
+    try {
+      const response = await fetch("/api/site-settings", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ adsEnabled: enabled }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Unable to update ads.");
+      setAdSettings(payload as AdSettings);
+      setAdsMessage(enabled && !payload.configured ? "Saved as ON, but ads will remain hidden until the AdSense IDs are configured." : `Ads are now ${enabled ? "ON" : "OFF"} for everyone.`);
+    } catch (cause) {
+      setAdsMessage(cause instanceof Error ? cause.message : "Unable to update ads.");
+    } finally {
+      setAdsBusy(false);
+    }
+  }
+
   const isHealthy = Boolean(data && data.summary.failures === 0 && data.summary.partial === 0);
   const isAffiliate = view === "affiliate";
+  const isAds = view === "ads";
 
   return (
     <main className="health-page">
@@ -274,8 +323,8 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
         <div className="health-heading">
           <div>
             <span className="health-kicker">PRIVATE ADMIN</span>
-            <h1>PriceTrack PH {isLogin ? "admin" : isAffiliate ? "affiliate" : "health"}</h1>
-            <p>{isLogin ? "Enter your admin access token to continue." : isAffiliate ? "Shopee affiliate-link batch tools." : "Recording-system status and sanitized events retained for 30 days."}</p>
+            <h1>PriceTrack PH {isLogin ? "admin" : isAffiliate ? "affiliate" : isAds ? "ads" : "health"}</h1>
+            <p>{isLogin ? "Enter your admin access token to continue." : isAffiliate ? "Shopee affiliate-link batch tools." : isAds ? "Global advertising control for every visitor." : "Recording-system status and sanitized events retained for 30 days."}</p>
           </div>
         </div>
 
@@ -334,13 +383,33 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
               )}
             </section>}
 
-            {!isAffiliate && <section className={`health-status ${isHealthy ? "healthy" : "attention"}`}>
+            {isAds && <section className="health-ads" aria-labelledby="ads-heading">
+              <div>
+                <span className="health-kicker">GLOBAL AD CONTROL</span>
+                <h2 id="ads-heading">Report advertisement</h2>
+                <p>One responsive ad below a successfully loaded Database Product Report. It is hidden on errors and untracked products.</p>
+              </div>
+              <div className="health-ads-control">
+                <span className={`health-ads-status ${adSettings?.adsEnabled ? "on" : "off"}`}>{adSettings?.adsEnabled ? "ADS ON" : "ADS OFF"}</span>
+                <button type="button" disabled={adsBusy || !adSettings} onClick={() => void updateAds(!adSettings?.requestedEnabled)}>
+                  {adsBusy ? "Saving…" : adSettings?.requestedEnabled ? "Turn ads off" : "Turn ads on"}
+                </button>
+              </div>
+              <div className="health-ads-details">
+                <span>AdSense code</span>
+                <strong>{adSettings?.configured ? "Configured" : "Not configured"}</strong>
+                <small>The switch affects every website visitor immediately.</small>
+              </div>
+              {adsMessage && <p className="health-ads-message" role="status">{adsMessage}</p>}
+            </section>}
+
+            {!isAffiliate && !isAds && <section className={`health-status ${isHealthy ? "healthy" : "attention"}`}>
               <strong>{isHealthy ? "Recording looks healthy" : "Review recent recording issues"}</strong>
               <span>Last successful recording: {dateLabel(data.summary.lastSuccess)}</span>
               <button type="button" onClick={() => void load()} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</button>
             </section>}
 
-            {!isAffiliate && <section className="health-stats" aria-label="30-day diagnostic summary">
+            {!isAffiliate && !isAds && <section className="health-stats" aria-label="30-day diagnostic summary">
               <div><span>Events</span><strong>{data.summary.total}</strong></div>
               <div><span>Failures</span><strong>{data.summary.failures}</strong></div>
               <div><span>Partial</span><strong>{data.summary.partial}</strong></div>
@@ -348,7 +417,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
               <div><span>Variation changes</span><strong>{data.summary.variationChanges}</strong></div>
             </section>}
 
-            {!isAffiliate && <section className="health-events">
+            {!isAffiliate && !isAds && <section className="health-events">
               <div className="health-events-heading">
                 <h2>Recent events</h2>
                 <span>Latest 50 · no personal data or full URLs</span>

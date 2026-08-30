@@ -274,6 +274,7 @@ Stores daily-check state, due time, lease state, and successful-check completion
 - Added standalone app presentation, 192px and 512px install icons, service-worker registration, and a lightweight offline fallback.
 - Kept phone-app lookup behavior aligned with the public website: recorded products show their reports, while first-time price collection still requires a trusted extension or PC collector observation.
 - Corrected the first phone-share result state so an untracked product shows only accurate PC-recording guidance, without a false zero-change success message or empty report card.
+- Added the first advertising foundation: one responsive report ad, a global protected admin ON/OFF control, a locked-down Supabase setting that defaults OFF, and conditional script loading so disabled ads do not load Google advertising code.
 
 ## Current website features
 

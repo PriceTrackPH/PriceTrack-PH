@@ -14,6 +14,7 @@ import type { Tables } from "./database.types";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import shopeeLogo from "./assets/shopee-logo.png";
 import AdminHealth from "./AdminHealth";
+import ReportAd from "./ReportAd";
 
 type Product = Tables<"products">;
 type Variation = Tables<"product_variations">;
@@ -1100,6 +1101,7 @@ function ReportApp() {
             <div className="report-loading">No tracked products are available yet.</div>
           )}
         </section>
+        {product && !error && <ReportAd />}
       </main>
 
       <footer>
@@ -1120,6 +1122,9 @@ function App() {
   }
   if (pathname === "/admin/affiliate" || pathname === "/admin/affiliate/") {
     return <AdminHealth view="affiliate" />;
+  }
+  if (pathname === "/admin/ads" || pathname === "/admin/ads/") {
+    return <AdminHealth view="ads" />;
   }
   return <ReportApp />;
 }

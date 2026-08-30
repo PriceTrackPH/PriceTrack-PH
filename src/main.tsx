@@ -20,6 +20,7 @@ import "./variation-display-format";
 import "./mobile-donation-close.css";
 import "./mobile-contact-modal.css";
 import "./accent-text-color.css";
+import "./report-ad.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
