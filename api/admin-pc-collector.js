@@ -36,6 +36,35 @@ async function digest(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+async function countProducts(supabaseUrl, secret, filters) {
+  const params = new URLSearchParams({
+    select: "id",
+    platform: "eq.shopee",
+    is_active: "eq.true",
+    tracking_enabled: "eq.true",
+    ...filters,
+  });
+  const response = await fetch(`${supabaseUrl}/rest/v1/products?${params}`, {
+    method: "HEAD",
+    headers: adminHeaders(secret, { Prefer: "count=exact", Range: "0-0" }),
+  });
+  if (!response.ok) throw new Error(`product_count_${response.status}`);
+  const total = Number(String(response.headers.get("content-range") || "").split("/")[1]);
+  return Number.isSafeInteger(total) && total >= 0 ? total : 0;
+}
+
+async function collectorSummary(supabaseUrl, secret) {
+  const now = new Date().toISOString();
+  const [totalDue, soldOutDeferred] = await Promise.all([
+    countProducts(supabaseUrl, secret, { next_check_at: `lte.${now}` }),
+    countProducts(supabaseUrl, secret, {
+      all_variations_sold_out: "eq.true",
+      next_check_at: `gt.${now}`,
+    }),
+  ]);
+  return { totalDue, soldOutDeferred };
+}
+
 async function claimNextProduct(supabaseUrl, secret, afterProductId) {
   const now = new Date();
   const params = new URLSearchParams({
@@ -136,6 +165,10 @@ export default async function handler(req, res) {
 
   const action = String(req.query.action || req.body?.action || "claim").toLowerCase();
   try {
+    if (action === "summary") {
+      return send(res, 200, { ok: true, ...(await collectorSummary(supabaseUrl, secret)) });
+    }
+
     if (action === "claim") {
       const afterProductId = safeInteger(req.body?.afterProductId);
       const product = await claimNextProduct(supabaseUrl, secret, afterProductId);
