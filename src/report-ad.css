@@ -9,6 +9,14 @@
   background: var(--surface);
 }
 
+.report-ad.top-ad {
+  margin: 28px auto;
+}
+
+.report-ad:has(.adsbygoogle[data-ad-status="unfilled"]) {
+  display: none;
+}
+
 .report-ad > span {
   display: block;
   margin-bottom: 8px;
@@ -21,4 +29,5 @@
 
 @media (max-width: 520px) {
   .report-ad { min-height: 100px; margin-top: -38px; margin-bottom: 40px; }
+  .report-ad.top-ad { margin: 20px auto; }
 }
