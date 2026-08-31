@@ -840,6 +840,8 @@ function ReportApp() {
           </div>
         </section>
 
+        <ReportAd placement="top" />
+
         <section className="report-section">
           <div className="section-label">DATABASE PRODUCT REPORT</div>
 
