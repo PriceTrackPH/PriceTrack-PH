@@ -28,7 +28,9 @@ export default async function handler(req, res) {
 
   const publisherId = String(process.env.ADSENSE_PUBLISHER_ID || "").trim();
   const reportSlotId = String(process.env.ADSENSE_REPORT_SLOT_ID || "").trim();
+  const topSlotId = String(process.env.ADSENSE_TOP_SLOT_ID || "").trim();
   const configured = /^ca-pub-\d+$/.test(publisherId) && /^\d+$/.test(reportSlotId);
+  const topSlotConfigured = /^ca-pub-\d+$/.test(publisherId) && /^\d+$/.test(topSlotId);
   const headers = adminHeaders(secret, { "Content-Type": "application/json" });
 
   try {
@@ -57,6 +59,7 @@ export default async function handler(req, res) {
       configured,
       publisherId: configured ? publisherId : null,
       reportSlotId: configured ? reportSlotId : null,
+      topSlotId: topSlotConfigured ? topSlotId : null,
       updatedAt: row?.updated_at || null,
     });
   } catch (error) {
