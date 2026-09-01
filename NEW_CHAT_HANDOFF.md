@@ -127,6 +127,7 @@ Values must never be written in this file.
 - The web app does not bypass the existing collection boundary: recorded products can load immediately, while an untracked product still needs a trusted extension or PC collector observation before a first report exists.
 - The untracked shared-link state is phone-friendly: it explains that first recording must be completed on a PC, and it does not display a false “Found 0 price changes” result or an unrelated empty database-report card.
 - Added one responsive AdSense placement after a successfully loaded database report and before the extension section. A protected `/admin/ads` switch controls ads globally for every visitor; the setting defaults OFF, errors/untracked results never show ads, and the Google script is not loaded while disabled.
+- Added the non-executable Google AdSense ownership meta tag for `pricetrackph.com`; it verifies the site without loading the advertising script while ads are globally OFF.
 
 ### Chrome extension
 
@@ -137,6 +138,7 @@ Values must never be written in this file.
 - Optional completion notification/toast behavior.
 - “View price history” opens the product report.
 - User-configurable single-key shortcut added.
+- Extension v1.0.3 passes the currently selected Shopee variation ID to the website, so View price history and the shortcut open the matching variation instead of the report's default variation.
 - Shortcut settings live inside the clickable version panel; no separate settings box/page and no on/off switch.
 - A saved key means enabled; clearing the key means disabled.
 - Shortcut works while the popup is open.
