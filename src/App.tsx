@@ -310,9 +310,9 @@ function applyProductMetadata(product: Product) {
   });
 }
 
-function showPermanentProductUrl(product: Product, mode: "push" | "replace") {
+function showPermanentProductUrl(product: Product, mode: "push" | "replace", variationId?: string | null) {
   const path = productReportPath(product);
-  const url = path;
+  const url = variationId ? `${path}?variation=${encodeURIComponent(variationId)}` : path;
   if (mode === "push") window.history.pushState(null, "", url);
   else window.history.replaceState(null, "", url);
   applyProductMetadata(product);
@@ -487,6 +487,7 @@ function sharedProductUrl() {
 function ReportApp() {
   const initialProductRoute = parseProductReportPath(window.location.pathname);
   const initialProductUrl = sharedProductUrl();
+  const initialVariationId = new URLSearchParams(window.location.search).get("variation")?.trim() || null;
   const [query, setQuery] = useState(initialProductUrl);
   const [product, setProduct] = useState<Product | null>(null);
   const [variations, setVariations] = useState<Variation[]>([]);
@@ -501,7 +502,12 @@ function ReportApp() {
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadProduct(shopId: string, productId: string, requireHistory = false) {
+  async function loadProduct(
+    shopId: string,
+    productId: string,
+    requireHistory = false,
+    preferredVariationId?: string | null,
+  ) {
     if (!supabase) throw new Error("Supabase is not configured yet.");
 
     const { data: found, error: productError } = await supabase
@@ -553,11 +559,14 @@ function ReportApp() {
       .sort((a, b) => Number(a.latest!.price) - Number(b.latest!.price))[0]?.item
       ?? variationsWithLatest
         .sort((a, b) => Number(a.latest!.price) - Number(b.latest!.price))[0]?.item;
+    const preferredVariation = preferredVariationId
+      ? modelRows.find((item) => String(item.external_variation_id) === preferredVariationId)
+      : null;
 
     setProduct(found);
     setVariations(modelRows);
     setObservations(history);
-    setSelectedVariationId(defaultVariation?.id ?? modelRows[0]?.id ?? null);
+    setSelectedVariationId(preferredVariation?.id ?? defaultVariation?.id ?? modelRows[0]?.id ?? null);
     setVariationMenuOpen(false);
     return found;
   }
@@ -578,8 +587,13 @@ function ReportApp() {
           const attempts = initialProductUrl ? 10 : 1;
           for (let attempt = 0; attempt < attempts && active; attempt += 1) {
             try {
-              const found = await loadProduct(ids.shopId, ids.productId, Boolean(initialProductUrl));
-              showPermanentProductUrl(found, "replace");
+              const found = await loadProduct(
+                ids.shopId,
+                ids.productId,
+                Boolean(initialProductUrl),
+                initialVariationId,
+              );
+              showPermanentProductUrl(found, "replace", initialVariationId);
               setQuery("");
               setHasSearched(true);
               return;
