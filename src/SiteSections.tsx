@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "r
 import gcashQr from "./assets/donation-gcash-qr.jpg";
 import mayaQr from "./assets/donation-maya-qr.jpg";
 import bankQr from "./assets/donation-bank-qr.jpg";
+import { donationPageIndex } from "./donation-pagination";
 import "./contact-attachment.css";
 
 type FooterModalKey = "about" | "privacy" | "data" | "contact";
@@ -57,6 +58,7 @@ function SiteSections() {
   const chromeWebStoreUrl = "https://chromewebstore.google.com/detail/ilabeaeblpcleaipmnppibbfhjknlmeo";
   const isAdminPage = ["/admin", "/admin/", "/admin/health", "/admin/health/", "/admin/affiliate", "/admin/affiliate/", "/admin/ads", "/admin/ads/", "/admin/monitoring", "/admin/monitoring/"].includes(window.location.pathname);
   const [donationOpen, setDonationOpen] = useState(false);
+  const [donationQrIndex, setDonationQrIndex] = useState(0);
   const [footerModal, setFooterModal] = useState<FooterModalKey | null>(null);
   const [contactDraft, setContactDraft] = useState<Omit<ContactDraft, "savedAt">>({ name: "", email: "", subject: "", message: "" });
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -108,6 +110,10 @@ function SiteSections() {
       document.body.style.overflow = previousOverflow;
     };
   }, [donationOpen, footerModal]);
+
+  useEffect(() => {
+    if (donationOpen) setDonationQrIndex(0);
+  }, [donationOpen]);
 
   const activeFooterModal = footerModal ? footerModalContent[footerModal] : null;
 
@@ -256,8 +262,11 @@ function SiteSections() {
             <h3 id="donation-title">Choose a QR code to donate.</h3>
             <p>Scan the option that works best for you.</p>
           </div>
-          <div className="donation-qr-grid">
+          <div className="donation-qr-grid" onScroll={(event) => setDonationQrIndex(donationPageIndex(event.currentTarget.scrollLeft, event.currentTarget.clientWidth, 3))}>
             {[{ label: "GCash", src: gcashQr }, { label: "Maya", src: mayaQr }, { label: "Bank / QR Ph", src: bankQr }].map((item) => <div className="donation-qr-card" key={item.label}><img className="donation-qr-image" src={item.src} alt={`${item.label} donation QR code`} /><strong>{item.label}</strong></div>)}
+          </div>
+          <div className="donation-qr-dots" role="status" aria-label={`QR code ${donationQrIndex + 1} of 3`}>
+            {[0, 1, 2].map((index) => <span className={index === donationQrIndex ? "active" : ""} aria-hidden="true" key={index} />)}
           </div>
           <p className="donation-thanks">Thank you for helping keep PriceTrack PH free.</p>
         </section>

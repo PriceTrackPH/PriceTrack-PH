@@ -84,6 +84,26 @@
     font-size: 12px;
   }
 
+  .donation-qr-dots {
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 11px;
+  }
+
+  .donation-qr-dots span {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--border);
+    transition: background-color .16s ease, transform .16s ease;
+  }
+
+  .donation-qr-dots span.active {
+    background: #13c89a;
+    transform: scale(1.2);
+  }
+
   .donation-thanks {
     margin-top: 14px;
     font-size: 10px;
