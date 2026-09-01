@@ -42,7 +42,12 @@ document.addEventListener("keydown", (event) => {
   if (shortcutFromEvent(event) !== shortcutKey) return;
   event.preventDefault();
   event.stopImmediatePropagation();
-  chrome.runtime.sendMessage({ type: "openPriceHistoryShortcut", url: location.href });
+  const selectedVariation = currentSelectedVariation();
+  chrome.runtime.sendMessage({
+    type: "openPriceHistoryShortcut",
+    url: location.href,
+    variationId: selectedVariation?.variationId || "",
+  });
 }, true);
 
 window.addEventListener("message", event => {
@@ -221,6 +226,59 @@ function normalizeShopeePayload(payload, ids) {
     variations,
     collectionMode: "shopee-models",
   };
+}
+
+function normalizedSelectionText(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .replace(/\s*,\s*/g, ",")
+    .trim()
+    .toLowerCase();
+}
+
+function selectedVariationFromPage(variations) {
+  if (!Array.isArray(variations) || !variations.length) return null;
+
+  const selectors = [
+    ".product-variation--selected",
+    "[class*='product-variation'][class*='selected']",
+    "[class*='variation'][aria-selected='true']",
+    "[class*='variation'][aria-checked='true']",
+    "[class*='variation'][aria-pressed='true']",
+    "[data-testid*='variation'] [aria-pressed='true']",
+    "[class*='tier'] [class*='selected']",
+    "[class*='tier'] [class*='active']",
+    "[class*='option'][class*='selected']",
+    "[class*='option'][class*='active']",
+  ];
+  const selectedLabels = [...new Set(
+    selectors.flatMap(selector => [...document.querySelectorAll(selector)])
+      .map(element => normalizedSelectionText(element.textContent))
+      .filter(label => label && label.length <= 100)
+  )];
+
+  if (!selectedLabels.length) return null;
+
+  const ranked = variations.map(variation => {
+    const name = normalizedSelectionText(variation.variationName);
+    const score = selectedLabels.reduce(
+      (total, label) => total + (name.includes(label) ? 1 : 0),
+      0,
+    );
+    return { variation, score };
+  }).filter(entry => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (!ranked.length || ranked[1]?.score === ranked[0].score) return null;
+  return ranked[0].variation;
+}
+
+function currentSelectedVariation() {
+  const ids = parseShopeeIds(location.href);
+  if (!ids) return null;
+  const product = normalizeShopeePayload(capturedShopeePayload, ids)
+    || normalizeShopeePayload(extractEmbeddedShopeePayload(ids), ids);
+  return selectedVariationFromPage(product?.variations || []);
 }
 
 async function fetchShopeePayload(ids) {
@@ -478,6 +536,7 @@ async function automaticallyRecordPrice() {
   }
 
   const inStockVariations = validVariations.filter(item => item.isInStock !== false);
+  const selectedVariation = selectedVariationFromPage(validVariations);
   const lowestPool = inStockVariations.length ? inStockVariations : validVariations;
   const lowest = lowestPool.reduce(
     (best, current) => !best || current.price < best.price ? current : best,
@@ -490,6 +549,8 @@ async function automaticallyRecordPrice() {
     lowestVariationName: lowest?.variationName || null,
     variationCount: validVariations.length,
     collectionMode: product.collectionMode,
+    selectedVariationId: selectedVariation?.variationId || null,
+    selectedVariationName: selectedVariation?.variationName || null,
     at: new Date().toISOString(),
   };
   await storageSet(statusKey, detectedStatus);
@@ -544,6 +605,8 @@ async function automaticallyRecordPrice() {
       recordedCount: Number(data.recordedCount ?? 0),
       unchangedCount: Number(data.unchangedCount ?? 0),
       collectionMode: product.collectionMode,
+      selectedVariationId: selectedVariation?.variationId || null,
+      selectedVariationName: selectedVariation?.variationName || null,
       at: new Date().toISOString(),
     };
     await storageSet(statusKey, recordedStatus);
@@ -599,6 +662,14 @@ function runAutomaticRecording() {
 runAutomaticRecording();
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "getSelectedVariation") {
+    const selected = currentSelectedVariation();
+    sendResponse(selected ? {
+      variationId: selected.variationId,
+      variationName: selected.variationName,
+    } : null);
+    return false;
+  }
   if (message?.type !== "recordPriceNow") return false;
   runAutomaticRecording().then(sendResponse);
   return true;
