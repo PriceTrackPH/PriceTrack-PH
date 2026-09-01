@@ -16,7 +16,7 @@ The controller waits at least 60 seconds between products and pauses after two c
 
 - Only existing active Shopee products whose `next_check_at` is due are opened.
 - Products successfully checked today are not selected again until their next 24-hour check.
-- Unchanged prices update the lightweight daily-check record but do not create duplicate price observations.
+- The first unchanged price check on each Manila calendar day creates a daily price observation; later identical checks that day update only the lightweight daily-check record.
 - Changed prices create new price-history observations.
 - Products are processed one at a time in a dedicated tab in your normal Chrome browser.
 - The Supabase secret key never leaves Vercel. The PC stores only your existing admin token in the ignored `.env.local` file.

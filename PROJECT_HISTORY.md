@@ -30,7 +30,7 @@ The product is designed to:
 
 1. A product is identified by **marketplace + shop ID + item/product ID**, never by title alone.
 2. Every real Shopee variation has its own identity, current state, and price history.
-3. Unchanged prices do not create duplicate observations.
+3. The first verified price for each variation is retained every Philippine calendar day; repeated unchanged checks within that day do not create duplicates.
 4. Public users receive read-only access to price-history data.
 5. Operational data, admin functions, secrets, and diagnostic records remain private.
 6. PriceTrack PH does not bypass Shopee verification or CAPTCHA.
@@ -253,7 +253,7 @@ Stores daily-check state, due time, lease state, and successful-check completion
 ### Day 10 — August 30, 2026: Daily checks and the normal-Chrome PC collector
 
 - Added the daily product-check ledger and due-product queue.
-- Added change-only cross-day deduplication while still marking a successful daily check.
+- Added daily observation retention with same-day deduplication while still marking every successful daily check.
 - Built a protected server-side collector prototype.
 - Confirmed that direct Supabase/datacenter collection was blocked by Shopee with HTTP 403/error `90309999`.
 - Kept cloud Cron disabled after the failed server-side test.

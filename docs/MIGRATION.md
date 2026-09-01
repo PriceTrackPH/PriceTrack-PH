@@ -18,7 +18,8 @@ The original Chrome extension source is also not available from the public site 
 - Public RLS permits SELECT on products, variations, and observations.
 - Public RLS denies access to `ingest_rate_limits`.
 - The collector accepts up to 200 variations in one submission.
-- Same-price observations for the same variation are not duplicated again on the same Manila calendar day.
+- The first observation for each variation is retained on every Manila calendar day, even when the price is unchanged.
+- Repeated observations with the same price and stock state are not duplicated again within that same Manila day.
 - The collector returns the lowest in-stock submitted variation.
 
 ## Next migration step

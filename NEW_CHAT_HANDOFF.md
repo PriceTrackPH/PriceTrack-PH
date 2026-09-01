@@ -218,7 +218,7 @@ Values must never be written in this file.
 5. **Lazada support** — only after Shopee behavior is stable and the data model/collector approach is proven.
 6. **TikTok Shop investigation** — much later and only if technically and legally practical.
 7. **Shopee Open API** — optional later; pursue only if Third-party Partner Platform registration is approved and it provides useful access beyond the proven batch affiliate workflow.
-8. **Automatic no-API daily Shopee collection** — deferred. The Supabase daily-check ledger, due-product queue, cross-day change-only deduplication, and protected collector prototype were implemented on August 30, 2026, but a real server-side request was blocked by Shopee with HTTP 403 / error `90309999`. Keep Cron disabled. Revisit only if an approved Shopee API becomes available or the project can justify a compliant external browser collector with suitable proxy infrastructure and ongoing operating costs. Until then, extension visits remain the trusted recording source and can satisfy that product's check for the day.
+8. **Automatic no-API daily Shopee collection** — deferred. The Supabase daily-check ledger, due-product queue, daily observation retention with same-day deduplication, and protected collector prototype were implemented on August 30, 2026, but a real server-side request was blocked by Shopee with HTTP 403 / error `90309999`. Keep Cron disabled. Revisit only if an approved Shopee API becomes available or the project can justify a compliant external browser collector with suitable proxy infrastructure and ongoing operating costs. Until then, extension visits remain the trusted recording source and can satisfy that product's check for the day.
 
 ## Explicitly removed / not current backlog
 

@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { shouldSkipObservation } from "./observation-policy.ts";
 
 const cors = {
   "access-control-allow-origin": "*",
@@ -106,14 +107,6 @@ function validImageUrl(value: string | null) {
   } catch {
     return null;
   }
-}
-
-function sameObservation(latest: ObservationRow | undefined, item: NormalizedVariation) {
-  if (!latest) return false;
-  const originalPrice = item.originalPrice == null ? null : Number(item.originalPrice);
-  return Number(latest.price) === item.price &&
-    latest.is_in_stock === item.isInStock &&
-    (latest.original_price == null ? originalPrice == null : Number(latest.original_price) === originalPrice);
 }
 
 function isDuplicateError(status: number, text: string) {
@@ -350,7 +343,7 @@ Deno.serve(async (request: Request) => {
       }
 
       const latest = latestByVariationId.get(row.id);
-      if (sameObservation(latest, item)) {
+      if (shouldSkipObservation(latest, item, observedDate)) {
         unchangedCount += 1;
         results.push({ variationId: item.variationId, variationName: item.variationName, changed: false });
         continue;
