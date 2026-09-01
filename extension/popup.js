@@ -19,6 +19,7 @@ let legacyKey;
 let retryRequested = false;
 let statusPollTimer = null;
 let activeShortcutKey = "";
+let latestRecord = null;
 
 function shortcutFromEvent(event) {
   const ignoredKeys = new Set(["Control", "Alt", "Shift", "Meta", "Tab", "Escape"]);
@@ -96,6 +97,7 @@ function requestRecording() {
 }
 
 function renderRecord(record) {
+  latestRecord = record || null;
   status.classList.remove("error");
 
   if (record?.state === "recorded") {
@@ -247,9 +249,8 @@ function initializeShortcutSettings() {
     if (shortcutFromEvent(event) !== activeShortcutKey) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    const report = `${SITE}/?url=${encodeURIComponent(ids.canonicalUrl)}&autocheck=1#result`;
     requestRecording();
-    chrome.tabs.create({ url: report });
+    openPriceHistory();
   });
 
   shortcutInput.addEventListener("keydown", (event) => {
@@ -261,6 +262,29 @@ function initializeShortcutSettings() {
 
   shortcutClear.addEventListener("click", () => {
     chrome.storage.local.set({ shortcutKey: "", shortcutEnabled: false }, () => renderShortcut(""));
+  });
+}
+
+function reportUrl(variationId) {
+  const variation = variationId ? `&variation=${encodeURIComponent(variationId)}` : "";
+  return `${SITE}/?url=${encodeURIComponent(ids.canonicalUrl)}&autocheck=1${variation}#result`;
+}
+
+function openPriceHistory() {
+  if (!ids) return;
+  const fallbackVariationId = latestRecord?.selectedVariationId || "";
+
+  if (activeTabId == null) {
+    chrome.tabs.create({ url: reportUrl(fallbackVariationId) });
+    return;
+  }
+
+  chrome.tabs.sendMessage(activeTabId, { type: "getSelectedVariation" }, response => {
+    const hadError = Boolean(chrome.runtime.lastError);
+    const variationId = !hadError && response?.variationId
+      ? response.variationId
+      : fallbackVariationId;
+    chrome.tabs.create({ url: reportUrl(variationId) });
   });
 }
 
@@ -311,9 +335,8 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 
 button.addEventListener("click", () => {
-  const report = `${SITE}/?url=${encodeURIComponent(ids.canonicalUrl)}&autocheck=1#result`;
   requestRecording();
-  chrome.tabs.create({ url: report });
+  openPriceHistory();
 });
 
 initialize();
