@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PriceTrack PH",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Detect Shopee product variations immediately at page start, then save price history in the background.",
   "permissions": [
     "activeTab",
