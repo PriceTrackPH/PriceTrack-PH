@@ -275,6 +275,7 @@ Stores daily-check state, due time, lease state, and successful-check completion
 - Kept phone-app lookup behavior aligned with the public website: recorded products show their reports, while first-time price collection still requires a trusted extension or PC collector observation.
 - Corrected the first phone-share result state so an untracked product shows only accurate PC-recording guidance, without a false zero-change success message or empty report card.
 - Added the first advertising foundation: one responsive report ad, a global protected admin ON/OFF control, a locked-down Supabase setting that defaults OFF, and conditional script loading so disabled ads do not load Google advertising code.
+- Connected the site to its AdSense publisher account using Google’s ownership meta tag, keeping verification separate from actual ad loading.
 
 ## Current website features
 
@@ -308,6 +309,7 @@ Stores daily-check state, due time, lease state, and successful-check completion
 - Completion state and optional notification behavior
 - Direct opening of the PriceTrack PH product report
 - User-configurable single-key shortcut
+- Version 1.0.3 opens the exact Shopee variation selected by the user when launching its price-history report.
 - Public version v1.0.1; local collector testing may use newer unpacked code
 
 ### Private administration
