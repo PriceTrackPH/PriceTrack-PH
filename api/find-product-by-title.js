@@ -18,29 +18,46 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Product search is not configured right now.' });
   }
 
-  const endpoint = new URL('/rest/v1/products', supabaseUrl);
-  endpoint.searchParams.set('select', 'external_shop_id,external_product_id,product_url,name');
-  endpoint.searchParams.set('platform', 'eq.shopee');
   const escapedTitle = title.replace(/([\\%_])/g, '\\$1');
-  endpoint.searchParams.set('name', `ilike.${escapedTitle}`);
-  endpoint.searchParams.set('limit', '2');
 
   try {
-    const response = await fetch(endpoint, {
-      headers: {
-        apikey: publishableKey,
-        Authorization: `Bearer ${publishableKey}`,
-        Accept: 'application/json',
-      },
-      signal: AbortSignal.timeout(8000),
-    });
+    const searchProducts = async (nameFilter, limit) => {
+      const endpoint = new URL('/rest/v1/products', supabaseUrl);
+      endpoint.searchParams.set('select', 'external_shop_id,external_product_id,product_url,name');
+      endpoint.searchParams.set('platform', 'eq.shopee');
+      endpoint.searchParams.set('name', nameFilter);
+      endpoint.searchParams.set('limit', String(limit));
 
-    if (!response.ok) {
-      return res.status(502).json({ error: 'Could not search the PriceTrack database right now.' });
+      const response = await fetch(endpoint, {
+        headers: {
+          apikey: publishableKey,
+          Authorization: `Bearer ${publishableKey}`,
+          Accept: 'application/json',
+        },
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (!response.ok) throw new Error('Product search failed.');
+      const rows = await response.json();
+      return Array.isArray(rows) ? rows : [];
+    };
+
+    let rows = await searchProducts(`ilike.${escapedTitle}`, 2);
+
+    if (rows.length === 0) {
+      const prefixRows = await searchProducts(`ilike.${escapedTitle}*`, 20);
+      const normalizedTitle = title.toLocaleLowerCase('en-US');
+      rows = prefixRows.filter((product) => {
+        const productName = typeof product.name === 'string' ? product.name.trim() : '';
+        const normalizedName = productName.toLocaleLowerCase('en-US');
+        if (!normalizedName.startsWith(normalizedTitle)) return false;
+
+        const suffix = productName.slice(title.length);
+        return /^\s+\([^()]+\)\s*$/.test(suffix);
+      });
     }
 
-    const rows = await response.json();
-    if (!Array.isArray(rows) || rows.length === 0) {
+    if (rows.length === 0) {
       return res.status(404).json({ error: 'No exact product title match found in the PriceTrack database.' });
     }
 
