@@ -62,21 +62,31 @@ test('keeps the case-insensitive exact-title lookup as the first choice', async 
   assert.equal(new URL(urls[0]).searchParams.get('name'), 'ilike.apple iphone 17 pro');
 });
 
-test('accepts only parenthetical metadata after the searched product name', async () => {
+test('matches the complete product name despite repeated stored whitespace', async () => {
+  const exactListing = {
+    ...iphone,
+    external_shop_id: '1275798143',
+    external_product_id: '40420862089',
+    product_url: 'https://shopee.ph/Apple-iPhone-17-Pro-i.1275798143.40420862089',
+    name: 'Apple iPhone 17  Pro',
+  };
   const { res, urls } = await search('apple iphone 17 pro', [[], [
+    exactListing,
     iphone,
     { ...iphone, name: 'Apple iPhone 17 Pro Max' },
     { ...iphone, name: 'Apple iPhone 17 Pro Case' },
   ]]);
 
   assert.equal(res.statusCode, 200);
-  assert.equal(res.body.title, 'Apple iPhone 17 Pro (6.3 inch)');
+  assert.equal(res.body.productId, '40420862089');
+  assert.equal(res.body.title, 'Apple iPhone 17  Pro');
   assert.equal(urls.length, 2);
-  assert.equal(new URL(urls[1]).searchParams.get('name'), 'ilike.apple iphone 17 pro*');
+  assert.equal(new URL(urls[1]).searchParams.get('name'), 'ilike.apple*iphone*17*pro');
 });
 
-test('does not treat Pro Max or accessories as the requested product', async () => {
+test('does not treat parenthetical titles, Pro Max, or accessories as the requested product', async () => {
   const { res } = await search('apple iphone 17 pro', [[], [
+    iphone,
     { ...iphone, name: 'Apple iPhone 17 Pro Max' },
     { ...iphone, name: 'Apple iPhone 17 Pro Case' },
   ]]);
@@ -84,10 +94,10 @@ test('does not treat Pro Max or accessories as the requested product', async () 
   assert.equal(res.statusCode, 404);
 });
 
-test('requires a Shopee link when multiple parenthetical variants qualify', async () => {
+test('requires a Shopee link when multiple whitespace-equivalent names qualify', async () => {
   const { res } = await search('apple iphone 17 pro', [[], [
-    iphone,
-    { ...iphone, name: 'Apple iPhone 17 Pro (512GB)' },
+    { ...iphone, name: 'Apple  iPhone 17 Pro' },
+    { ...iphone, name: 'Apple iPhone  17   Pro' },
   ]]);
 
   assert.equal(res.statusCode, 409);

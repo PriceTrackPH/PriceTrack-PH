@@ -19,6 +19,11 @@ export default async function handler(req, res) {
   }
 
   const escapedTitle = title.replace(/([\\%_])/g, '\\$1');
+  const normalizeTitle = (value) => value
+    .normalize('NFKC')
+    .replace(/[\s\u200B-\u200D\u2060\uFEFF]+/gu, ' ')
+    .trim()
+    .toLocaleLowerCase('en-US');
 
   try {
     const searchProducts = async (nameFilter, limit) => {
@@ -45,15 +50,15 @@ export default async function handler(req, res) {
     let rows = await searchProducts(`ilike.${escapedTitle}`, 2);
 
     if (rows.length === 0) {
-      const prefixRows = await searchProducts(`ilike.${escapedTitle}*`, 20);
-      const normalizedTitle = title.toLocaleLowerCase('en-US');
-      rows = prefixRows.filter((product) => {
+      const wordPattern = title
+        .split(/\s+/u)
+        .map((word) => word.replace(/([\\%_])/g, '\\$1'))
+        .join('*');
+      const possibleRows = await searchProducts(`ilike.${wordPattern}`, 50);
+      const normalizedTitle = normalizeTitle(title);
+      rows = possibleRows.filter((product) => {
         const productName = typeof product.name === 'string' ? product.name.trim() : '';
-        const normalizedName = productName.toLocaleLowerCase('en-US');
-        if (!normalizedName.startsWith(normalizedTitle)) return false;
-
-        const suffix = productName.slice(title.length);
-        return /^\s+\([^()]+\)\s*$/.test(suffix);
+        return normalizeTitle(productName) === normalizedTitle;
       });
     }
 
