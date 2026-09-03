@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
+import { healthProductLinkProps } from "./admin-product-link.js";
 
 type HealthEvent = {
   id: number;
@@ -431,7 +432,12 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                         <tr key={event.id}>
                           <td>{dateLabel(event.created_at)}</td>
                           <td><span className={`health-event-type ${event.event_type}`}>{eventLabels[event.event_type] || event.event_type}</span></td>
-                          <td>{event.shop_id && event.product_id ? `${event.shop_id}.${event.product_id}` : "—"}</td>
+                          <td>{(() => {
+                            const link = healthProductLinkProps(event.shop_id, event.product_id);
+                            return link
+                              ? <a {...link} className="health-product-link">{event.shop_id}.{event.product_id}</a>
+                              : "—";
+                          })()}</td>
                           <td>{event.variation_count ?? "—"}</td>
                           <td>{event.error_code || `${event.recorded_count ?? 0} recorded · ${event.unchanged_count ?? 0} unchanged`}</td>
                         </tr>

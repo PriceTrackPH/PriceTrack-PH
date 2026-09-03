@@ -407,6 +407,7 @@ html[data-theme="dark"] .support-section {
 .health-events table { width: 100%; border-collapse: collapse; margin-top: 12px; }
 .health-events th, .health-events td { padding: 13px 10px; border-top: 1px solid #303936; text-align: left; white-space: nowrap; }
 .health-events th { color: #aeb6b2; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.health-product-link { color: inherit; text-decoration: none; }
 .health-event-type { color: #11d4aa; }
 .health-event-type.record_failure, .health-event-type.record_partial { color: #ff817d; }
 .health-event-type.duplicate_blocked, .health-event-type.variation_count_changed { color: #ffd278; }
