@@ -1,6 +1,6 @@
 # PriceTrack PH — Project History and Feature Record
 
-Last updated: **August 30, 2026**  
+Last updated: **September 4, 2026**
 Project started: **August 21, 2026**  
 Production website: **https://pricetrackph.com**  
 Repository: **PriceTrackPH/PriceTrack-PH**  
@@ -124,6 +124,14 @@ Stores daily-check state, due time, lease state, and successful-check completion
 - `/api/admin-pc-collector` — protected PC collector bridge
 
 ## Feature history by day
+
+### September 4, 2026: Random available-product collection
+
+- Replaced sequential product-ID collection with an atomic random database claim.
+- Excluded products when their default item or all variations are sold out.
+- Added leases and per-run exclusions so concurrent or repeated claims do not reopen the same product.
+- Made the regular Chrome collector detect direct Web Store extension recordings and continue automatically.
+- Added a visible `3`, `2`, `1` countdown before the next product.
 
 ### Day 1 — August 21, 2026: Foundation
 

@@ -53,11 +53,14 @@ async function countProducts(supabaseUrl, secret, filters) {
   return Number.isSafeInteger(total) && total >= 0 ? total : 0;
 }
 
-async function collectorSummary(supabaseUrl, secret) {
+export async function collectorSummary(supabaseUrl, secret) {
   const now = new Date().toISOString();
   const [totalTracked, totalDue, soldOutDeferred] = await Promise.all([
     countProducts(supabaseUrl, secret, {}),
-    countProducts(supabaseUrl, secret, { next_check_at: `lte.${now}` }),
+    countProducts(supabaseUrl, secret, {
+      all_variations_sold_out: "eq.false",
+      next_check_at: `lte.${now}`,
+    }),
     countProducts(supabaseUrl, secret, {
       all_variations_sold_out: "eq.true",
       next_check_at: `gt.${now}`,
@@ -66,47 +69,29 @@ async function collectorSummary(supabaseUrl, secret) {
   return { totalTracked, totalDue, soldOutDeferred };
 }
 
-async function claimNextProduct(supabaseUrl, secret, afterProductId) {
-  const now = new Date();
-  const params = new URLSearchParams({
-    select: "id,external_shop_id,external_product_id,product_url",
-    platform: "eq.shopee",
-    is_active: "eq.true",
-    tracking_enabled: "eq.true",
-    next_check_at: `lte.${now.toISOString()}`,
-    id: `gt.${afterProductId}`,
-    or: `(check_lease_until.is.null,check_lease_until.lt.${now.toISOString()})`,
-    order: "id.asc",
-    limit: "1",
+export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds = []) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_random_available_product_check`, {
+    method: "POST",
+    headers: adminHeaders(secret, { "Content-Type": "application/json" }),
+    body: JSON.stringify({ p_excluded_product_ids: excludedProductIds }),
   });
-  const response = await fetch(`${supabaseUrl}/rest/v1/products?${params}`, {
-    headers: adminHeaders(secret),
-  });
-  if (!response.ok) throw new Error(`due_lookup_${response.status}`);
+  if (!response.ok) throw new Error(`random_claim_${response.status}`);
   const [product] = await response.json();
   if (!product) return null;
-  if (!validProduct(product)) throw new Error("invalid_due_product");
-
-  const leaseUntil = new Date(Date.now() + 10 * 60_000).toISOString();
-  const leaseResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${product.id}`, {
-    method: "PATCH",
-    headers: adminHeaders(secret, {
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-    }),
-    body: JSON.stringify({
-      check_lease_until: leaseUntil,
-      last_check_attempt_at: now.toISOString(),
-    }),
-  });
-  if (!leaseResponse.ok) throw new Error(`lease_${leaseResponse.status}`);
+  const normalized = {
+    id: product.product_id,
+    external_shop_id: product.shop_id,
+    external_product_id: product.external_product_id,
+    product_url: product.product_url,
+  };
+  if (!validProduct(normalized)) throw new Error("invalid_due_product");
 
   return {
-    productId: Number(product.id),
-    shopId: String(product.external_shop_id),
+    productId: Number(product.product_id),
+    shopId: String(product.shop_id),
     externalProductId: String(product.external_product_id),
     productUrl: product.product_url,
-    leaseUntil,
+    leaseUntil: product.lease_until,
   };
 }
 
@@ -171,8 +156,10 @@ export default async function handler(req, res) {
     }
 
     if (action === "claim") {
-      const afterProductId = safeInteger(req.body?.afterProductId);
-      const product = await claimNextProduct(supabaseUrl, secret, afterProductId);
+      const attemptedProductIds = Array.isArray(req.body?.attemptedProductIds)
+        ? req.body.attemptedProductIds.map((value) => safeInteger(value)).filter(Boolean).slice(0, 5000)
+        : [];
+      const product = await claimRandomProduct(supabaseUrl, secret, attemptedProductIds);
       return send(res, 200, { ok: true, product });
     }
 

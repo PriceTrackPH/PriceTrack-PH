@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { shouldSkipObservation } from "./observation-policy.ts";
+import { allVariationsSoldOut, shouldSkipObservation } from "./observation-policy.ts";
 
 const cors = {
   "access-control-allow-origin": "*",
@@ -279,6 +279,7 @@ Deno.serve(async (request: Request) => {
         shop_name: storeName,
         image_url: imageUrl,
         currency: "PHP",
+        all_variations_sold_out: allVariationsSoldOut(variations),
         last_seen_at: observedAt.toISOString(),
         updated_at: now.toISOString(),
         metadata: {

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { shouldSkipObservation } from "../supabase/functions/record-price/observation-policy.ts";
+import { allVariationsSoldOut, shouldSkipObservation } from "../supabase/functions/record-price/observation-policy.ts";
 
 const unchangedItem = {
   price: 147,
@@ -51,4 +51,10 @@ test("records a changed price even on the same Manila day", () => {
   };
 
   assert.equal(shouldSkipObservation(latest, unchangedItem, "2026-09-01"), false);
+});
+
+test("marks a product sold out only when every variation is unavailable", () => {
+  assert.equal(allVariationsSoldOut([{ isInStock: false }, { isInStock: false }]), true);
+  assert.equal(allVariationsSoldOut([{ isInStock: false }, { isInStock: true }]), false);
+  assert.equal(allVariationsSoldOut([]), false);
 });

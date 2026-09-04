@@ -11,6 +11,10 @@ type IncomingObservation = {
   isInStock: boolean;
 };
 
+export function allVariationsSoldOut(items: IncomingObservation[]) {
+  return items.length > 0 && items.every((item) => item.isInStock === false);
+}
+
 const manilaDateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila",
   year: "numeric",
