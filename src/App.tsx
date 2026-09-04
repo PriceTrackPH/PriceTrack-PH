@@ -14,6 +14,7 @@ import type { Tables } from "./database.types";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import shopeeLogo from "./assets/shopee-logo.png";
 import AdminHealth from "./AdminHealth";
+import AdminCollector from "./AdminCollector";
 import ReportAd from "./ReportAd";
 
 type Product = Tables<"products">;
@@ -1141,6 +1142,9 @@ function App() {
   }
   if (pathname === "/admin/ads" || pathname === "/admin/ads/") {
     return <AdminHealth view="ads" />;
+  }
+  if (pathname === "/admin/collector" || pathname === "/admin/collector/") {
+    return <AdminCollector />;
   }
   return <ReportApp />;
 }

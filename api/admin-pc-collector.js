@@ -36,37 +36,19 @@ async function digest(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
-async function countProducts(supabaseUrl, secret, filters) {
-  const params = new URLSearchParams({
-    select: "id",
-    platform: "eq.shopee",
-    is_active: "eq.true",
-    tracking_enabled: "eq.true",
-    ...filters,
-  });
-  const response = await fetch(`${supabaseUrl}/rest/v1/products?${params}`, {
-    method: "HEAD",
-    headers: adminHeaders(secret, { Prefer: "count=exact", Range: "0-0" }),
-  });
-  if (!response.ok) throw new Error(`product_count_${response.status}`);
-  const total = Number(String(response.headers.get("content-range") || "").split("/")[1]);
-  return Number.isSafeInteger(total) && total >= 0 ? total : 0;
-}
-
 export async function collectorSummary(supabaseUrl, secret) {
-  const now = new Date().toISOString();
-  const [totalTracked, totalDue, soldOutDeferred] = await Promise.all([
-    countProducts(supabaseUrl, secret, {}),
-    countProducts(supabaseUrl, secret, {
-      all_variations_sold_out: "eq.false",
-      next_check_at: `lte.${now}`,
-    }),
-    countProducts(supabaseUrl, secret, {
-      all_variations_sold_out: "eq.true",
-      next_check_at: `gt.${now}`,
-    }),
-  ]);
-  return { totalTracked, totalDue, soldOutDeferred };
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/collector_available_summary`, {
+    method: "POST",
+    headers: adminHeaders(secret, { "Content-Type": "application/json" }),
+    body: "{}",
+  });
+  if (!response.ok) throw new Error(`collector_summary_${response.status}`);
+  const [summary] = await response.json();
+  return {
+    totalTracked: safeInteger(summary?.total_tracked),
+    totalDue: safeInteger(summary?.total_due),
+    soldOutDeferred: safeInteger(summary?.sold_out_deferred),
+  };
 }
 
 export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds = []) {
@@ -105,6 +87,25 @@ async function releaseProduct(supabaseUrl, secret, productId) {
     body: JSON.stringify({ check_lease_until: null }),
   });
   if (!response.ok) throw new Error(`release_${response.status}`);
+}
+
+async function productCheckStatus(supabaseUrl, secret, productId) {
+  const manilaDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+  const params = new URLSearchParams({
+    select: "id,checked_at",
+    product_id: `eq.${productId}`,
+    checked_date: `eq.${manilaDate}`,
+    status: "eq.success",
+    limit: "1",
+  });
+  const response = await fetch(`${supabaseUrl}/rest/v1/product_daily_checks?${params}`, {
+    headers: adminHeaders(secret),
+  });
+  if (!response.ok) throw new Error(`product_status_${response.status}`);
+  const rows = await response.json();
+  return { completed: rows.length > 0, checkedAt: rows[0]?.checked_at || null };
 }
 
 async function recordProduct(supabaseUrl, secret, publishableKey, payload) {
@@ -168,6 +169,12 @@ export default async function handler(req, res) {
       if (!productId) return send(res, 400, { error: "A valid product ID is required" });
       await releaseProduct(supabaseUrl, secret, productId);
       return send(res, 200, { ok: true });
+    }
+
+    if (action === "status") {
+      const productId = safeInteger(req.body?.productId);
+      if (!productId) return send(res, 400, { error: "A valid product ID is required" });
+      return send(res, 200, { ok: true, ...(await productCheckStatus(supabaseUrl, secret, productId)) });
     }
 
     if (action === "record") {

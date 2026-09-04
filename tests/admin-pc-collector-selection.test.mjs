@@ -1,13 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import { claimRandomProduct, collectorSummary } from "../api/admin-pc-collector.js";
 
-test("summary excludes sold-out products from the due count", async () => {
+test("summary uses the database availability cross-check", async () => {
   const originalFetch = global.fetch;
   const urls = [];
   global.fetch = async (url) => {
     urls.push(String(url));
+    if (String(url).includes("collector_available_summary")) {
+      return { ok: true, json: async () => [{ total_tracked: 704, total_due: 603, sold_out_deferred: 101 }] };
+    }
     return { ok: true, headers: new Headers({ "content-range": "0-0/7" }) };
   };
   try {
@@ -15,8 +19,7 @@ test("summary excludes sold-out products from the due count", async () => {
   } finally {
     global.fetch = originalFetch;
   }
-  const dueUrl = urls.find((url) => url.includes("next_check_at=lte."));
-  assert.match(dueUrl, /all_variations_sold_out=eq.false/);
+  assert.ok(urls.some((url) => url.endsWith("/rest/v1/rpc/collector_available_summary")));
 });
 
 test("claim uses the atomic random database function and passes prior attempts", async () => {
@@ -45,3 +48,9 @@ test("claim uses the atomic random database function and passes prior attempts",
   assert.deepEqual(JSON.parse(request.options.body), { p_excluded_product_ids: [3, 9] });
 });
 
+test("status checks completion for the exact claimed product", async () => {
+  const source = await readFile(new URL("../api/admin-pc-collector.js", import.meta.url), "utf8");
+  assert.match(source, /action === "status"/);
+  assert.match(source, /product_daily_checks/);
+  assert.match(source, /product_id: `eq\.\$\{productId\}`/);
+});

@@ -98,8 +98,9 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
 
     const [healthLink, affiliateLink] = links;
     const adsLink = document.createElement("a");
-    affiliateLink.after(adsLink);
-    const adminLinks = [healthLink, affiliateLink, adsLink];
+    const collectorLink = document.createElement("a");
+    affiliateLink.after(adsLink, collectorLink);
+    const adminLinks = [healthLink, affiliateLink, adsLink, collectorLink];
     const original = [healthLink, affiliateLink].map((link) => ({
       text: link.textContent || "",
       href: link.getAttribute("href"),
@@ -121,10 +122,13 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     affiliateLink.removeAttribute("aria-current");
     adsLink.textContent = "Ads";
     adsLink.href = "/admin/ads";
+    collectorLink.textContent = "Collector";
+    collectorLink.href = "/admin/collector";
     if (!isLogin) (view === "affiliate" ? affiliateLink : view === "ads" ? adsLink : healthLink).setAttribute("aria-current", "page");
 
     return () => {
       adsLink.remove();
+      collectorLink.remove();
       adminLinks.slice(0, 2).forEach((link, index) => {
         const saved = original[index];
         link.textContent = saved.text;

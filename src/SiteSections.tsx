@@ -56,7 +56,7 @@ const footerModalContent: Record<FooterModalKey, { label: string; title: string;
 
 function SiteSections() {
   const chromeWebStoreUrl = "https://chromewebstore.google.com/detail/ilabeaeblpcleaipmnppibbfhjknlmeo";
-  const isAdminPage = ["/admin", "/admin/", "/admin/health", "/admin/health/", "/admin/affiliate", "/admin/affiliate/", "/admin/ads", "/admin/ads/", "/admin/monitoring", "/admin/monitoring/"].includes(window.location.pathname);
+  const isAdminPage = ["/admin", "/admin/", "/admin/health", "/admin/health/", "/admin/affiliate", "/admin/affiliate/", "/admin/ads", "/admin/ads/", "/admin/collector", "/admin/collector/", "/admin/monitoring", "/admin/monitoring/"].includes(window.location.pathname);
   const [donationOpen, setDonationOpen] = useState(false);
   const [donationQrIndex, setDonationQrIndex] = useState(0);
   const [footerModal, setFooterModal] = useState<FooterModalKey | null>(null);
