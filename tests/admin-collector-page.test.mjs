@@ -5,9 +5,11 @@ import { readFile } from "node:fs/promises";
 test("routes the protected collector admin page", async () => {
   const app = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
   const sections = await readFile(new URL("../src/SiteSections.tsx", import.meta.url), "utf8");
+  const vercel = JSON.parse(await readFile(new URL("../vercel.json", import.meta.url), "utf8"));
   assert.match(app, /pathname === "\/admin\/collector"/);
   assert.match(app, /<AdminCollector/);
   assert.match(sections, /"\/admin\/collector"/);
+  assert.ok(vercel.rewrites.some((rewrite) => rewrite.source === "/admin/collector" && rewrite.destination === "/"));
 });
 
 test("admin collector reuses one product tab and shows a numeric countdown", async () => {

@@ -30,6 +30,10 @@
     {
       "source": "/admin/ads",
       "destination": "/"
+    },
+    {
+      "source": "/admin/collector",
+      "destination": "/"
     }
   ]
 }
