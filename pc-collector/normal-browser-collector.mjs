@@ -38,8 +38,7 @@ function requestedLimit() {
 }
 
 function safeDelay() {
-  const value = Number(process.env.PRICETRACK_PRODUCT_DELAY_SECONDS || 3);
-  return Number.isFinite(value) && value >= 3 ? Math.round(value * 1000) : 3_000;
+  return 3_000;
 }
 
 function findWindowsChrome() {

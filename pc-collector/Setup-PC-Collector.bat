@@ -21,7 +21,7 @@ if not exist ".env.local" (
 )
 
 echo.
-echo Setup complete. Reload the updated PriceTrack PH extension in normal Chrome, then run Test-5-Products.bat.
+echo Setup complete. Make sure PriceTrack PH v1.0.3 or newer is installed from the Chrome Web Store, then run Test-5-Products.bat.
 pause
 exit /b 0
 
