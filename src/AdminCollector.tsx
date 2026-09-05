@@ -216,7 +216,7 @@ export default function AdminCollector() {
         {history.length === 0 ? <p className="health-empty">No stopped collection runs yet.</p> : <div className="health-table-wrap"><table>
           <thead><tr><th>Time</th><th>Total running time</th><th>Succeeded</th><th>Failed</th><th>Products remaining</th><th>Status</th></tr></thead>
           <tbody>{history.map((run) => <tr key={run.runId}>
-            <td>{new Date(run.startedAt).toLocaleTimeString("en-PH", { timeZone: "Asia/Manila", hour: "numeric", minute: "2-digit" })}</td>
+            <td>{new Date(run.startedAt).toLocaleString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", second: "2-digit" })}</td>
             <td>{Math.floor(run.durationSeconds / 3600)}h {Math.floor((run.durationSeconds % 3600) / 60)}m {run.durationSeconds % 60}s</td>
             <td>{run.succeeded}</td><td>{run.failed}</td><td>{run.remaining}</td>
             <td>{run.stopStatus === "stopped_safely" ? "Stopped safely" : "Stopped"}</td>
