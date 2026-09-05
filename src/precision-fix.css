@@ -415,6 +415,7 @@ html[data-theme="dark"] .support-section {
 .admin-collector-status { display: grid; gap: 6px; padding: 18px; border-radius: 12px; background: #0c1210; line-height: 1.5; }
 .admin-collector-status strong { margin-top: 5px; }
 .admin-collector-note { margin: 16px 0 0; color: #f3d486; line-height: 1.5; }
+.admin-collector-history { margin-top: 24px; }
 .health-event-type { color: #11d4aa; }
 .health-event-type.record_failure, .health-event-type.record_partial { color: #ff817d; }
 .health-event-type.duplicate_blocked, .health-event-type.variation_count_changed { color: #ffd278; }
