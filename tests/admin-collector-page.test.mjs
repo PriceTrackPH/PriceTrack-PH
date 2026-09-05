@@ -17,7 +17,7 @@ test("admin collector reuses one product tab and shows a numeric countdown", asy
   assert.match(source, /window\.open\("about:blank", "ptph-admin-collector"\)/);
   assert.match(source, /Math\.max\(1, Math\.ceil\(waitMs \/ 1000\)\)/);
   assert.match(source, /Start collection/);
-  assert.match(source, /Stop safely/);
+  assert.match(source, /Stop collection/);
 });
 
 test("admin collector polls completion for the exact claimed product", async () => {
@@ -25,4 +25,14 @@ test("admin collector polls completion for the exact claimed product", async () 
   assert.match(source, /api<\{ completed: boolean \}>\("status"/);
   assert.match(source, /productId: product\.productId/);
   assert.match(source, /status\.completed/);
+});
+
+test("admin collector saves and displays every stopped run", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  assert.match(source, /action=\$\{action\}/);
+  assert.match(source, /api(?:<[^;]+>)?\("finish"/);
+  assert.match(source, /Collection history/);
+  assert.match(source, /Total running time/);
+  assert.match(source, /Products remaining/);
+  assert.match(source, /Stopped safely/);
 });
