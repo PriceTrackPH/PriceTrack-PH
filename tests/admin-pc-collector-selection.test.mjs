@@ -45,6 +45,11 @@ test("collector run history is written once and newest runs are returned first",
   assert.equal(history[0].stopStatus, "stopped");
 });
 
+test("collector history migration grants service-role upsert permission", async () => {
+  const migration = await readFile(new URL("../supabase/migrations/20260905_collector_run_history.sql", import.meta.url), "utf8");
+  assert.match(migration, /grant select, insert, update on table public\.collector_run_history to service_role;/i);
+});
+
 test("claim uses the atomic random database function and passes prior attempts", async () => {
   const originalFetch = global.fetch;
   let request;
