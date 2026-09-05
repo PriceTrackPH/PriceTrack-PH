@@ -36,3 +36,10 @@ test("admin collector saves and displays every stopped run", async () => {
   assert.match(source, /Products remaining/);
   assert.match(source, /Stopped safely/);
 });
+
+test("collection history uses the same boxed table layout as recent events", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  assert.match(source, /className="health-events admin-collector-history"/);
+  assert.match(source, /className="health-table-wrap"/);
+  assert.match(source, /<table>/);
+});
