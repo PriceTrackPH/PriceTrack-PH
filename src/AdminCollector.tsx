@@ -1,4 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  cooldownEndAfterLimit,
+  cooldownSecondsRemaining,
+  reachedCollectionLimit,
+} from "./collector-session-policy";
 
 type CollectorSummary = {
   totalTracked: number;
@@ -27,6 +32,7 @@ type CollectorRun = {
 };
 
 const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+const cooldownStorageKey = "pricetrack-admin-collector-cooldown-until";
 
 export default function AdminCollector() {
   const token = sessionStorage.getItem("pricetrack-admin-health-token") || "";
@@ -37,6 +43,8 @@ export default function AdminCollector() {
   const [succeeded, setSucceeded] = useState(0);
   const [failed, setFailed] = useState(0);
   const [history, setHistory] = useState<CollectorRun[]>([]);
+  const [cooldownUntil, setCooldownUntil] = useState(() => Number(localStorage.getItem(cooldownStorageKey)) || 0);
+  const [cooldownSeconds, setCooldownSeconds] = useState(() => cooldownSecondsRemaining(Number(localStorage.getItem(cooldownStorageKey)) || 0, Date.now()));
   const stopped = useRef(true);
   const productTab = useRef<Window | null>(null);
   const activeProduct = useRef<CollectorProduct | null>(null);
@@ -83,6 +91,22 @@ export default function AdminCollector() {
   }, []);
 
   useEffect(() => {
+    if (!cooldownUntil) return;
+    const updateCountdown = () => {
+      const seconds = cooldownSecondsRemaining(cooldownUntil, Date.now());
+      setCooldownSeconds(seconds);
+      if (seconds === 0) {
+        localStorage.removeItem(cooldownStorageKey);
+        setCooldownUntil(0);
+        setMessage("Ready");
+      }
+    };
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldownUntil]);
+
+  useEffect(() => {
     const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a"));
     if (links.length < 2) return;
     const [healthLink, affiliateLink] = links;
@@ -101,6 +125,26 @@ export default function AdminCollector() {
     activeProduct.current = null;
     setCurrentProduct(null);
     if (product) await api("release", { productId: product.productId }).catch(() => undefined);
+  }
+
+  async function finishRun(status: CollectorRun["stopStatus"]) {
+    if (!runId.current || !startedAt.current) return;
+    const stoppedAt = new Date().toISOString();
+    const run: CollectorRun = {
+      runId: runId.current,
+      startedAt: startedAt.current,
+      stoppedAt,
+      durationSeconds: Math.max(0, Math.round((Date.parse(stoppedAt) - Date.parse(startedAt.current)) / 1000)),
+      succeeded: succeededCount.current,
+      failed: failedCount.current,
+      soldOut: soldOutCount.current,
+      remaining: Math.max(0, (summary?.totalDue || 0) - succeededCount.current - failedCount.current),
+      recheckAt: recheckAt.current,
+      stopStatus: status,
+    };
+    runId.current = null;
+    await api("finish", { run });
+    setHistory((items) => [run, ...items.filter((item) => item.runId !== run.runId)].slice(0, 50));
   }
 
   async function runCollection() {
@@ -148,6 +192,17 @@ export default function AdminCollector() {
       succeededCount.current += 1;
       setSucceeded(succeededCount.current);
       consecutiveFailures = 0;
+      if (reachedCollectionLimit(succeededCount.current)) {
+        stopped.current = true;
+        setRunning(false);
+        const nextCooldownUntil = cooldownEndAfterLimit(Date.now());
+        localStorage.setItem(cooldownStorageKey, String(nextCooldownUntil));
+        setCooldownUntil(nextCooldownUntil);
+        setCooldownSeconds(cooldownSecondsRemaining(nextCooldownUntil, Date.now()));
+        setMessage("50 products completed");
+        await finishRun("stopped_safely");
+        break;
+      }
       await wait(1_000);
     }
     stopped.current = true;
@@ -155,6 +210,7 @@ export default function AdminCollector() {
   }
 
   async function startCollection() {
+    if (cooldownSeconds > 0) return;
     const opened = window.open("about:blank", "ptph-admin-collector");
     if (!opened) { setMessage("Allow pop-ups for PriceTrack PH, then click Start collection again."); return; }
     productTab.current = opened;
@@ -184,23 +240,7 @@ export default function AdminCollector() {
     setRunning(false);
     const status: CollectorRun["stopStatus"] = wasProcessing ? "stopped" : "stopped_safely";
     setMessage(status === "stopped_safely" ? "Stopped safely" : "Stopped");
-    if (!runId.current || !startedAt.current) return;
-    const stoppedAt = new Date().toISOString();
-    const run: CollectorRun = {
-      runId: runId.current,
-      startedAt: startedAt.current,
-      stoppedAt,
-      durationSeconds: Math.max(0, Math.round((Date.parse(stoppedAt) - Date.parse(startedAt.current)) / 1000)),
-      succeeded: succeededCount.current,
-      failed: failedCount.current,
-      soldOut: soldOutCount.current,
-      remaining,
-      recheckAt: recheckAt.current,
-      stopStatus: status,
-    };
-    runId.current = null;
-    await api("finish", { run });
-    setHistory((items) => [run, ...items.filter((item) => item.runId !== run.runId)].slice(0, 50));
+    await finishRun(status);
   }
 
   const remaining = Math.max(0, (summary?.totalDue || 0) - succeeded - failed - (currentProduct ? 1 : 0));
@@ -210,7 +250,7 @@ export default function AdminCollector() {
       <div className="health-heading"><div><span className="health-kicker">PRIVATE ADMIN</span><h1>PriceTrack PH collector</h1><p>Randomly check available Shopee products in one dedicated Chrome tab.</p></div></div>
       <section className="admin-collector-panel">
         <div className="admin-collector-actions">
-          <button type="button" onClick={() => void startCollection()} disabled={running || !summary}>Start collection</button>
+          <button type="button" onClick={() => void startCollection()} disabled={running || cooldownSeconds > 0 || !summary}>Start collection</button>
           <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
         </div>
         <div className="admin-collector-status" aria-live="polite">
@@ -221,7 +261,9 @@ export default function AdminCollector() {
           <span>Remaining in this run: {summary ? remaining : "—"}</span>
           <span>Succeeded this run: {succeeded}</span>
           <span>Failed this run: {failed}</span>
-          <strong>Status: {message}</strong>
+          <strong>Status: {cooldownSeconds > 0
+            ? `Next collection available in ${Math.floor(cooldownSeconds / 3600)}h ${Math.floor((cooldownSeconds % 3600) / 60)}m ${cooldownSeconds % 60}s`
+            : message}</strong>
         </div>
         <p className="admin-collector-note">Keep this page and the dedicated Shopee tab open. Complete Shopee verification manually if it appears.</p>
       </section>
