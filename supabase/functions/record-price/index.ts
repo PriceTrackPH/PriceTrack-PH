@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { allVariationsSoldOut, shouldSkipObservation } from "./observation-policy.ts";
+import { buildCheckMetadata, shouldSkipObservation } from "./observation-policy.ts";
 
 const cors = {
   "access-control-allow-origin": "*",
@@ -267,6 +267,7 @@ Deno.serve(async (request: Request) => {
       if (quotaCount == null) return reply({ error: "Daily recording limit reached" }, 429);
     }
 
+    const checkMetadata = buildCheckMetadata(variations, Array.isArray(body.variations));
     const productResponse = await fetch(`${supabaseUrl}/rest/v1/products?on_conflict=platform,external_shop_id,external_product_id`, {
       method: "POST",
       headers: adminHeaders(secret, { "content-type": "application/json", prefer: "resolution=merge-duplicates,return=representation" }),
@@ -279,7 +280,7 @@ Deno.serve(async (request: Request) => {
         shop_name: storeName,
         image_url: imageUrl,
         currency: "PHP",
-        all_variations_sold_out: allVariationsSoldOut(variations),
+        all_variations_sold_out: checkMetadata.all_variations_sold_out,
         last_seen_at: observedAt.toISOString(),
         updated_at: now.toISOString(),
         metadata: {
@@ -457,7 +458,7 @@ Deno.serve(async (request: Request) => {
         p_changed_count: insertedCount,
         p_unchanged_count: unchangedCount,
         p_failed_count: failedCount,
-        p_metadata: { collector_format: Array.isArray(body.variations) ? "bulk_models_v1" : "legacy_single_v1" },
+        p_metadata: checkMetadata,
       }),
     });
     if (!markCheckResponse.ok) {

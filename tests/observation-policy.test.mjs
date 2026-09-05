@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { allVariationsSoldOut, shouldSkipObservation } from "../supabase/functions/record-price/observation-policy.ts";
+import {
+  allVariationsSoldOut,
+  buildCheckMetadata,
+  shouldSkipObservation,
+} from "../supabase/functions/record-price/observation-policy.ts";
 
 const unchangedItem = {
   price: 147,
@@ -57,4 +61,17 @@ test("marks a product sold out only when every variation is unavailable", () => 
   assert.equal(allVariationsSoldOut([{ isInStock: false }, { isInStock: false }]), true);
   assert.equal(allVariationsSoldOut([{ isInStock: false }, { isInStock: true }]), false);
   assert.equal(allVariationsSoldOut([]), false);
+});
+
+test("includes the fully sold-out result in completed-check metadata", () => {
+  assert.deepEqual(
+    buildCheckMetadata(
+      [{ isInStock: false }, { isInStock: false }],
+      true,
+    ),
+    {
+      collector_format: "bulk_models_v1",
+      all_variations_sold_out: true,
+    },
+  );
 });

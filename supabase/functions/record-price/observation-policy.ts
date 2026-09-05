@@ -15,6 +15,13 @@ export function allVariationsSoldOut(items: IncomingObservation[]) {
   return items.length > 0 && items.every((item) => item.isInStock === false);
 }
 
+export function buildCheckMetadata(items: IncomingObservation[], isBulkCollection: boolean) {
+  return {
+    collector_format: isBulkCollection ? "bulk_models_v1" : "legacy_single_v1",
+    all_variations_sold_out: allVariationsSoldOut(items),
+  };
+}
+
 const manilaDateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila",
   year: "numeric",
