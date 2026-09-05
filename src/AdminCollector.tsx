@@ -20,7 +20,9 @@ type CollectorRun = {
   durationSeconds: number;
   succeeded: number;
   failed: number;
+  soldOut: number;
   remaining: number;
+  recheckAt: string | null;
   stopStatus: "stopped" | "stopped_safely";
 };
 
@@ -43,6 +45,8 @@ export default function AdminCollector() {
   const runId = useRef<string | null>(null);
   const succeededCount = useRef(0);
   const failedCount = useRef(0);
+  const soldOutCount = useRef(0);
+  const recheckAt = useRef<string | null>(null);
 
   async function api<T>(action: string, body: Record<string, unknown> = {}) {
     const response = await fetch(`/api/admin-pc-collector?action=${action}`, {
@@ -118,8 +122,15 @@ export default function AdminCollector() {
       const deadline = Date.now() + 75_000;
       while (!stopped.current && Date.now() < deadline) {
         await wait(1000);
-        const status = await api<{ completed: boolean }>("status", { productId: product.productId });
-        if (status.completed) { completed = true; break; }
+        const status = await api<{ completed: boolean; soldOut: boolean; recheckAt: string | null }>("status", { productId: product.productId });
+        if (status.completed) {
+          if (status.soldOut) {
+            soldOutCount.current += 1;
+            recheckAt.current = status.recheckAt;
+          }
+          completed = true;
+          break;
+        }
       }
       if (stopped.current) break;
 
@@ -150,6 +161,7 @@ export default function AdminCollector() {
     stopped.current = false;
     attemptedProductIds.current.clear();
     succeededCount.current = 0; failedCount.current = 0;
+    soldOutCount.current = 0; recheckAt.current = null;
     startedAt.current = new Date().toISOString();
     runId.current = crypto.randomUUID();
     setSucceeded(0); setFailed(0); setRunning(true); setMessage("Starting");
@@ -181,7 +193,9 @@ export default function AdminCollector() {
       durationSeconds: Math.max(0, Math.round((Date.parse(stoppedAt) - Date.parse(startedAt.current)) / 1000)),
       succeeded: succeededCount.current,
       failed: failedCount.current,
+      soldOut: soldOutCount.current,
       remaining,
+      recheckAt: recheckAt.current,
       stopStatus: status,
     };
     runId.current = null;
@@ -214,11 +228,12 @@ export default function AdminCollector() {
       <section className="health-events admin-collector-history">
         <h2>Collection history</h2>
         {history.length === 0 ? <p className="health-empty">No stopped collection runs yet.</p> : <div className="health-table-wrap"><table>
-          <thead><tr><th>Time</th><th>Total running time</th><th>Succeeded</th><th>Failed</th><th>Products remaining</th><th>Status</th></tr></thead>
+          <thead><tr><th>Time</th><th>Running time</th><th>Succeeded</th><th>Failed</th><th>Sold out</th><th>Remaining</th><th>Recheck</th><th>Status</th></tr></thead>
           <tbody>{history.map((run) => <tr key={run.runId}>
             <td>{new Date(run.startedAt).toLocaleString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", second: "2-digit" })}</td>
             <td>{Math.floor(run.durationSeconds / 3600)}h {Math.floor((run.durationSeconds % 3600) / 60)}m {run.durationSeconds % 60}s</td>
-            <td>{run.succeeded}</td><td>{run.failed}</td><td>{run.remaining}</td>
+            <td>{run.succeeded}</td><td>{run.failed}</td><td>{run.soldOut}</td><td>{run.remaining}</td>
+            <td>{run.recheckAt ? new Date(run.recheckAt).toLocaleDateString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit" }) : "—"}</td>
             <td>{run.stopStatus === "stopped_safely" ? "Stopped safely" : "Stopped"}</td>
           </tr>)}</tbody>
         </table></div>}
