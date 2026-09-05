@@ -77,6 +77,52 @@ export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds
   };
 }
 
+export async function collectorHistory(supabaseUrl, secret) {
+  const params = new URLSearchParams({
+    select: "run_id,started_at,stopped_at,duration_seconds,succeeded,failed,remaining,stop_status",
+    order: "stopped_at.desc",
+    limit: "50",
+  });
+  const response = await fetch(`${supabaseUrl}/rest/v1/collector_run_history?${params}`, {
+    headers: adminHeaders(secret),
+  });
+  if (!response.ok) throw new Error(`collector_history_${response.status}`);
+  const rows = await response.json();
+  return rows.map((row) => ({
+    runId: row.run_id,
+    startedAt: row.started_at,
+    stoppedAt: row.stopped_at,
+    durationSeconds: safeInteger(row.duration_seconds),
+    succeeded: safeInteger(row.succeeded),
+    failed: safeInteger(row.failed),
+    remaining: safeInteger(row.remaining),
+    stopStatus: row.stop_status === "stopped_safely" ? "stopped_safely" : "stopped",
+  }));
+}
+
+export async function saveCollectorRun(supabaseUrl, secret, run) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/collector_run_history?on_conflict=run_id`, {
+    method: "POST",
+    headers: adminHeaders(secret, {
+      "Content-Type": "application/json",
+      Prefer: "return=representation,resolution=merge-duplicates",
+    }),
+    body: JSON.stringify({
+      run_id: String(run.runId),
+      started_at: run.startedAt,
+      stopped_at: run.stoppedAt,
+      duration_seconds: safeInteger(run.durationSeconds),
+      succeeded: safeInteger(run.succeeded),
+      failed: safeInteger(run.failed),
+      remaining: safeInteger(run.remaining),
+      stop_status: run.stopStatus === "stopped_safely" ? "stopped_safely" : "stopped",
+    }),
+  });
+  if (!response.ok) throw new Error(`collector_finish_${response.status}`);
+  const [saved] = await response.json();
+  return saved;
+}
+
 async function releaseProduct(supabaseUrl, secret, productId) {
   const response = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${productId}`, {
     method: "PATCH",
@@ -154,6 +200,19 @@ export default async function handler(req, res) {
   try {
     if (action === "summary") {
       return send(res, 200, { ok: true, ...(await collectorSummary(supabaseUrl, secret)) });
+    }
+
+    if (action === "history") {
+      return send(res, 200, { ok: true, history: await collectorHistory(supabaseUrl, secret) });
+    }
+
+    if (action === "finish") {
+      const run = req.body?.run;
+      if (!run || typeof run !== "object" || Array.isArray(run) || !/^[0-9a-f-]{36}$/i.test(String(run.runId || ""))) {
+        return send(res, 400, { error: "A valid collector run is required" });
+      }
+      const saved = await saveCollectorRun(supabaseUrl, secret, run);
+      return send(res, 200, { ok: true, saved });
     }
 
     if (action === "claim") {
