@@ -12,10 +12,11 @@ test("routes the protected collector admin page", async () => {
   assert.ok(vercel.rewrites.some((rewrite) => rewrite.source === "/admin/collector" && rewrite.destination === "/"));
 });
 
-test("admin collector reuses one product tab and shows a numeric countdown", async () => {
+test("admin collector reuses one product tab and waits one second after recording", async () => {
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
   assert.match(source, /window\.open\("about:blank", "ptph-admin-collector"\)/);
-  assert.match(source, /Math\.max\(1, Math\.ceil\(waitMs \/ 1000\)\)/);
+  assert.match(source, /consecutiveFailures = 0;\s+await wait\(1_000\);/);
+  assert.doesNotMatch(source, /setMessage\(String\(Math\.max/);
   assert.match(source, /Start collection/);
   assert.match(source, /Stop collection/);
 });
