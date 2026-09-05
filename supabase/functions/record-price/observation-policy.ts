@@ -11,6 +11,16 @@ type IncomingObservation = {
   isInStock: boolean;
 };
 
+const DAILY_RECORDING_LIMIT = 2_000;
+
+export function buildIngestQuotaRequest(clientHash: string, observedDate: string) {
+  return {
+    p_client_hash: clientHash,
+    p_observed_date: observedDate,
+    p_limit: DAILY_RECORDING_LIMIT,
+  };
+}
+
 export function allVariationsSoldOut(items: IncomingObservation[]) {
   return items.length > 0 && items.every((item) => item.isInStock === false);
 }

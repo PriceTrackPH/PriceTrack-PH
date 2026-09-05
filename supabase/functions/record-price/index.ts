@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { buildCheckMetadata, shouldCompleteQueue, shouldSkipObservation } from "./observation-policy.ts";
+import { buildCheckMetadata, buildIngestQuotaRequest, shouldCompleteQueue, shouldSkipObservation } from "./observation-policy.ts";
 
 const cors = {
   "access-control-allow-origin": "*",
@@ -10,7 +10,6 @@ const cors = {
 
 const MAX_BODY_BYTES = 512_000;
 const MAX_VARIATIONS = 200;
-const DAILY_REQUEST_LIMIT = 200;
 const MAX_METADATA_BYTES = 4_096;
 const MAX_OBSERVATION_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_FUTURE_SKEW_MS = 15 * 60 * 1000;
@@ -253,11 +252,7 @@ Deno.serve(async (request: Request) => {
       const quotaResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_ingest_quota`, {
         method: "POST",
         headers: adminHeaders(secret, { "content-type": "application/json" }),
-        body: JSON.stringify({
-          p_client_hash: clientHash,
-          p_observed_date: observedDate,
-          p_limit: DAILY_REQUEST_LIMIT,
-        }),
+        body: JSON.stringify(buildIngestQuotaRequest(clientHash, observedDate)),
       });
       if (!quotaResponse.ok) {
         console.error("Quota check failed", await quotaResponse.text());

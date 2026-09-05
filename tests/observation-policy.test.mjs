@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   allVariationsSoldOut,
   buildCheckMetadata,
+  buildIngestQuotaRequest,
   shouldCompleteQueue,
   shouldSkipObservation,
 } from "../supabase/functions/record-price/observation-policy.ts";
@@ -79,6 +80,17 @@ test("includes the fully sold-out result in completed-check metadata", () => {
     {
       collector_format: "bulk_models_v1",
       all_variations_sold_out: true,
+    },
+  );
+});
+
+test("allows the hourly admin collector to record up to 2,000 products per installation daily", () => {
+  assert.deepEqual(
+    buildIngestQuotaRequest("client-hash", "2026-09-05"),
+    {
+      p_client_hash: "client-hash",
+      p_observed_date: "2026-09-05",
+      p_limit: 2_000,
     },
   );
 });
