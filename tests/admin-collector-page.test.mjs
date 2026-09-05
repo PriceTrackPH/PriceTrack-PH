@@ -23,7 +23,7 @@ test("admin collector reuses one product tab and waits one second after recordin
 
 test("admin collector polls completion for the exact claimed product", async () => {
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
-  assert.match(source, /api<\{ completed: boolean \}>\("status"/);
+  assert.match(source, /api<\{ completed: boolean; soldOut: boolean; recheckAt: string \| null \}>\("status"/);
   assert.match(source, /productId: product\.productId/);
   assert.match(source, /status\.completed/);
 });
@@ -33,8 +33,8 @@ test("admin collector saves and displays every stopped run", async () => {
   assert.match(source, /action=\$\{action\}/);
   assert.match(source, /api(?:<[^;]+>)?\("finish"/);
   assert.match(source, /Collection history/);
-  assert.match(source, /Total running time/);
-  assert.match(source, /Products remaining/);
+  assert.match(source, /Running time/);
+  assert.match(source, /Remaining/);
   assert.match(source, /Stopped safely/);
 });
 
@@ -53,4 +53,17 @@ test("collection history shows the Philippine start date and exact time", async 
   assert.match(source, /<th>Time<\/th>/);
   assert.match(source, /new Date\(run\.startedAt\)\.toLocaleString\("en-US", \{ timeZone: "Asia\/Manila", year: "2-digit", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", second: "2-digit" \}\)/);
   assert.doesNotMatch(source, /<th>Stopped<\/th>/);
+});
+
+test("collection history shows sold-out totals and recheck dates with shorter headings", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /<th>Running time<\/th>/);
+  assert.match(source, /<th>Sold out<\/th>/);
+  assert.match(source, /<th>Remaining<\/th>/);
+  assert.match(source, /<th>Recheck<\/th>/);
+  assert.match(source, /run\.soldOut/);
+  assert.match(source, /run\.recheckAt/);
+  assert.doesNotMatch(source, /<th>Total running time<\/th>/);
+  assert.doesNotMatch(source, /<th>Products remaining<\/th>/);
 });
