@@ -16,11 +16,21 @@ import shopeeLogo from "./assets/shopee-logo.png";
 import AdminHealth from "./AdminHealth";
 import AdminCollector from "./AdminCollector";
 import ReportAd from "./ReportAd";
+import { isMobileVisitor, requestUntrackedProduct } from "./public-collection-request";
 
 type Product = Tables<"products">;
 type Variation = Tables<"product_variations">;
 type Observation = Tables<"price_observations">;
 type RangeKey = "7D" | "30D" | "90D" | "ALL";
+
+const UNTRACKED_DESKTOP_MESSAGE = "This product hasn't been tracked yet. Open it on a PC with the PriceTrack PH Chrome extension to record its first price and variations.";
+
+class UntrackedProductError extends Error {
+  constructor() {
+    super(UNTRACKED_DESKTOP_MESSAGE);
+    this.name = "UntrackedProductError";
+  }
+}
 
 type ChartObservation = {
   price: number;
@@ -520,7 +530,7 @@ function ReportApp() {
       .maybeSingle();
 
     if (productError) throw productError;
-    if (!found) throw new Error("This product hasn't been tracked yet. Open it on a PC with the PriceTrack PH Chrome extension to record its first price and variations.");
+    if (!found) throw new UntrackedProductError();
 
     const { data: models, error: variationError } = await supabase
       .from("product_variations")
@@ -646,10 +656,17 @@ function ReportApp() {
     setLoading(true);
     setError(null);
     try {
+      const submittedLink = /^https?:\/\//i.test(query.trim());
       const ids = await resolveProductQuery(query);
-      const found = await loadProduct(ids.shopId, ids.productId);
-      showPermanentProductUrl(found, "push");
-      setHasSearched(true);
+      try {
+        const found = await loadProduct(ids.shopId, ids.productId);
+        showPermanentProductUrl(found, "push");
+        setHasSearched(true);
+      } catch (cause) {
+        if (!(cause instanceof UntrackedProductError) || !submittedLink || !isMobileVisitor()) throw cause;
+        setHasSearched(true);
+        setError(await requestUntrackedProduct(ids));
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to load this product.");
     } finally {

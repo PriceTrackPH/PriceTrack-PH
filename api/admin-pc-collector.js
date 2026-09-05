@@ -37,17 +37,47 @@ async function digest(value) {
 }
 
 export async function collectorSummary(supabaseUrl, secret) {
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/collector_available_summary`, {
+  const options = {
     method: "POST",
     headers: adminHeaders(secret, { "Content-Type": "application/json" }),
     body: "{}",
-  });
+  };
+  const [response, priorityResponse] = await Promise.all([
+    fetch(`${supabaseUrl}/rest/v1/rpc/collector_available_summary`, options),
+    fetch(`${supabaseUrl}/rest/v1/rpc/public_collection_queue_pending_count`, options),
+  ]);
   if (!response.ok) throw new Error(`collector_summary_${response.status}`);
+  if (!priorityResponse.ok) throw new Error(`priority_count_${priorityResponse.status}`);
   const [summary] = await response.json();
+  const priorityPending = await priorityResponse.json();
   return {
     totalTracked: safeInteger(summary?.total_tracked),
     totalDue: safeInteger(summary?.total_due),
     soldOutDeferred: safeInteger(summary?.sold_out_deferred),
+    priorityPending: safeInteger(Array.isArray(priorityPending) ? priorityPending[0] : priorityPending),
+  };
+}
+
+export async function claimPriorityProduct(supabaseUrl, secret, excludedRequestIds = [], leaseUntil) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_oldest_public_collection_request`, {
+    method: "POST",
+    headers: adminHeaders(secret, { "Content-Type": "application/json" }),
+    body: JSON.stringify({ p_excluded_request_ids: excludedRequestIds, p_lease_until: leaseUntil }),
+  });
+  if (!response.ok) throw new Error(`priority_claim_${response.status}`);
+  const [request] = await response.json();
+  if (!request) return null;
+  if (!request.request_id || !/^\d+$/.test(String(request.shop_id || ""))
+    || !/^\d+$/.test(String(request.external_product_id || ""))
+    || typeof request.product_url !== "string") throw new Error("invalid_priority_product");
+  return {
+    claimSource: "priority",
+    queueRequestId: String(request.request_id),
+    productId: null,
+    shopId: String(request.shop_id),
+    externalProductId: String(request.external_product_id),
+    productUrl: request.product_url,
+    leaseUntil: request.lease_until,
   };
 }
 
@@ -69,12 +99,28 @@ export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds
   if (!validProduct(normalized)) throw new Error("invalid_due_product");
 
   return {
+    claimSource: "random",
+    queueRequestId: null,
     productId: Number(product.product_id),
     shopId: String(product.shop_id),
     externalProductId: String(product.external_product_id),
     productUrl: product.product_url,
     leaseUntil: product.lease_until,
   };
+}
+
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil) {
+  const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
+  return priority ?? claimRandomProduct(supabaseUrl, secret, excludedProductIds);
+}
+
+export async function releasePriorityProduct(supabaseUrl, secret, requestId, leaseUntil) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/release_public_collection_request`, {
+    method: "POST",
+    headers: adminHeaders(secret, { "Content-Type": "application/json" }),
+    body: JSON.stringify({ p_request_id: requestId, p_expected_lease_until: leaseUntil }),
+  });
+  if (!response.ok) throw new Error(`priority_release_${response.status}`);
 }
 
 export async function collectorHistory(supabaseUrl, secret) {
@@ -172,6 +218,21 @@ async function productCheckStatus(supabaseUrl, secret, productId) {
   };
 }
 
+export async function productCheckStatusByIdentity(supabaseUrl, secret, shopId, externalProductId) {
+  const params = new URLSearchParams({
+    platform: "eq.shopee",
+    external_shop_id: `eq.${shopId}`,
+    external_product_id: `eq.${externalProductId}`,
+    select: "id",
+    limit: "1",
+  });
+  const response = await fetch(`${supabaseUrl}/rest/v1/products?${params}`, { headers: adminHeaders(secret) });
+  if (!response.ok) throw new Error(`priority_product_status_${response.status}`);
+  const [product] = await response.json();
+  if (!product) return { completed: false, checkedAt: null, soldOut: false, recheckAt: null };
+  return productCheckStatus(supabaseUrl, secret, product.id);
+}
+
 async function recordProduct(supabaseUrl, secret, publishableKey, payload) {
   const response = await fetch(`${supabaseUrl}/functions/v1/record-price`, {
     method: "POST",
@@ -237,11 +298,24 @@ export default async function handler(req, res) {
       const attemptedProductIds = Array.isArray(req.body?.attemptedProductIds)
         ? req.body.attemptedProductIds.map((value) => safeInteger(value)).filter(Boolean).slice(0, 5000)
         : [];
-      const product = await claimRandomProduct(supabaseUrl, secret, attemptedProductIds);
+      const attemptedQueueRequestIds = Array.isArray(req.body?.attemptedQueueRequestIds)
+        ? req.body.attemptedQueueRequestIds.map(String).filter(Boolean).slice(0, 5000)
+        : [];
+      const leaseUntil = new Date(Date.now() + 5 * 60_000).toISOString();
+      const product = await claimNextProduct(
+        supabaseUrl, secret, attemptedProductIds, attemptedQueueRequestIds, leaseUntil,
+      );
       return send(res, 200, { ok: true, product });
     }
 
     if (action === "release") {
+      if (req.body?.claimSource === "priority") {
+        const queueRequestId = String(req.body?.queueRequestId || "");
+        const leaseUntil = String(req.body?.leaseUntil || "");
+        if (!queueRequestId || !leaseUntil) return send(res, 400, { error: "A valid priority lease is required" });
+        await releasePriorityProduct(supabaseUrl, secret, queueRequestId, leaseUntil);
+        return send(res, 200, { ok: true });
+      }
       const productId = safeInteger(req.body?.productId);
       if (!productId) return send(res, 400, { error: "A valid product ID is required" });
       await releaseProduct(supabaseUrl, secret, productId);
@@ -250,8 +324,18 @@ export default async function handler(req, res) {
 
     if (action === "status") {
       const productId = safeInteger(req.body?.productId);
-      if (!productId) return send(res, 400, { error: "A valid product ID is required" });
-      return send(res, 200, { ok: true, ...(await productCheckStatus(supabaseUrl, secret, productId)) });
+      if (productId) {
+        return send(res, 200, { ok: true, ...(await productCheckStatus(supabaseUrl, secret, productId)) });
+      }
+      const shopId = String(req.body?.shopId || "");
+      const externalProductId = String(req.body?.externalProductId || "");
+      if (!/^\d+$/.test(shopId) || !/^\d+$/.test(externalProductId)) {
+        return send(res, 400, { error: "A valid product identity is required" });
+      }
+      return send(res, 200, {
+        ok: true,
+        ...(await productCheckStatusByIdentity(supabaseUrl, secret, shopId, externalProductId)),
+      });
     }
 
     if (action === "record") {

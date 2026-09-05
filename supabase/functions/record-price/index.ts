@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { buildCheckMetadata, shouldSkipObservation } from "./observation-policy.ts";
+import { buildCheckMetadata, shouldCompleteQueue, shouldSkipObservation } from "./observation-policy.ts";
 
 const cors = {
   "access-control-allow-origin": "*",
@@ -463,6 +463,20 @@ Deno.serve(async (request: Request) => {
     });
     if (!markCheckResponse.ok) {
       console.error("Daily check update failed", await markCheckResponse.text());
+    }
+    if (shouldCompleteQueue(checkStatus, markCheckResponse.ok)) {
+      const completionResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/complete_public_collection_request`, {
+        method: "POST",
+        headers: adminHeaders(secret, { "content-type": "application/json" }),
+        body: JSON.stringify({
+          p_platform: "shopee",
+          p_external_shop_id: shopId,
+          p_external_product_id: productId,
+        }),
+      });
+      if (!completionResponse.ok) {
+        console.error("Collection queue completion failed", completionResponse.status);
+      }
     }
 
     return reply({

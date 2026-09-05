@@ -4,8 +4,15 @@ import assert from "node:assert/strict";
 import {
   allVariationsSoldOut,
   buildCheckMetadata,
+  shouldCompleteQueue,
   shouldSkipObservation,
 } from "../supabase/functions/record-price/observation-policy.ts";
+
+test("completes a queued request only after a successful daily check", () => {
+  assert.equal(shouldCompleteQueue("success", true), true);
+  assert.equal(shouldCompleteQueue("partial", true), false);
+  assert.equal(shouldCompleteQueue("success", false), false);
+});
 
 const unchangedItem = {
   price: 147,

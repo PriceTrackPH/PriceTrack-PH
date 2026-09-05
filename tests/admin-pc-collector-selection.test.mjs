@@ -2,7 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-import handler, { claimRandomProduct, collectorSummary, collectorHistory, saveCollectorRun } from "../api/admin-pc-collector.js";
+import handler, {
+  claimNextProduct,
+  claimPriorityProduct,
+  claimRandomProduct,
+  collectorSummary,
+  collectorHistory,
+  productCheckStatusByIdentity,
+  releasePriorityProduct,
+  saveCollectorRun,
+} from "../api/admin-pc-collector.js";
 
 test("summary uses the database availability cross-check", async () => {
   const originalFetch = global.fetch;
@@ -12,14 +21,87 @@ test("summary uses the database availability cross-check", async () => {
     if (String(url).includes("collector_available_summary")) {
       return { ok: true, json: async () => [{ total_tracked: 704, total_due: 603, sold_out_deferred: 101 }] };
     }
-    return { ok: true, headers: new Headers({ "content-range": "0-0/7" }) };
+    if (String(url).includes("public_collection_queue_pending_count")) {
+      return { ok: true, json: async () => 7 };
+    }
+    throw new Error(`unexpected ${url}`);
   };
   try {
-    await collectorSummary("https://example.supabase.co", "secret");
+    const summary = await collectorSummary("https://example.supabase.co", "secret");
+    assert.equal(summary.priorityPending, 7);
   } finally {
     global.fetch = originalFetch;
   }
   assert.ok(urls.some((url) => url.endsWith("/rest/v1/rpc/collector_available_summary")));
+});
+
+test("claims the oldest priority request before random due products", async () => {
+  const calls = [];
+  global.fetch = async (url, options) => {
+    calls.push(String(url));
+    assert.deepEqual(JSON.parse(options.body), {
+      p_excluded_request_ids: ["queue-previous"],
+      p_lease_until: "2026-09-05T02:00:00.000Z",
+    });
+    return { ok: true, json: async () => [{
+      request_id: "queue-1",
+      shop_id: "100",
+      external_product_id: "200",
+      product_url: "https://shopee.ph/product/100/200",
+      lease_until: "2026-09-05T02:00:00.000Z",
+    }] };
+  };
+  const claim = await claimNextProduct(
+    "https://example.supabase.co", "secret", [9], ["queue-previous"], "2026-09-05T02:00:00.000Z",
+  );
+  assert.equal(calls.length, 1);
+  assert.match(calls[0], /claim_oldest_public_collection_request$/);
+  assert.deepEqual(claim, {
+    claimSource: "priority", queueRequestId: "queue-1", productId: null,
+    shopId: "100", externalProductId: "200",
+    productUrl: "https://shopee.ph/product/100/200", leaseUntil: "2026-09-05T02:00:00.000Z",
+  });
+});
+
+test("falls back to the existing random claim only when the priority queue is empty", async () => {
+  const calls = [];
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    if (String(url).includes("claim_oldest_public_collection_request")) return { ok: true, json: async () => [] };
+    return { ok: true, json: async () => [{
+      product_id: 42, shop_id: "100", external_product_id: "200",
+      product_url: "https://shopee.ph/item-i.100.200", lease_until: "2026-09-05T02:00:00.000Z",
+    }] };
+  };
+  const claim = await claimNextProduct("https://example.supabase.co", "secret", [9], [], "2026-09-05T02:00:00.000Z");
+  assert.equal(calls.length, 2);
+  assert.equal(claim.claimSource, "random");
+  assert.equal(claim.productId, 42);
+});
+
+test("releases only the lease owned by the priority claim", async () => {
+  let request;
+  global.fetch = async (url, options) => {
+    request = { url: String(url), body: JSON.parse(options.body) };
+    return { ok: true, json: async () => null };
+  };
+  await releasePriorityProduct("https://example.supabase.co", "secret", "queue-1", "2026-09-05T02:00:00.000Z");
+  assert.match(request.url, /release_public_collection_request$/);
+  assert.deepEqual(request.body, { p_request_id: "queue-1", p_expected_lease_until: "2026-09-05T02:00:00.000Z" });
+});
+
+test("finds priority completion by stable Shopee identity", async () => {
+  const urls = [];
+  global.fetch = async (url) => {
+    urls.push(String(url));
+    if (String(url).includes("/products?platform=eq.shopee")) return { ok: true, json: async () => [{ id: 77 }] };
+    if (String(url).includes("product_daily_checks")) return { ok: true, json: async () => [{ checked_at: "2026-09-05T03:00:00.000Z" }] };
+    return { ok: true, json: async () => [{ all_variations_sold_out: false, next_check_at: null }] };
+  };
+  const status = await productCheckStatusByIdentity("https://example.supabase.co", "secret", "100", "200");
+  assert.equal(status.completed, true);
+  assert.ok(urls[0].includes("external_shop_id=eq.100"));
+  assert.ok(urls[0].includes("external_product_id=eq.200"));
 });
 
 test("collector run history is written once and newest runs are returned first", async () => {

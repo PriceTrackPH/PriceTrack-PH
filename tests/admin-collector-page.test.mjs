@@ -32,6 +32,16 @@ test("admin collector polls completion for the exact claimed product", async () 
   assert.match(source, /status\.completed/);
 });
 
+test("admin collector processes priority claims and shows only their pending count", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  assert.match(source, /priorityPending: number/);
+  assert.match(source, /Priority queue pending: \{summary\?\.priorityPending \?\? "—"\}/);
+  assert.match(source, /attemptedQueueRequestIds/);
+  assert.match(source, /claimSource: "priority" \| "random"/);
+  assert.match(source, /queueRequestId/);
+  assert.doesNotMatch(source, /<th>Queued product<\/th>|Queue management|Priority queue history/);
+});
+
 test("admin collector saves and displays every stopped run", async () => {
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
   assert.match(source, /action=\$\{action\}/);

@@ -22,6 +22,10 @@ export function buildCheckMetadata(items: IncomingObservation[], isBulkCollectio
   };
 }
 
+export function shouldCompleteQueue(checkStatus: string, markSucceeded: boolean) {
+  return checkStatus === "success" && markSucceeded;
+}
+
 const manilaDateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila",
   year: "numeric",

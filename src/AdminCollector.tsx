@@ -9,13 +9,17 @@ type CollectorSummary = {
   totalTracked: number;
   totalDue: number;
   soldOutDeferred: number;
+  priorityPending: number;
 };
 
 type CollectorProduct = {
-  productId: number;
+  claimSource: "priority" | "random";
+  queueRequestId: string | null;
+  productId: number | null;
   shopId: string;
   externalProductId: string;
   productUrl: string;
+  leaseUntil: string;
 };
 
 type CollectorRun = {
@@ -49,6 +53,7 @@ export default function AdminCollector() {
   const productTab = useRef<Window | null>(null);
   const activeProduct = useRef<CollectorProduct | null>(null);
   const attemptedProductIds = useRef(new Set<number>());
+  const attemptedQueueRequestIds = useRef(new Set<string>());
   const startedAt = useRef<string | null>(null);
   const runId = useRef<string | null>(null);
   const succeededCount = useRef(0);
@@ -124,7 +129,12 @@ export default function AdminCollector() {
     const product = activeProduct.current;
     activeProduct.current = null;
     setCurrentProduct(null);
-    if (product) await api("release", { productId: product.productId }).catch(() => undefined);
+    if (product) await api("release", {
+      claimSource: product.claimSource,
+      queueRequestId: product.queueRequestId,
+      productId: product.productId,
+      leaseUntil: product.leaseUntil,
+    }).catch(() => undefined);
   }
 
   async function finishRun(status: CollectorRun["stopStatus"]) {
@@ -152,10 +162,12 @@ export default function AdminCollector() {
     while (!stopped.current) {
       const claim = await api<{ product: CollectorProduct | null }>("claim", {
         attemptedProductIds: [...attemptedProductIds.current],
+        attemptedQueueRequestIds: [...attemptedQueueRequestIds.current],
       });
       const product = claim.product;
       if (!product) { setMessage("No more available due products"); break; }
-      attemptedProductIds.current.add(product.productId);
+      if (product.productId !== null) attemptedProductIds.current.add(product.productId);
+      if (product.queueRequestId !== null) attemptedQueueRequestIds.current.add(product.queueRequestId);
       activeProduct.current = product;
       setCurrentProduct(product);
       setMessage(`Opening ${product.shopId}.${product.externalProductId}`);
@@ -166,7 +178,11 @@ export default function AdminCollector() {
       const deadline = Date.now() + 75_000;
       while (!stopped.current && Date.now() < deadline) {
         await wait(1000);
-        const status = await api<{ completed: boolean; soldOut: boolean; recheckAt: string | null }>("status", { productId: product.productId });
+        const status = await api<{ completed: boolean; soldOut: boolean; recheckAt: string | null }>("status",
+          product.claimSource === "priority"
+            ? { shopId: product.shopId, externalProductId: product.externalProductId }
+            : { productId: product.productId },
+        );
         if (status.completed) {
           if (status.soldOut) {
             soldOutCount.current += 1;
@@ -191,6 +207,10 @@ export default function AdminCollector() {
       setCurrentProduct(null);
       succeededCount.current += 1;
       setSucceeded(succeededCount.current);
+      if (product.claimSource === "priority") {
+        const next = await api<CollectorSummary & { ok: boolean }>("summary");
+        setSummary(next);
+      }
       consecutiveFailures = 0;
       if (reachedCollectionLimit(succeededCount.current)) {
         stopped.current = true;
@@ -216,6 +236,7 @@ export default function AdminCollector() {
     productTab.current = opened;
     stopped.current = false;
     attemptedProductIds.current.clear();
+    attemptedQueueRequestIds.current.clear();
     succeededCount.current = 0; failedCount.current = 0;
     soldOutCount.current = 0; recheckAt.current = null;
     startedAt.current = new Date().toISOString();
@@ -257,6 +278,7 @@ export default function AdminCollector() {
           <span>Total products: {summary?.totalTracked ?? "—"}</span>
           <span>Available and due: {summary?.totalDue ?? "—"}</span>
           <span>Sold out excluded: {summary?.soldOutDeferred ?? "—"}</span>
+          <span>Priority queue pending: {summary?.priorityPending ?? "—"}</span>
           <span>Currently processing: {currentProduct ? 1 : 0}</span>
           <span>Remaining in this run: {summary ? remaining : "—"}</span>
           <span>Succeeded this run: {succeeded}</span>
