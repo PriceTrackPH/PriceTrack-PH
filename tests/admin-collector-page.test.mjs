@@ -52,6 +52,15 @@ test("admin collector saves and displays every stopped run", async () => {
   assert.match(source, /Stopped safely/);
 });
 
+test("admin collector saves an empty run when no products are due", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+
+  assert.match(
+    source,
+    /if \(!product\) \{[^}]*setMessage\("No more available due products"\);[^}]*await finishRun\("stopped_safely"\);[^}]*break;/s,
+  );
+});
+
 test("collection history uses the same boxed table layout as recent events", async () => {
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
   const styles = await readFile(new URL("../src/precision-fix.css", import.meta.url), "utf8");
