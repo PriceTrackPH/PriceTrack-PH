@@ -46,3 +46,11 @@ test("collection history uses the same boxed table layout as recent events", asy
   assert.match(source, /<table>/);
   assert.match(styles, /\.admin-collector-history\s*\{[^}]*margin-top:\s*24px;/);
 });
+
+test("collection history shows the Philippine start time", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /<th>Time<\/th>/);
+  assert.match(source, /new Date\(run\.startedAt\)\.toLocaleTimeString\("en-PH", \{ timeZone: "Asia\/Manila", hour: "numeric", minute: "2-digit" \}\)/);
+  assert.doesNotMatch(source, /<th>Stopped<\/th>/);
+});
