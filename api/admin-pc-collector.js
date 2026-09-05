@@ -79,7 +79,7 @@ export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds
 
 export async function collectorHistory(supabaseUrl, secret) {
   const params = new URLSearchParams({
-    select: "run_id,started_at,stopped_at,duration_seconds,succeeded,failed,remaining,stop_status",
+    select: "run_id,started_at,stopped_at,duration_seconds,succeeded,failed,sold_out,remaining,recheck_at,stop_status",
     order: "stopped_at.desc",
     limit: "50",
   });
@@ -95,7 +95,9 @@ export async function collectorHistory(supabaseUrl, secret) {
     durationSeconds: safeInteger(row.duration_seconds),
     succeeded: safeInteger(row.succeeded),
     failed: safeInteger(row.failed),
+    soldOut: safeInteger(row.sold_out),
     remaining: safeInteger(row.remaining),
+    recheckAt: typeof row.recheck_at === "string" ? row.recheck_at : null,
     stopStatus: row.stop_status === "stopped_safely" ? "stopped_safely" : "stopped",
   }));
 }
@@ -114,7 +116,9 @@ export async function saveCollectorRun(supabaseUrl, secret, run) {
       duration_seconds: safeInteger(run.durationSeconds),
       succeeded: safeInteger(run.succeeded),
       failed: safeInteger(run.failed),
+      sold_out: safeInteger(run.soldOut),
       remaining: safeInteger(run.remaining),
+      recheck_at: typeof run.recheckAt === "string" ? run.recheckAt : null,
       stop_status: run.stopStatus === "stopped_safely" ? "stopped_safely" : "stopped",
     }),
   });
@@ -151,7 +155,21 @@ async function productCheckStatus(supabaseUrl, secret, productId) {
   });
   if (!response.ok) throw new Error(`product_status_${response.status}`);
   const rows = await response.json();
-  return { completed: rows.length > 0, checkedAt: rows[0]?.checked_at || null };
+  if (rows.length === 0) return { completed: false, checkedAt: null, soldOut: false, recheckAt: null };
+
+  const productResponse = await fetch(
+    `${supabaseUrl}/rest/v1/products?id=eq.${productId}&select=all_variations_sold_out,next_check_at&limit=1`,
+    { headers: adminHeaders(secret) },
+  );
+  if (!productResponse.ok) throw new Error(`product_recheck_${productResponse.status}`);
+  const [product] = await productResponse.json();
+  const soldOut = product?.all_variations_sold_out === true;
+  return {
+    completed: true,
+    checkedAt: rows[0].checked_at,
+    soldOut,
+    recheckAt: soldOut && typeof product?.next_check_at === "string" ? product.next_check_at : null,
+  };
 }
 
 async function recordProduct(supabaseUrl, secret, publishableKey, payload) {
