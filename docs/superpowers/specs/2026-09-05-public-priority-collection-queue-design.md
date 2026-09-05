@@ -56,13 +56,16 @@ This change adds only the public request queue and its connection to the existin
 ## Admin collector behavior
 
 1. Start collection remains a manual admin action.
-2. Each claim first selects the oldest eligible pending public request.
-3. If no eligible priority request exists, the collector uses the existing random due-product claim.
-4. The product opens in the existing dedicated Shopee tab and records through the existing Chrome extension.
-5. A successful record completes the priority request and prevents that product from being selected again on the same Philippine day.
-6. A failed or interrupted attempt releases the request for a later attempt according to the existing collector failure behavior.
-7. Priority and random products both count toward the existing 50-success run limit.
-8. Reaching 50 successes still saves history, stops collection, and starts the existing one-hour manual-restart countdown.
+2. The existing `/admin/collector` status box adds one line: `Priority queue pending: N`.
+3. The pending count refreshes when the page loads and while collection runs, decreasing after queued products complete.
+4. No separate queue page, product-link list, user information, or queue-management interface is added.
+5. Each claim first selects the oldest eligible pending public request.
+6. If no eligible priority request exists, the collector uses the existing random due-product claim.
+7. The product opens in the existing dedicated Shopee tab and records through the existing Chrome extension.
+8. A successful record completes the priority request and prevents that product from being selected again on the same Philippine day.
+9. A failed or interrupted attempt releases the request for a later attempt according to the existing collector failure behavior.
+10. Priority and random products both count toward the existing 50-success run limit.
+11. Reaching 50 successes still saves history, stops collection, and starts the existing one-hour manual-restart countdown.
 
 ## Recording by another Chrome extension user
 
@@ -91,6 +94,7 @@ Database constraints enforce one active request per product. Database functions 
 - Extend the existing public Shopee-link resolution/lookup flow to enqueue only after a valid untracked identity is resolved from a mobile request.
 - Preserve the existing extension-install guidance for untracked desktop requests and do not call the queue endpoint for them.
 - Extend `/api/admin-pc-collector?action=claim` to try the priority claim before the existing random claim.
+- Extend the existing collector summary response with the pending priority-request count and display it as one new status-box line.
 - Extend release handling so a priority lease becomes pending again when an attempt is interrupted.
 - Extend the `record-price` success path to complete a matching pending request.
 - Keep all administrative database operations behind existing server-side service credentials.
@@ -126,6 +130,7 @@ Tests must cover:
 - A different device has its own allowance.
 - The same device receives a new allowance after Philippine midnight.
 - Priority requests are selected before random due products.
+- The existing collector status box shows the current pending count without adding a new page or exposing queued links or users.
 - Successful admin or regular-extension recording completes the request.
 - Concurrent claim and record operations cannot create duplicate collection.
 - Existing random collection, daily deduplication, sold-out scheduling, history, 50-success stopping, and one-hour countdown tests remain green.
