@@ -165,7 +165,11 @@ export default function AdminCollector() {
         attemptedQueueRequestIds: [...attemptedQueueRequestIds.current],
       });
       const product = claim.product;
-      if (!product) { setMessage("No more available due products"); break; }
+      if (!product) {
+        setMessage("No more available due products");
+        await finishRun("stopped_safely");
+        break;
+      }
       if (product.productId !== null) attemptedProductIds.current.add(product.productId);
       if (product.queueRequestId !== null) attemptedQueueRequestIds.current.add(product.queueRequestId);
       activeProduct.current = product;
