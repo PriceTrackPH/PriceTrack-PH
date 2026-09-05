@@ -214,7 +214,7 @@ export default function AdminCollector() {
         </div>
         <p className="admin-collector-note">Keep this page and the dedicated Shopee tab open. Complete Shopee verification manually if it appears.</p>
       </section>
-      <section className="admin-collector-history">
+      <section className="health-events admin-collector-history">
         <h2>Collection history</h2>
         {history.length === 0 ? <p className="health-empty">No stopped collection runs yet.</p> : <div className="health-table-wrap"><table>
           <thead><tr><th>Stopped</th><th>Total running time</th><th>Succeeded</th><th>Failed</th><th>Products remaining</th><th>Status</th></tr></thead>
