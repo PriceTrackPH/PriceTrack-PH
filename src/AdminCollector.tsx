@@ -137,10 +137,7 @@ export default function AdminCollector() {
       succeededCount.current += 1;
       setSucceeded(succeededCount.current);
       consecutiveFailures = 0;
-      for (let waitMs = 3_000; waitMs > 0 && !stopped.current; waitMs -= 1_000) {
-        setMessage(String(Math.max(1, Math.ceil(waitMs / 1000))));
-        await wait(1_000);
-      }
+      await wait(1_000);
     }
     stopped.current = true;
     setRunning(false);
