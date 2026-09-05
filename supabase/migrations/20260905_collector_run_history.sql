@@ -12,7 +12,7 @@ create table if not exists public.collector_run_history (
 
 alter table public.collector_run_history enable row level security;
 revoke all on table public.collector_run_history from anon, authenticated;
-grant select, insert on table public.collector_run_history to service_role;
+grant select, insert, update on table public.collector_run_history to service_role;
 
 create index if not exists collector_run_history_stopped_at_idx
   on public.collector_run_history (stopped_at desc);
