@@ -4,15 +4,15 @@ Date: September 5, 2026
 
 ## Goal
 
-Let a public user request collection of an untracked Shopee product by pasting its link into the existing PriceTrack PH search box. The private admin collector processes these requests before its normal random due-product work.
+Let a mobile user request collection of an untracked Shopee product by copying its link from the Shopee app and pasting it into the existing PriceTrack PH search box. The private admin collector processes these requests before its normal random due-product work. Desktop users are directed to the PriceTrack PH Chrome extension instead and do not create queue requests.
 
 ## Fixed scope
 
 This change adds only the public request queue and its connection to the existing admin collector. It does not change product reports, price recording, Chrome extension behavior, sold-out detection, the 15-day sold-out schedule, collection history layout, the 50-success limit, the one-hour collector cooldown, or other pages.
 
-## Public lookup behavior
+## Mobile lookup and queue behavior
 
-1. The user pastes a supported Shopee link into the existing homepage search box.
+1. A mobile user copies a supported product link from the Shopee app and pastes it into the existing homepage search box.
 2. PriceTrack resolves the link to its stable Shopee shop ID and product ID.
 3. If the product already has a PriceTrack record, PriceTrack opens the existing report and does not create a queue request.
 4. If the product is untracked, PriceTrack creates one pending priority request and displays:
@@ -20,6 +20,17 @@ This change adds only the public request queue and its connection to the existin
    > This product hasn't been tracked yet. It has been added to the PriceTrack collection queue and will be checked soon.
 
 5. Invalid or unsupported links are rejected by the existing validation and are not queued.
+
+## Desktop lookup behavior
+
+- Desktop Chrome, Edge, Brave, and other PC browsers never add an untracked product to the public priority queue.
+- A tracked product still opens its existing PriceTrack report normally.
+- For an untracked product, the desktop user is encouraged to install or use the PriceTrack PH Chrome extension and receives the existing guidance:
+
+  > This product hasn't been tracked yet. Open it on a PC with the PriceTrack PH Chrome extension to record its first price and variations.
+
+- The desktop lookup does not consume daily queue allowance and does not create or update a queue entry.
+- Queue eligibility is determined from the visitor's mobile-versus-desktop request context, not from the pasted link format alone. A Shopee short link pasted on a desktop remains a desktop lookup; a full Shopee product link pasted on mobile remains eligible for the mobile queue.
 
 ## Queue order and duplicates
 
@@ -31,11 +42,11 @@ This change adds only the public request queue and its connection to the existin
 
 ## Per-user daily limit
 
-- Each anonymous user/device may add up to 100 distinct untracked products per Philippine calendar day.
+- Each anonymous mobile user/device may add up to 100 distinct untracked products per Philippine calendar day.
 - The existing anonymous browser installation/device identifier identifies the user for this limit; no account or personal information is required.
 - The daily boundary is calculated in `Asia/Manila` and resets at 12:00 AM Philippine time.
 - Duplicate requests for an already-pending product do not consume the allowance again.
-- Existing tracked-product lookups remain available after the limit is reached.
+- Existing tracked-product lookups remain available after the limit is reached, on both mobile and desktop.
 - The 101st distinct untracked-product request displays:
 
    > You've reached today's 100-product request limit. You can request more products tomorrow.
@@ -77,7 +88,8 @@ Database constraints enforce one active request per product. Database functions 
 
 ## Interfaces
 
-- Extend the existing public Shopee-link resolution/lookup flow to enqueue only after a valid untracked identity is resolved.
+- Extend the existing public Shopee-link resolution/lookup flow to enqueue only after a valid untracked identity is resolved from a mobile request.
+- Preserve the existing extension-install guidance for untracked desktop requests and do not call the queue endpoint for them.
 - Extend `/api/admin-pc-collector?action=claim` to try the priority claim before the existing random claim.
 - Extend release handling so a priority lease becomes pending again when an attempt is interrupted.
 - Extend the `record-price` success path to complete a matching pending request.
@@ -86,6 +98,7 @@ Database constraints enforce one active request per product. Database functions 
 ## Abuse and privacy protection
 
 - Accept only supported Shopee Philippines identities resolved by existing validation.
+- Reject queue creation from desktop request contexts even if a client attempts to call the public queue interface directly.
 - Hash the anonymous device identifier before storage.
 - Enforce the 100-per-day limit atomically in the database so concurrent requests cannot bypass it.
 - Do not store personal data, full browsing history, or unrelated URLs.
@@ -103,7 +116,9 @@ Database constraints enforce one active request per product. Database functions 
 
 Tests must cover:
 
-- Valid untracked links enqueue once and show the new message.
+- Valid untracked mobile links enqueue once and show the new message.
+- Untracked desktop lookups show extension guidance and never enqueue, including Chrome, Edge, Brave, and other PC browsers.
+- Mobile queue eligibility does not depend on whether the pasted Shopee link is short or full-length.
 - Tracked and invalid links are not queued.
 - Requests claim oldest first.
 - Duplicate requests preserve their original position and do not consume quota twice.
