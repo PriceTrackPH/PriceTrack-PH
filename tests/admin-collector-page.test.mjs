@@ -44,5 +44,5 @@ test("collection history uses the same boxed table layout as recent events", asy
   assert.match(source, /className="health-events admin-collector-history"/);
   assert.match(source, /className="health-table-wrap"/);
   assert.match(source, /<table>/);
-  assert.match(styles, /\\.admin-collector-history\\s*\\{[^}]*margin-top:\\s*24px;/);
+  assert.match(styles, /\.admin-collector-history\s*\{[^}]*margin-top:\s*24px;/);
 });
