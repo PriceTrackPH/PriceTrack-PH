@@ -13,6 +13,17 @@ type CollectorProduct = {
   productUrl: string;
 };
 
+type CollectorRun = {
+  runId: string;
+  startedAt: string;
+  stoppedAt: string;
+  durationSeconds: number;
+  succeeded: number;
+  failed: number;
+  remaining: number;
+  stopStatus: "stopped" | "stopped_safely";
+};
+
 const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
 export default function AdminCollector() {
@@ -23,10 +34,15 @@ export default function AdminCollector() {
   const [currentProduct, setCurrentProduct] = useState<CollectorProduct | null>(null);
   const [succeeded, setSucceeded] = useState(0);
   const [failed, setFailed] = useState(0);
+  const [history, setHistory] = useState<CollectorRun[]>([]);
   const stopped = useRef(true);
   const productTab = useRef<Window | null>(null);
   const activeProduct = useRef<CollectorProduct | null>(null);
   const attemptedProductIds = useRef(new Set<number>());
+  const startedAt = useRef<string | null>(null);
+  const runId = useRef<string | null>(null);
+  const succeededCount = useRef(0);
+  const failedCount = useRef(0);
 
   async function api<T>(action: string, body: Record<string, unknown> = {}) {
     const response = await fetch(`/api/admin-pc-collector?action=${action}`, {
@@ -50,8 +66,11 @@ export default function AdminCollector() {
       window.location.replace("/admin");
       return () => document.body.classList.remove("admin-page-active");
     }
-    void api<CollectorSummary & { ok: boolean }>("summary")
-      .then((next) => { setSummary(next); setMessage("Ready"); })
+    void Promise.all([
+      api<CollectorSummary & { ok: boolean }>("summary"),
+      api<{ ok: boolean; history: CollectorRun[] }>("history"),
+    ])
+      .then(([next, runs]) => { setSummary(next); setHistory(runs.history); setMessage("Ready"); })
       .catch((cause) => setMessage(cause instanceof Error ? cause.message : "Unable to open collector."));
     return () => {
       stopped.current = true;
@@ -106,7 +125,8 @@ export default function AdminCollector() {
 
       if (!completed) {
         await releaseCurrent();
-        setFailed((value) => value + 1);
+        failedCount.current += 1;
+        setFailed(failedCount.current);
         consecutiveFailures += 1;
         if (consecutiveFailures >= 2) { setMessage("Paused after two products did not finish recording"); break; }
         continue;
@@ -114,7 +134,8 @@ export default function AdminCollector() {
 
       activeProduct.current = null;
       setCurrentProduct(null);
-      setSucceeded((value) => value + 1);
+      succeededCount.current += 1;
+      setSucceeded(succeededCount.current);
       consecutiveFailures = 0;
       for (let waitMs = 3_000; waitMs > 0 && !stopped.current; waitMs -= 1_000) {
         setMessage(String(Math.max(1, Math.ceil(waitMs / 1000))));
@@ -131,6 +152,9 @@ export default function AdminCollector() {
     productTab.current = opened;
     stopped.current = false;
     attemptedProductIds.current.clear();
+    succeededCount.current = 0; failedCount.current = 0;
+    startedAt.current = new Date().toISOString();
+    runId.current = crypto.randomUUID();
     setSucceeded(0); setFailed(0); setRunning(true); setMessage("Starting");
     try {
       const next = await api<CollectorSummary & { ok: boolean }>("summary");
@@ -145,10 +169,27 @@ export default function AdminCollector() {
   }
 
   async function stopCollection() {
+    const wasProcessing = Boolean(activeProduct.current);
     stopped.current = true;
     await releaseCurrent();
     setRunning(false);
-    setMessage("Stopped safely");
+    const status: CollectorRun["stopStatus"] = wasProcessing ? "stopped" : "stopped_safely";
+    setMessage(status === "stopped_safely" ? "Stopped safely" : "Stopped");
+    if (!runId.current || !startedAt.current) return;
+    const stoppedAt = new Date().toISOString();
+    const run: CollectorRun = {
+      runId: runId.current,
+      startedAt: startedAt.current,
+      stoppedAt,
+      durationSeconds: Math.max(0, Math.round((Date.parse(stoppedAt) - Date.parse(startedAt.current)) / 1000)),
+      succeeded: succeededCount.current,
+      failed: failedCount.current,
+      remaining,
+      stopStatus: status,
+    };
+    runId.current = null;
+    await api("finish", { run });
+    setHistory((items) => [run, ...items.filter((item) => item.runId !== run.runId)].slice(0, 50));
   }
 
   const remaining = Math.max(0, (summary?.totalDue || 0) - succeeded - failed - (currentProduct ? 1 : 0));
@@ -159,7 +200,7 @@ export default function AdminCollector() {
       <section className="admin-collector-panel">
         <div className="admin-collector-actions">
           <button type="button" onClick={() => void startCollection()} disabled={running || !summary}>Start collection</button>
-          <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop safely</button>
+          <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
         </div>
         <div className="admin-collector-status" aria-live="polite">
           <span>Total products: {summary?.totalTracked ?? "—"}</span>
@@ -172,6 +213,18 @@ export default function AdminCollector() {
           <strong>Status: {message}</strong>
         </div>
         <p className="admin-collector-note">Keep this page and the dedicated Shopee tab open. Complete Shopee verification manually if it appears.</p>
+      </section>
+      <section className="admin-collector-history">
+        <h2>Collection history</h2>
+        {history.length === 0 ? <p className="health-empty">No stopped collection runs yet.</p> : <div className="health-table-wrap"><table>
+          <thead><tr><th>Stopped</th><th>Total running time</th><th>Succeeded</th><th>Failed</th><th>Products remaining</th><th>Status</th></tr></thead>
+          <tbody>{history.map((run) => <tr key={run.runId}>
+            <td>{new Date(run.stoppedAt).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}</td>
+            <td>{Math.floor(run.durationSeconds / 3600)}h {Math.floor((run.durationSeconds % 3600) / 60)}m {run.durationSeconds % 60}s</td>
+            <td>{run.succeeded}</td><td>{run.failed}</td><td>{run.remaining}</td>
+            <td>{run.stopStatus === "stopped_safely" ? "Stopped safely" : "Stopped"}</td>
+          </tr>)}</tbody>
+        </table></div>}
       </section>
     </div>
   </main>;
