@@ -190,7 +190,34 @@ async function releaseProduct(supabaseUrl, secret, productId) {
   if (!response.ok) throw new Error(`release_${response.status}`);
 }
 
-async function productCheckStatus(supabaseUrl, secret, productId) {
+function unchangedPriceRecheckAt(checkedAt) {
+  const manilaDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date(checkedAt));
+  return new Date(Date.parse(`${manilaDate}T00:00:00+08:00`) + 2 * 24 * 60 * 60_000).toISOString();
+}
+
+async function applyUnchangedPriceSkip(supabaseUrl, secret, productId, check, metadata) {
+  const nextCheckAt = unchangedPriceRecheckAt(check.checked_at);
+  const headers = adminHeaders(secret, { "Content-Type": "application/json", Prefer: "return=minimal" });
+  const [checkResponse, productResponse] = await Promise.all([
+    fetch(`${supabaseUrl}/rest/v1/product_daily_checks?id=eq.${check.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ metadata: { ...metadata, skip_unchanged_day: true } }),
+    }),
+    fetch(`${supabaseUrl}/rest/v1/products?id=eq.${productId}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ next_check_at: nextCheckAt }),
+    }),
+  ]);
+  if (!checkResponse.ok) throw new Error(`same_price_check_${checkResponse.status}`);
+  if (!productResponse.ok) throw new Error(`same_price_product_${productResponse.status}`);
+  return nextCheckAt;
+}
+
+async function productCheckStatus(supabaseUrl, secret, productId, skipUnchangedDay = false) {
   const manilaDate = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date());
@@ -217,20 +244,23 @@ async function productCheckStatus(supabaseUrl, secret, productId) {
   const soldOut = product?.all_variations_sold_out === true;
   const metadata = rows[0]?.metadata;
   const samePrice = !soldOut
-    && metadata?.skip_unchanged_day === true
+    && skipUnchangedDay
     && metadata?.all_variations_unchanged === true;
   const nextCheckAt = typeof product?.next_check_at === "string" ? product.next_check_at : null;
+  const samePriceRecheckAt = samePrice
+    ? await applyUnchangedPriceSkip(supabaseUrl, secret, productId, rows[0], metadata)
+    : null;
   return {
     completed: true,
     checkedAt: rows[0].checked_at,
     soldOut,
     recheckAt: soldOut ? nextCheckAt : null,
     samePrice,
-    samePriceRecheckAt: samePrice ? nextCheckAt : null,
+    samePriceRecheckAt,
   };
 }
 
-export async function productCheckStatusByIdentity(supabaseUrl, secret, shopId, externalProductId) {
+export async function productCheckStatusByIdentity(supabaseUrl, secret, shopId, externalProductId, skipUnchangedDay = false) {
   const params = new URLSearchParams({
     platform: "eq.shopee",
     external_shop_id: `eq.${shopId}`,
@@ -242,7 +272,7 @@ export async function productCheckStatusByIdentity(supabaseUrl, secret, shopId, 
   if (!response.ok) throw new Error(`priority_product_status_${response.status}`);
   const [product] = await response.json();
   if (!product) return { completed: false, checkedAt: null, soldOut: false, recheckAt: null, samePrice: false, samePriceRecheckAt: null };
-  return productCheckStatus(supabaseUrl, secret, product.id);
+  return productCheckStatus(supabaseUrl, secret, product.id, skipUnchangedDay);
 }
 
 async function recordProduct(supabaseUrl, secret, publishableKey, payload) {
@@ -335,9 +365,10 @@ export default async function handler(req, res) {
     }
 
     if (action === "status") {
+      const skipUnchangedDay = req.body?.skipUnchangedDay === true;
       const productId = safeInteger(req.body?.productId);
       if (productId) {
-        return send(res, 200, { ok: true, ...(await productCheckStatus(supabaseUrl, secret, productId)) });
+        return send(res, 200, { ok: true, ...(await productCheckStatus(supabaseUrl, secret, productId, skipUnchangedDay)) });
       }
       const shopId = String(req.body?.shopId || "");
       const externalProductId = String(req.body?.externalProductId || "");
@@ -346,7 +377,7 @@ export default async function handler(req, res) {
       }
       return send(res, 200, {
         ok: true,
-        ...(await productCheckStatusByIdentity(supabaseUrl, secret, shopId, externalProductId)),
+        ...(await productCheckStatusByIdentity(supabaseUrl, secret, shopId, externalProductId, skipUnchangedDay)),
       });
     }
 

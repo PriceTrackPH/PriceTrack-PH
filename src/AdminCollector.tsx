@@ -198,9 +198,9 @@ export default function AdminCollector() {
       while (!stopped.current && Date.now() < deadline) {
         await wait(1000);
         const status = await api<{ completed: boolean; soldOut: boolean; recheckAt: string | null; samePrice: boolean; samePriceRecheckAt: string | null }>("status",
-          product.claimSource === "priority"
+          { ...(product.claimSource === "priority"
             ? { shopId: product.shopId, externalProductId: product.externalProductId }
-            : { productId: product.productId },
+            : { productId: product.productId }), skipUnchangedDay: skipUnchangedDay },
         );
         if (status.completed) {
           if (status.soldOut) {
