@@ -6,10 +6,35 @@ type LatestObservation = {
 };
 
 type IncomingObservation = {
+  variationId?: string;
   price: number;
   originalPrice?: number | null;
   isInStock: boolean;
 };
+
+type VariationRow = { id: number };
+
+export function variationStatesMatchPrevious(
+  items: IncomingObservation[],
+  variationRows: Map<string, VariationRow>,
+  latestByVariationId: Map<number, LatestObservation>,
+  previousVariationCount = variationRows.size,
+) {
+  if (items.length === 0 || items.length !== previousVariationCount) return false;
+
+  return items.every((item) => {
+    const row = variationRows.get(String(item.variationId ?? ""));
+    const latest = row ? latestByVariationId.get(row.id) : undefined;
+    if (!latest) return false;
+
+    const originalPrice = item.originalPrice == null ? null : Number(item.originalPrice);
+    return Number(latest.price) === item.price &&
+      latest.is_in_stock === item.isInStock &&
+      (latest.original_price == null
+        ? originalPrice == null
+        : Number(latest.original_price) === originalPrice);
+  });
+}
 
 const DAILY_RECORDING_LIMIT = 2_000;
 
