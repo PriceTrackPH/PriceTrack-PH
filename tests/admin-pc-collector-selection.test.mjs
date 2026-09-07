@@ -19,7 +19,7 @@ test("summary uses the database availability cross-check", async () => {
   global.fetch = async (url) => {
     urls.push(String(url));
     if (String(url).includes("collector_available_summary")) {
-      return { ok: true, json: async () => [{ total_tracked: 704, total_due: 603, sold_out_deferred: 101 }] };
+      return { ok: true, json: async () => [{ total_tracked: 704, total_due: 603, sold_out_deferred: 101, same_price_deferred: 23 }] };
     }
     if (String(url).includes("public_collection_queue_pending_count")) {
       return { ok: true, json: async () => 7 };
@@ -29,10 +29,11 @@ test("summary uses the database availability cross-check", async () => {
   try {
     const summary = await collectorSummary("https://example.supabase.co", "secret");
     assert.equal(summary.priorityPending, 7);
+    assert.equal(summary.samePriceDeferred, 23);
   } finally {
     global.fetch = originalFetch;
   }
-  assert.ok(urls.some((url) => url.endsWith("/rest/v1/rpc/collector_available_summary")));
+  assert.ok(urls.some((url) => url.endsWith("/rest/v1/rpc/collector_available_summary_v2")));
 });
 
 test("claims the oldest priority request before random due products", async () => {
@@ -161,7 +162,7 @@ test("claim uses the atomic random database function and passes prior attempts",
   assert.deepEqual(JSON.parse(request.options.body), { p_excluded_product_ids: [3, 9] });
 });
 
-test("status returns the exact product's sold-out state and scheduled recheck", async () => {
+test("status returns the exact product's exclusion reason and scheduled recheck", async () => {
   const originalFetch = global.fetch;
   const originalToken = process.env.ADMIN_HEALTH_TOKEN;
   const originalUrl = process.env.SUPABASE_URL;
@@ -173,7 +174,7 @@ test("status returns the exact product's sold-out state and scheduled recheck", 
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY = "publishable";
   global.fetch = async (url) => {
     if (String(url).includes("product_daily_checks")) {
-      return { ok: true, json: async () => [{ id: 1, checked_at: "2026-09-05T01:10:23.000Z" }] };
+      return { ok: true, json: async () => [{ id: 1, checked_at: "2026-09-05T01:10:23.000Z", metadata: { skip_unchanged_day: true, all_variations_unchanged: false } }] };
     }
     return {
       ok: true,
@@ -197,6 +198,8 @@ test("status returns the exact product's sold-out state and scheduled recheck", 
       checkedAt: "2026-09-05T01:10:23.000Z",
       soldOut: true,
       recheckAt: "2026-09-20T01:10:23.000Z",
+      samePrice: false,
+      samePriceRecheckAt: null,
     });
   } finally {
     global.fetch = originalFetch;
@@ -207,7 +210,7 @@ test("status returns the exact product's sold-out state and scheduled recheck", 
   }
 });
 
-test("collector run history reads saved sold-out totals and recheck dates", async () => {
+test("collector run history reads both exclusion totals and recheck dates", async () => {
   const originalFetch = global.fetch;
   global.fetch = async () => ({
     ok: true,
@@ -216,12 +219,15 @@ test("collector run history reads saved sold-out totals and recheck dates", asyn
       stopped_at: "2026-09-05T00:05:00.000Z", duration_seconds: 300,
       succeeded: 5, failed: 0, sold_out: 3, remaining: 10,
       recheck_at: "2026-09-20T00:05:00.000Z", stop_status: "stopped_safely",
+      same_price: 8, same_price_recheck_at: "2026-09-06T16:00:00.000Z",
     }],
   });
   try {
     const [run] = await collectorHistory("https://example.supabase.co", "secret");
     assert.equal(run.soldOut, 3);
     assert.equal(run.recheckAt, "2026-09-20T00:05:00.000Z");
+    assert.equal(run.samePrice, 8);
+    assert.equal(run.samePriceRecheckAt, "2026-09-06T16:00:00.000Z");
   } finally {
     global.fetch = originalFetch;
   }
