@@ -1,5 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { buildCheckMetadata, buildIngestQuotaRequest, shouldCompleteQueue, shouldSkipObservation } from "./observation-policy.ts";
+import {
+  buildCheckMetadata,
+  buildIngestQuotaRequest,
+  shouldCompleteQueue,
+  shouldSkipObservation,
+  variationStatesMatchPrevious,
+} from "./observation-policy.ts";
 
 const cors = {
   "access-control-allow-origin": "*",
@@ -40,6 +46,7 @@ type Observation = {
   originalPrice?: number | null;
   variations?: VariationObservation[];
   source?: "extension" | "scheduled_collector";
+  skipUnchangedDay?: boolean;
 };
 
 type NormalizedVariation = Required<Pick<VariationObservation, "variationId" | "variationName" | "price" | "isInStock">> & VariationObservation;
@@ -262,7 +269,7 @@ Deno.serve(async (request: Request) => {
       if (quotaCount == null) return reply({ error: "Daily recording limit reached" }, 429);
     }
 
-    const checkMetadata = buildCheckMetadata(variations, Array.isArray(body.variations));
+    const productCheckMetadata = buildCheckMetadata(variations, Array.isArray(body.variations));
     const productResponse = await fetch(`${supabaseUrl}/rest/v1/products?on_conflict=platform,external_shop_id,external_product_id`, {
       method: "POST",
       headers: adminHeaders(secret, { "content-type": "application/json", prefer: "resolution=merge-duplicates,return=representation" }),
@@ -275,7 +282,7 @@ Deno.serve(async (request: Request) => {
         shop_name: storeName,
         image_url: imageUrl,
         currency: "PHP",
-        all_variations_sold_out: checkMetadata.all_variations_sold_out,
+        all_variations_sold_out: productCheckMetadata.all_variations_sold_out,
         last_seen_at: observedAt.toISOString(),
         updated_at: now.toISOString(),
         metadata: {
@@ -324,6 +331,17 @@ Deno.serve(async (request: Request) => {
         if (!latestByVariationId.has(Number(row.variation_id))) latestByVariationId.set(Number(row.variation_id), row);
       }
     }
+
+    const checkMetadata = {
+      ...productCheckMetadata,
+      skip_unchanged_day: requestedSource === "scheduled_collector" && body.skipUnchangedDay === true,
+      all_variations_unchanged: variationStatesMatchPrevious(
+        variations,
+        variationRowByExternalId,
+        latestByVariationId,
+        previousVariationCount ?? 0,
+      ),
+    };
 
     let insertedCount = 0;
     let unchangedCount = 0;
