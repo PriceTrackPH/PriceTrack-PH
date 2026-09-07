@@ -168,8 +168,11 @@ export default function AdminCollector() {
       stopStatus: status,
     };
     runId.current = null;
-    await api("finish", { run });
-    setHistory((items) => [run, ...items.filter((item) => item.runId !== run.runId)].slice(0, 50));
+    const { saved } = await api<{ saved: CollectorRun }>("finish", { run });
+    setHistory((items) => [
+      { ...run, remaining: saved.remaining },
+      ...items.filter((item) => item.runId !== run.runId),
+    ].slice(0, 50));
   }
 
   async function runCollection() {

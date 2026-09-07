@@ -131,6 +131,57 @@ test("collector run history is written once and newest runs are returned first",
   assert.equal(history[0].stopStatus, "stopped");
 });
 
+test("finish stores the database's live remaining count instead of the browser estimate", async () => {
+  const originalFetch = global.fetch;
+  const originalToken = process.env.ADMIN_HEALTH_TOKEN;
+  const originalUrl = process.env.SUPABASE_URL;
+  const originalSecret = process.env.SUPABASE_SECRET_KEY;
+  const originalPublishable = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  process.env.ADMIN_HEALTH_TOKEN = "admin-token";
+  process.env.SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SECRET_KEY = "secret";
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY = "publishable";
+  let savedBody;
+  global.fetch = async (url, options = {}) => {
+    if (String(url).includes("collector_available_summary_v2")) {
+      return { ok: true, json: async () => [{ total_tracked: 500, total_due: 321, sold_out_deferred: 20, same_price_deferred: 30 }] };
+    }
+    if (String(url).includes("public_collection_queue_pending_count")) {
+      return { ok: true, json: async () => 0 };
+    }
+    if (String(url).includes("collector_run_history") && options.method === "POST") {
+      savedBody = JSON.parse(options.body);
+      return { ok: true, json: async () => [{ run_id: savedBody.run_id }] };
+    }
+    throw new Error(`unexpected ${url}`);
+  };
+  try {
+    let responseBody;
+    const response = {
+      status() { return this; }, setHeader() { return this; },
+      json(body) { responseBody = body; return this; },
+    };
+    await handler({
+      method: "POST", headers: { authorization: "Bearer admin-token" }, query: { action: "finish" },
+      body: { run: {
+        runId: "11111111-1111-4111-8111-111111111111",
+        startedAt: "2026-09-08T00:00:00.000Z", stoppedAt: "2026-09-08T00:10:00.000Z",
+        durationSeconds: 600, succeeded: 50, failed: 0, soldOut: 1, samePrice: 40,
+        remaining: 999, recheckAt: null, samePriceRecheckAt: "2026-09-09T16:00:00.000Z",
+        stopStatus: "stopped_safely",
+      } },
+    }, response);
+    assert.equal(savedBody.remaining, 321);
+    assert.equal(responseBody.saved.remaining, 321);
+  } finally {
+    global.fetch = originalFetch;
+    if (originalToken === undefined) delete process.env.ADMIN_HEALTH_TOKEN; else process.env.ADMIN_HEALTH_TOKEN = originalToken;
+    if (originalUrl === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = originalUrl;
+    if (originalSecret === undefined) delete process.env.SUPABASE_SECRET_KEY; else process.env.SUPABASE_SECRET_KEY = originalSecret;
+    if (originalPublishable === undefined) delete process.env.VITE_SUPABASE_PUBLISHABLE_KEY; else process.env.VITE_SUPABASE_PUBLISHABLE_KEY = originalPublishable;
+  }
+});
+
 test("collector history migration grants service-role upsert permission", async () => {
   const migration = await readFile(new URL("../supabase/migrations/20260905_collector_run_history.sql", import.meta.url), "utf8");
   assert.match(migration, /grant select, insert, update on table public\.collector_run_history to service_role;/i);

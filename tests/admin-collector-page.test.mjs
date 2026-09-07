@@ -79,6 +79,7 @@ test("admin collector saves and displays every stopped run", async () => {
   assert.match(source, /Collection history/);
   assert.match(source, /Running time/);
   assert.match(source, /Remaining/);
+  assert.match(source, /saved\.remaining/);
   assert.match(source, /Stopped safely/);
 });
 
