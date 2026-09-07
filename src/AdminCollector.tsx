@@ -4,6 +4,10 @@ import {
   cooldownSecondsRemaining,
   reachedCollectionLimit,
 } from "./collector-session-policy";
+import {
+  productUrlWithSkipUnchangedDay,
+  skipUnchangedDayDefault,
+} from "./admin-collector-settings";
 
 type CollectorSummary = {
   totalTracked: number;
@@ -37,6 +41,7 @@ type CollectorRun = {
 
 const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 const cooldownStorageKey = "pricetrack-admin-collector-cooldown-until";
+const skipUnchangedStorageKey = "pricetrack-admin-collector-skip-unchanged-day";
 
 export default function AdminCollector() {
   const token = sessionStorage.getItem("pricetrack-admin-health-token") || "";
@@ -47,6 +52,9 @@ export default function AdminCollector() {
   const [succeeded, setSucceeded] = useState(0);
   const [failed, setFailed] = useState(0);
   const [history, setHistory] = useState<CollectorRun[]>([]);
+  const [skipUnchangedDay, setSkipUnchangedDay] = useState(() =>
+    skipUnchangedDayDefault(localStorage.getItem(skipUnchangedStorageKey))
+  );
   const [cooldownUntil, setCooldownUntil] = useState(() => Number(localStorage.getItem(cooldownStorageKey)) || 0);
   const [cooldownSeconds, setCooldownSeconds] = useState(() => cooldownSecondsRemaining(Number(localStorage.getItem(cooldownStorageKey)) || 0, Date.now()));
   const stopped = useRef(true);
@@ -176,7 +184,7 @@ export default function AdminCollector() {
       setCurrentProduct(product);
       setMessage(`Opening ${product.shopId}.${product.externalProductId}`);
       if (!productTab.current || productTab.current.closed) throw new Error("The dedicated Shopee tab was closed.");
-      productTab.current.location.href = product.productUrl;
+      productTab.current.location.href = productUrlWithSkipUnchangedDay(product.productUrl, skipUnchangedDay);
 
       let completed = false;
       const deadline = Date.now() + 75_000;
@@ -278,6 +286,19 @@ export default function AdminCollector() {
           <button type="button" onClick={() => void startCollection()} disabled={running || cooldownSeconds > 0 || !summary}>Start collection</button>
           <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
         </div>
+        <label className="admin-collector-option">
+          <input
+            type="checkbox"
+            checked={skipUnchangedDay}
+            disabled={running}
+            onChange={(event) => {
+              const nextValue = event.target.checked;
+              setSkipUnchangedDay(nextValue);
+              localStorage.setItem(skipUnchangedStorageKey, String(nextValue));
+            }}
+          />
+          <span>Skip next day when price is unchanged</span>
+        </label>
         <div className="admin-collector-status" aria-live="polite">
           <span>Total products: {summary?.totalTracked ?? "—"}</span>
           <span>Available and due: {summary?.totalDue ?? "—"}</span>
