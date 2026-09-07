@@ -43,7 +43,7 @@ export async function collectorSummary(supabaseUrl, secret) {
     body: "{}",
   };
   const [response, priorityResponse] = await Promise.all([
-    fetch(`${supabaseUrl}/rest/v1/rpc/collector_available_summary`, options),
+    fetch(`${supabaseUrl}/rest/v1/rpc/collector_available_summary_v2`, options),
     fetch(`${supabaseUrl}/rest/v1/rpc/public_collection_queue_pending_count`, options),
   ]);
   if (!response.ok) throw new Error(`collector_summary_${response.status}`);
@@ -54,6 +54,7 @@ export async function collectorSummary(supabaseUrl, secret) {
     totalTracked: safeInteger(summary?.total_tracked),
     totalDue: safeInteger(summary?.total_due),
     soldOutDeferred: safeInteger(summary?.sold_out_deferred),
+    samePriceDeferred: safeInteger(summary?.same_price_deferred),
     priorityPending: safeInteger(Array.isArray(priorityPending) ? priorityPending[0] : priorityPending),
   };
 }
@@ -125,7 +126,7 @@ export async function releasePriorityProduct(supabaseUrl, secret, requestId, lea
 
 export async function collectorHistory(supabaseUrl, secret) {
   const params = new URLSearchParams({
-    select: "run_id,started_at,stopped_at,duration_seconds,succeeded,failed,sold_out,remaining,recheck_at,stop_status",
+    select: "run_id,started_at,stopped_at,duration_seconds,succeeded,failed,sold_out,remaining,recheck_at,same_price,same_price_recheck_at,stop_status",
     order: "stopped_at.desc",
     limit: "50",
   });
@@ -144,6 +145,8 @@ export async function collectorHistory(supabaseUrl, secret) {
     soldOut: safeInteger(row.sold_out),
     remaining: safeInteger(row.remaining),
     recheckAt: typeof row.recheck_at === "string" ? row.recheck_at : null,
+    samePrice: safeInteger(row.same_price),
+    samePriceRecheckAt: typeof row.same_price_recheck_at === "string" ? row.same_price_recheck_at : null,
     stopStatus: row.stop_status === "stopped_safely" ? "stopped_safely" : "stopped",
   }));
 }
@@ -165,6 +168,8 @@ export async function saveCollectorRun(supabaseUrl, secret, run) {
       sold_out: safeInteger(run.soldOut),
       remaining: safeInteger(run.remaining),
       recheck_at: typeof run.recheckAt === "string" ? run.recheckAt : null,
+      same_price: safeInteger(run.samePrice),
+      same_price_recheck_at: typeof run.samePriceRecheckAt === "string" ? run.samePriceRecheckAt : null,
       stop_status: run.stopStatus === "stopped_safely" ? "stopped_safely" : "stopped",
     }),
   });
@@ -190,7 +195,7 @@ async function productCheckStatus(supabaseUrl, secret, productId) {
     timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date());
   const params = new URLSearchParams({
-    select: "id,checked_at",
+    select: "id,checked_at,metadata",
     product_id: `eq.${productId}`,
     checked_date: `eq.${manilaDate}`,
     status: "eq.success",
@@ -201,7 +206,7 @@ async function productCheckStatus(supabaseUrl, secret, productId) {
   });
   if (!response.ok) throw new Error(`product_status_${response.status}`);
   const rows = await response.json();
-  if (rows.length === 0) return { completed: false, checkedAt: null, soldOut: false, recheckAt: null };
+  if (rows.length === 0) return { completed: false, checkedAt: null, soldOut: false, recheckAt: null, samePrice: false, samePriceRecheckAt: null };
 
   const productResponse = await fetch(
     `${supabaseUrl}/rest/v1/products?id=eq.${productId}&select=all_variations_sold_out,next_check_at&limit=1`,
@@ -210,11 +215,18 @@ async function productCheckStatus(supabaseUrl, secret, productId) {
   if (!productResponse.ok) throw new Error(`product_recheck_${productResponse.status}`);
   const [product] = await productResponse.json();
   const soldOut = product?.all_variations_sold_out === true;
+  const metadata = rows[0]?.metadata;
+  const samePrice = !soldOut
+    && metadata?.skip_unchanged_day === true
+    && metadata?.all_variations_unchanged === true;
+  const nextCheckAt = typeof product?.next_check_at === "string" ? product.next_check_at : null;
   return {
     completed: true,
     checkedAt: rows[0].checked_at,
     soldOut,
-    recheckAt: soldOut && typeof product?.next_check_at === "string" ? product.next_check_at : null,
+    recheckAt: soldOut ? nextCheckAt : null,
+    samePrice,
+    samePriceRecheckAt: samePrice ? nextCheckAt : null,
   };
 }
 
@@ -229,7 +241,7 @@ export async function productCheckStatusByIdentity(supabaseUrl, secret, shopId, 
   const response = await fetch(`${supabaseUrl}/rest/v1/products?${params}`, { headers: adminHeaders(secret) });
   if (!response.ok) throw new Error(`priority_product_status_${response.status}`);
   const [product] = await response.json();
-  if (!product) return { completed: false, checkedAt: null, soldOut: false, recheckAt: null };
+  if (!product) return { completed: false, checkedAt: null, soldOut: false, recheckAt: null, samePrice: false, samePriceRecheckAt: null };
   return productCheckStatus(supabaseUrl, secret, product.id);
 }
 
