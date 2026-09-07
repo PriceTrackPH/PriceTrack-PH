@@ -36,9 +36,10 @@ export function variationStatesMatchPrevious(
   });
 }
 
-const DAILY_RECORDING_LIMIT = 2_000;
+const DAILY_RECORDING_LIMIT: number | null = null;
 
-export function buildIngestQuotaRequest(clientHash: string, observedDate: string) {
+export function buildIngestQuotaRequest(clientHash: string, observedDate: string): Record<string, string | number> | null {
+  if (DAILY_RECORDING_LIMIT == null) return null;
   return {
     p_client_hash: clientHash,
     p_observed_date: observedDate,

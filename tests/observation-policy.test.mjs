@@ -84,13 +84,6 @@ test("includes the fully sold-out result in completed-check metadata", () => {
   );
 });
 
-test("allows the hourly admin collector to record up to 2,000 products per installation daily", () => {
-  assert.deepEqual(
-    buildIngestQuotaRequest("client-hash", "2026-09-05"),
-    {
-      p_client_hash: "client-hash",
-      p_observed_date: "2026-09-05",
-      p_limit: 2_000,
-    },
-  );
+test("does not enforce a daily recording limit", () => {
+  assert.equal(buildIngestQuotaRequest("client-hash", "2026-09-05"), null);
 });
