@@ -332,8 +332,10 @@ export default async function handler(req, res) {
       if (!run || typeof run !== "object" || Array.isArray(run) || !/^[0-9a-f-]{36}$/i.test(String(run.runId || ""))) {
         return send(res, 400, { error: "A valid collector run is required" });
       }
-      const saved = await saveCollectorRun(supabaseUrl, secret, run);
-      return send(res, 200, { ok: true, saved });
+      const liveSummary = await collectorSummary(supabaseUrl, secret);
+      const finishedRun = { ...run, remaining: liveSummary.totalDue };
+      await saveCollectorRun(supabaseUrl, secret, finishedRun);
+      return send(res, 200, { ok: true, saved: finishedRun });
     }
 
     if (action === "claim") {
