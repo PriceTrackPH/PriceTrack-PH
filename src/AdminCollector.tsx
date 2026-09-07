@@ -13,6 +13,7 @@ type CollectorSummary = {
   totalTracked: number;
   totalDue: number;
   soldOutDeferred: number;
+  samePriceDeferred: number;
   priorityPending: number;
 };
 
@@ -36,6 +37,8 @@ type CollectorRun = {
   soldOut: number;
   remaining: number;
   recheckAt: string | null;
+  samePrice: number;
+  samePriceRecheckAt: string | null;
   stopStatus: "stopped" | "stopped_safely";
 };
 
@@ -68,6 +71,8 @@ export default function AdminCollector() {
   const failedCount = useRef(0);
   const soldOutCount = useRef(0);
   const recheckAt = useRef<string | null>(null);
+  const samePriceCount = useRef(0);
+  const samePriceRecheckAt = useRef<string | null>(null);
 
   async function api<T>(action: string, body: Record<string, unknown> = {}) {
     const response = await fetch(`/api/admin-pc-collector?action=${action}`, {
@@ -158,6 +163,8 @@ export default function AdminCollector() {
       soldOut: soldOutCount.current,
       remaining: Math.max(0, (summary?.totalDue || 0) - succeededCount.current - failedCount.current),
       recheckAt: recheckAt.current,
+      samePrice: samePriceCount.current,
+      samePriceRecheckAt: samePriceRecheckAt.current,
       stopStatus: status,
     };
     runId.current = null;
@@ -190,7 +197,7 @@ export default function AdminCollector() {
       const deadline = Date.now() + 75_000;
       while (!stopped.current && Date.now() < deadline) {
         await wait(1000);
-        const status = await api<{ completed: boolean; soldOut: boolean; recheckAt: string | null }>("status",
+        const status = await api<{ completed: boolean; soldOut: boolean; recheckAt: string | null; samePrice: boolean; samePriceRecheckAt: string | null }>("status",
           product.claimSource === "priority"
             ? { shopId: product.shopId, externalProductId: product.externalProductId }
             : { productId: product.productId },
@@ -199,6 +206,10 @@ export default function AdminCollector() {
           if (status.soldOut) {
             soldOutCount.current += 1;
             recheckAt.current = status.recheckAt;
+          }
+          if (status.samePrice) {
+            samePriceCount.current += 1;
+            samePriceRecheckAt.current = status.samePriceRecheckAt;
           }
           completed = true;
           break;
@@ -251,6 +262,7 @@ export default function AdminCollector() {
     attemptedQueueRequestIds.current.clear();
     succeededCount.current = 0; failedCount.current = 0;
     soldOutCount.current = 0; recheckAt.current = null;
+    samePriceCount.current = 0; samePriceRecheckAt.current = null;
     startedAt.current = new Date().toISOString();
     runId.current = crypto.randomUUID();
     setSucceeded(0); setFailed(0); setRunning(true); setMessage("Starting");
@@ -303,6 +315,7 @@ export default function AdminCollector() {
           <span>Total products: {summary?.totalTracked ?? "—"}</span>
           <span>Available and due: {summary?.totalDue ?? "—"}</span>
           <span>Sold out excluded: {summary?.soldOutDeferred ?? "—"}</span>
+          <span>Same price excluded: {summary?.samePriceDeferred ?? "—"}</span>
           <span>Priority queue pending: {summary?.priorityPending ?? "—"}</span>
           <span>Currently processing: {currentProduct ? 1 : 0}</span>
           <span>Remaining in this run: {summary ? remaining : "—"}</span>
@@ -317,12 +330,14 @@ export default function AdminCollector() {
       <section className="health-events admin-collector-history">
         <h2>Collection history</h2>
         {history.length === 0 ? <p className="health-empty">No stopped collection runs yet.</p> : <div className="health-table-wrap"><table>
-          <thead><tr><th>Time</th><th>Running time</th><th>Succeeded</th><th>Failed</th><th>Sold out</th><th>Remaining</th><th>Recheck</th><th>Status</th></tr></thead>
+          <thead><tr><th>Time</th><th>Running time</th><th>Succeeded</th><th>Failed</th><th>Sold out</th><th>Same Price</th><th>Remaining</th><th>Status</th></tr></thead>
           <tbody>{history.map((run) => <tr key={run.runId}>
             <td>{new Date(run.startedAt).toLocaleString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", second: "2-digit" })}</td>
             <td>{Math.floor(run.durationSeconds / 3600)}h {Math.floor((run.durationSeconds % 3600) / 60)}m {run.durationSeconds % 60}s</td>
-            <td>{run.succeeded}</td><td>{run.failed}</td><td>{run.soldOut}</td><td>{run.remaining}</td>
-            <td>{run.recheckAt ? new Date(run.recheckAt).toLocaleDateString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit" }) : "—"}</td>
+            <td>{run.succeeded}</td><td>{run.failed}</td>
+            <td>{run.soldOut}{run.recheckAt ? ` — ${new Date(run.recheckAt).toLocaleDateString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit" })}` : ""}</td>
+            <td>{run.samePrice}{run.samePriceRecheckAt ? ` — ${new Date(run.samePriceRecheckAt).toLocaleDateString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit" })}` : ""}</td>
+            <td>{run.remaining}</td>
             <td>{run.stopStatus === "stopped_safely" ? "Stopped safely" : "Stopped"}</td>
           </tr>)}</tbody>
         </table></div>}
