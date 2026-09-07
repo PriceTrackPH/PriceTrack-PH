@@ -1,4 +1,5 @@
--- Optionally skip one Philippine calendar day after a fully unchanged check.\n-- Preserve the existing midnight reset and escalating sold-out schedule.
+-- Optionally skip one Philippine calendar day after a fully unchanged check.
+-- Preserve the existing midnight reset and escalating sold-out schedule.
 
 create or replace function public.mark_product_check(
   p_product_id bigint,
@@ -18,7 +19,10 @@ security definer
 set search_path = public
 as $$
 declare
-  v_all_sold_out boolean := coalesce((p_metadata ->> 'all_variations_sold_out')::boolean, false);\n  v_skip_unchanged_day boolean := coalesce((p_metadata ->> 'skip_unchanged_day')::boolean, false);\n  v_all_variations_unchanged boolean := coalesce((p_metadata ->> 'all_variations_unchanged')::boolean, false);\n  v_already_successful_today boolean;
+  v_all_sold_out boolean := coalesce((p_metadata ->> 'all_variations_sold_out')::boolean, false);
+  v_skip_unchanged_day boolean := coalesce((p_metadata ->> 'skip_unchanged_day')::boolean, false);
+  v_all_variations_unchanged boolean := coalesce((p_metadata ->> 'all_variations_unchanged')::boolean, false);
+  v_already_successful_today boolean;
 begin
   if p_source not in ('extension', 'scheduled_collector')
      or p_status not in ('success', 'partial', 'failure') then
@@ -75,7 +79,11 @@ begin
           then p_checked_at + interval '30 days'
         when p_status = 'success' and v_all_sold_out
           then p_checked_at + interval '15 days'
-        when p_status = 'success' and v_skip_unchanged_day and v_all_variations_unchanged then\n          (date_trunc('day', p_checked_at at time zone 'Asia/Manila') + interval '2 days')\n            at time zone 'Asia/Manila'\n        when p_status = 'success' then\n          (date_trunc('day', p_checked_at at time zone 'Asia/Manila') + interval '1 day')
+        when p_status = 'success' and v_skip_unchanged_day and v_all_variations_unchanged then
+          (date_trunc('day', p_checked_at at time zone 'Asia/Manila') + interval '2 days')
+            at time zone 'Asia/Manila'
+        when p_status = 'success' then
+          (date_trunc('day', p_checked_at at time zone 'Asia/Manila') + interval '1 day')
             at time zone 'Asia/Manila'
         else now() + interval '6 hours'
       end,
@@ -111,4 +119,3 @@ where p.platform = 'shopee'
   and p.is_active
   and p.tracking_enabled
   and coalesce(p.all_variations_sold_out, false) = false;
-
