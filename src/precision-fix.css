@@ -412,6 +412,9 @@ html[data-theme="dark"] .support-section {
 .admin-collector-actions { display: flex; gap: 10px; margin-bottom: 20px; }
 .admin-collector-actions button { border: 0; border-radius: 10px; padding: 13px 20px; color: #fff; background: #281b6b; font-weight: 700; cursor: pointer; }
 .admin-collector-actions button:disabled { opacity: .5; cursor: not-allowed; }
+.admin-collector-option { display: flex; align-items: center; gap: 10px; width: fit-content; margin: -4px 0 18px; color: #f7faf9; font-weight: 650; cursor: pointer; }
+.admin-collector-option input { width: 18px; height: 18px; margin: 0; accent-color: #00dfae; }
+.admin-collector-option:has(input:disabled) { opacity: .6; cursor: not-allowed; }
 .admin-collector-status { display: grid; gap: 6px; padding: 18px; border-radius: 12px; background: #0c1210; line-height: 1.5; }
 .admin-collector-status strong { margin-top: 5px; }
 .admin-collector-note { margin: 16px 0 0; color: #f3d486; line-height: 1.5; }

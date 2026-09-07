@@ -334,7 +334,7 @@ Deno.serve(async (request: Request) => {
 
     const checkMetadata = {
       ...productCheckMetadata,
-      skip_unchanged_day: requestedSource === "scheduled_collector" && body.skipUnchangedDay === true,
+      skip_unchanged_day: body.skipUnchangedDay === true,
       all_variations_unchanged: variationStatesMatchPrevious(
         variations,
         variationRowByExternalId,

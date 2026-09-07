@@ -48,6 +48,7 @@
         "https://*.shopee.ph/*"
       ],
       "js": [
+        "collector-options.js",
         "content.js",
         "notification-trigger.js",
         "completion-toast.js"

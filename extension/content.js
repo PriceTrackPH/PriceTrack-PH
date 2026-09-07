@@ -567,6 +567,7 @@ async function automaticallyRecordPrice() {
       variations: validVariations,
       installationId,
       observedAt: new Date().toISOString(),
+      skipUnchangedDay: globalThis.PriceTrackCollectorOptions?.skipUnchangedDayFromUrl(location.href) === true,
     };
 
     let response;

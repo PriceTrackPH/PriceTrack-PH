@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
+import vm from "node:vm";
+
+import {
+  productUrlWithSkipUnchangedDay,
+  skipUnchangedDayDefault,
+} from "../src/admin-collector-settings.ts";
 
 test("routes the protected collector admin page", async () => {
   const app = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
@@ -23,6 +29,29 @@ test("admin collector reuses one product tab and waits one second after recordin
   assert.doesNotMatch(source, /setMessage\(String\(Math\.max/);
   assert.match(source, /Start collection/);
   assert.match(source, /Stop collection/);
+});
+
+test("live admin collector remembers the unchanged-price skip toggle and sends it through Shopee", async () => {
+  const page = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  const extension = await readFile(new URL("../extension/collector-options.js", import.meta.url), "utf8");
+  const recorder = await readFile(new URL("../supabase/functions/record-price/index.ts", import.meta.url), "utf8");
+
+  assert.equal(skipUnchangedDayDefault(null), true);
+  assert.equal(skipUnchangedDayDefault("true"), true);
+  assert.equal(skipUnchangedDayDefault("false"), false);
+  assert.equal(
+    productUrlWithSkipUnchangedDay("https://shopee.ph/item-i.12.34?x=1", true),
+    "https://shopee.ph/item-i.12.34?x=1&ptph_skip_unchanged=1",
+  );
+
+  const context = vm.createContext({ URL });
+  vm.runInContext(extension, context);
+  assert.equal(context.PriceTrackCollectorOptions.skipUnchangedDayFromUrl("https://shopee.ph/item?ptph_skip_unchanged=1"), true);
+  assert.equal(context.PriceTrackCollectorOptions.skipUnchangedDayFromUrl("https://shopee.ph/item?ptph_skip_unchanged=0"), false);
+
+  assert.match(page, /Skip next day when price is unchanged/);
+  assert.match(page, /localStorage\.setItem\(skipUnchangedStorageKey, String\(nextValue\)\)/);
+  assert.match(recorder, /skip_unchanged_day:\s*body\.skipUnchangedDay === true/);
 });
 
 test("admin collector polls completion for the exact claimed product", async () => {
