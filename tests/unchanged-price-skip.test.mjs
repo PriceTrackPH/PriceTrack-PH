@@ -33,7 +33,7 @@ test("collector toggle is on by default, remembered, and sent with every recorde
 test("record-price marks a fully unchanged collector result for optional scheduling", async () => {
   const source = await readFile(new URL("../supabase/functions/record-price/index.ts", import.meta.url), "utf8");
 
-  assert.match(source, /skip_unchanged_day:\s*requestedSource === ["']scheduled_collector["'] && body\.skipUnchangedDay === true/);
+  assert.match(source, /skip_unchanged_day:\s*body\.skipUnchangedDay === true/);
   assert.match(source, /all_variations_unchanged:\s*variationStatesMatchPrevious/);
 });
 
