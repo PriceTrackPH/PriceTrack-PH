@@ -56,7 +56,7 @@ test("live admin collector remembers the unchanged-price skip toggle and sends i
 
 test("admin collector polls completion for the exact claimed product", async () => {
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
-  assert.match(source, /api<\{ completed: boolean; soldOut: boolean; recheckAt: string \| null \}>\("status"/);
+  assert.match(source, /api<\{ completed: boolean; soldOut: boolean; recheckAt: string \| null; samePrice: boolean; samePriceRecheckAt: string \| null \}>\("status"/);
   assert.match(source, /productId: product\.productId/);
   assert.match(source, /status\.completed/);
 });
@@ -107,15 +107,19 @@ test("collection history shows the Philippine start date and exact time", async 
   assert.doesNotMatch(source, /<th>Stopped<\/th>/);
 });
 
-test("collection history shows sold-out totals and recheck dates with shorter headings", async () => {
+test("collection history combines exclusion counts with their next-check dates", async () => {
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
 
   assert.match(source, /<th>Running time<\/th>/);
   assert.match(source, /<th>Sold out<\/th>/);
+  assert.match(source, /<th>Same Price<\/th>/);
   assert.match(source, /<th>Remaining<\/th>/);
-  assert.match(source, /<th>Recheck<\/th>/);
+  assert.doesNotMatch(source, /<th>Recheck<\/th>/);
   assert.match(source, /run\.soldOut/);
   assert.match(source, /run\.recheckAt/);
+  assert.match(source, /run\.samePrice/);
+  assert.match(source, /run\.samePriceRecheckAt/);
+  assert.match(source, /Same price excluded: \{summary\?\.samePriceDeferred \?\? "—"\}/);
   assert.doesNotMatch(source, /<th>Total running time<\/th>/);
   assert.doesNotMatch(source, /<th>Products remaining<\/th>/);
 });
