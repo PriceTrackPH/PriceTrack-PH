@@ -51,6 +51,7 @@ test("live admin collector remembers the unchanged-price skip toggle and sends i
 
   assert.match(page, /Skip next day when price is unchanged/);
   assert.match(page, /localStorage\.setItem\(skipUnchangedStorageKey, String\(nextValue\)\)/);
+  assert.match(page, /skipUnchangedDay:\s*skipUnchangedDay/);
   assert.match(recorder, /skip_unchanged_day:\s*body\.skipUnchangedDay === true/);
 });
 
