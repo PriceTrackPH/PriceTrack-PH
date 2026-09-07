@@ -40,6 +40,7 @@ test("record-price marks a fully unchanged collector result for optional schedul
 test("database skips exactly one Manila calendar day only when the option is enabled and all states are unchanged", async () => {
   const sql = await readFile(new URL("../supabase/migrations/20260910_unchanged_price_skip.sql", import.meta.url), "utf8");
 
+  assert.doesNotMatch(sql, /\\n/);
   assert.match(sql, /p_metadata\s*->>\s*'skip_unchanged_day'/i);
   assert.match(sql, /p_metadata\s*->>\s*'all_variations_unchanged'/i);
   assert.match(sql, /interval '2 days'/i);
