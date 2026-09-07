@@ -254,12 +254,12 @@ Deno.serve(async (request: Request) => {
       if (Number.isInteger(storedCount) && storedCount >= 0) previousVariationCount = storedCount;
     }
 
-    if (!internalRequest) {
-      const clientHash = await digest(clientId);
+    const quotaRequest = buildIngestQuotaRequest(await digest(clientId), observedDate);
+    if (!internalRequest && quotaRequest) {
       const quotaResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_ingest_quota`, {
         method: "POST",
         headers: adminHeaders(secret, { "content-type": "application/json" }),
-        body: JSON.stringify(buildIngestQuotaRequest(clientHash, observedDate)),
+        body: JSON.stringify(quotaRequest),
       });
       if (!quotaResponse.ok) {
         console.error("Quota check failed", await quotaResponse.text());
