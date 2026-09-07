@@ -34,7 +34,7 @@ async function fetchProduct(shopId, productId) {
   if (!supabaseUrl || !secret) throw new Error("product_page_not_configured");
 
   const params = new URLSearchParams({
-    select: "external_shop_id,external_product_id,name,shop_name,image_url",
+    select: "id,external_shop_id,external_product_id,name,shop_name,image_url",
     platform: "eq.shopee",
     external_shop_id: `eq.${shopId}`,
     external_product_id: `eq.${productId}`,
@@ -47,6 +47,27 @@ async function fetchProduct(shopId, productId) {
   if (!response.ok) throw new Error(`product_${response.status}`);
   const rows = await response.json();
   return Array.isArray(rows) ? rows[0] ?? null : null;
+}
+
+async function fetchOfferRows(productId) {
+  const supabaseUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
+  const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  if (!supabaseUrl || !secret) throw new Error("product_page_not_configured");
+
+  const params = new URLSearchParams({
+    select: "is_active,price_observations(price,is_in_stock,observed_at)",
+    product_id: `eq.${productId}`,
+    is_active: "eq.true",
+    "price_observations.order": "observed_at.desc",
+    "price_observations.limit": "1",
+  });
+  const response = await fetch(`${supabaseUrl}/rest/v1/product_variations?${params}`, {
+    headers: adminHeaders(secret),
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!response.ok) throw new Error(`offers_${response.status}`);
+  const rows = await response.json();
+  return Array.isArray(rows) ? rows : [];
 }
 
 async function fetchApplicationShell() {
@@ -62,7 +83,25 @@ function replaceMeta(html, selectorPattern, replacement) {
   return html.replace(selectorPattern, replacement);
 }
 
-function renderProductPage(shell, product, canonicalUrl) {
+export function buildOfferSummary(rows) {
+  const current = rows
+    .filter((row) => row?.is_active !== false)
+    .map((row) => Array.isArray(row?.price_observations) ? row.price_observations[0] : null)
+    .filter((observation) => observation && Number.isFinite(Number(observation.price)) && Number(observation.price) > 0);
+  if (!current.length) return null;
+
+  const inStock = current.filter((observation) => observation.is_in_stock === true);
+  const included = inStock.length ? inStock : current;
+  const prices = included.map((observation) => Number(observation.price));
+  return {
+    lowPrice: Math.min(...prices),
+    highPrice: Math.max(...prices),
+    offerCount: included.length,
+    availability: inStock.length ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+  };
+}
+
+export function renderProductPage(shell, product, canonicalUrl, offerSummary) {
   const title = `${product.name} Price History | PriceTrack PH`;
   const description = `View recorded Shopee Philippines price history, product variations and price changes for ${product.name} on PriceTrack PH.`;
   const imageUrl = safeHttpsUrl(product.image_url);
@@ -99,16 +138,25 @@ function renderProductPage(shell, product, canonicalUrl) {
     description,
     inLanguage: "en-PH",
     isPartOf: { "@id": `${SITE_ORIGIN}/#website` },
-    mainEntity: {
+    ...(offerSummary ? { mainEntity: {
       "@type": "Product",
       name: product.name,
       url: canonicalUrl,
       ...(imageUrl ? { image: imageUrl } : {}),
+      offers: {
+        "@type": "AggregateOffer",
+        url: canonicalUrl,
+        priceCurrency: "PHP",
+        lowPrice: offerSummary.lowPrice,
+        highPrice: offerSummary.highPrice,
+        offerCount: offerSummary.offerCount,
+        availability: offerSummary.availability,
+      },
       additionalProperty: [
         { "@type": "PropertyValue", name: "Marketplace", value: "Shopee Philippines" },
         { "@type": "PropertyValue", name: "Shop", value: product.shop_name || "Shopee Philippines seller" },
       ],
-    },
+    } } : {}),
   }).replaceAll("<", "\\u003c");
   html = html.replace("</head>", `    <script id="product-server-structured-data" type="application/ld+json">${structuredData}</script>\n  </head>`);
   return html;
@@ -131,8 +179,9 @@ export default async function handler(req, res) {
       return res.status(404).setHeader("Content-Type", "text/html; charset=utf-8").send(notFound);
     }
 
+    const offerRows = await fetchOfferRows(product.id);
     const canonicalUrl = `${SITE_ORIGIN}/product/shopee/${shopId}/${productId}`;
-    const html = renderProductPage(shell, product, canonicalUrl);
+    const html = renderProductPage(shell, product, canonicalUrl, buildOfferSummary(offerRows));
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=86400");
     res.setHeader("X-Content-Type-Options", "nosniff");

@@ -292,33 +292,7 @@ function applyProductMetadata(product: Product) {
   setMetaContent('meta[name="twitter:description"]', "name", "twitter:description", description);
   setMetaContent('meta[name="twitter:image"]', "name", "twitter:image", imageUrl);
 
-  let structuredData = document.head.querySelector<HTMLScriptElement>("#product-structured-data");
-  if (!structuredData) {
-    structuredData = document.createElement("script");
-    structuredData.id = "product-structured-data";
-    structuredData.type = "application/ld+json";
-    document.head.append(structuredData);
-  }
-  structuredData.textContent = JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "@id": `${canonicalUrl}#webpage`,
-    url: canonicalUrl,
-    name: title,
-    description,
-    inLanguage: "en-PH",
-    isPartOf: { "@id": `${SITE_ORIGIN}/#website` },
-    mainEntity: {
-      "@type": "Product",
-      name: product.name,
-      url: canonicalUrl,
-      ...(imageUrl ? { image: imageUrl } : {}),
-      additionalProperty: [
-        { "@type": "PropertyValue", name: "Marketplace", value: "Shopee Philippines" },
-        { "@type": "PropertyValue", name: "Shop", value: product.shop_name || "Shopee Philippines seller" },
-      ],
-    },
-  });
+  document.head.querySelector("#product-structured-data")?.remove();
 }
 
 function showPermanentProductUrl(product: Product, mode: "push" | "replace", variationId?: string | null) {
