@@ -4,9 +4,40 @@ import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
 import {
+  includeStoreImportsDefault,
+  normalizeShopeeStoreUrl,
+} from "../src/store-import-contract.ts";
+import {
   productUrlWithSkipUnchangedDay,
   skipUnchangedDayDefault,
 } from "../src/admin-collector-settings.ts";
+
+test("admin collector scans, saves, and rechecks Shopee stores without auto-starting collection", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  assert.deepEqual(normalizeShopeeStoreUrl("https://shopee.ph/JabraOfficialStore#product_list"), {
+    storeKey: "jabraofficialstore", storeUrl: "https://shopee.ph/jabraofficialstore", displayName: "JabraOfficialStore",
+  });
+  assert.match(source, /placeholder="Paste a Shopee store link"/);
+  assert.match(source, /"Scan store"/);
+  assert.match(source, />Saved stores</);
+  assert.match(source, />Recheck</);
+  assert.match(source, /storeApi<[^;]+>\("begin"/);
+  assert.match(source, /storeApi<[^;]+>\("batch"/);
+  assert.match(source, /failed \? "fail" : "finish"/);
+  assert.match(source, /STORE_SCAN_PAGE_SOURCE/);
+  assert.doesNotMatch(source, /await startCollection\(\)[\s\S]{0,200}Scan store/);
+});
+
+test("store imports participate in normal runs only when the default-on toggle is enabled", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  assert.equal(includeStoreImportsDefault(null), true);
+  assert.equal(includeStoreImportsDefault("false"), false);
+  assert.match(source, /Include store-imported products/);
+  assert.match(source, /localStorage\.setItem\(includeStoreImportsStorageKey, String\(nextValue\)\)/);
+  assert.match(source, /includeStoreImports:\s*includeStoreImports/);
+  assert.match(source, /attemptedStoreRequestIds/);
+  assert.match(source, /Store queue pending: \{summary\?\.storeQueuePending \?\? "—"\}/);
+});
 
 test("routes the protected collector admin page", async () => {
   const app = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
@@ -67,7 +98,7 @@ test("admin collector processes priority claims and shows only their pending cou
   assert.match(source, /priorityPending: number/);
   assert.match(source, /Priority queue pending: \{summary\?\.priorityPending \?\? "—"\}/);
   assert.match(source, /attemptedQueueRequestIds/);
-  assert.match(source, /claimSource: "priority" \| "random"/);
+  assert.match(source, /claimSource: "priority" \| "store" \| "random"/);
   assert.match(source, /queueRequestId/);
   assert.doesNotMatch(source, /<th>Queued product<\/th>|Queue management|Priority queue history/);
 });

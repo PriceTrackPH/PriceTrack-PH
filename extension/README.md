@@ -1,6 +1,8 @@
 # PriceTrack PH Chrome Extension
 
-Current public release candidate: **v1.0.0**.
+Current public release candidate: **v1.0.4**.
+
+Version 1.0.4 adds private Shopee store scanning for the PriceTrack PH admin collector. Existing product-page price recording remains unchanged.
 
 This extension runs on Shopee Philippines product pages, detects Shopee model/variation data as early as possible, and sends public product price observations to the PriceTrack PH website API.
 

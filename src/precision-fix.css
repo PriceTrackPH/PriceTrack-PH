@@ -419,6 +419,16 @@ html[data-theme="dark"] .support-section {
 .admin-collector-status strong { margin-top: 5px; }
 .admin-collector-note { margin: 16px 0 0; color: #f3d486; line-height: 1.5; }
 .admin-collector-history { margin-top: 24px; }
+.admin-store-import-panel { margin-bottom: 24px; }
+.admin-store-import-panel h2, .admin-store-import-panel h3 { margin-top: 0; }
+.admin-store-import-panel h3 { margin-top: 24px; }
+.admin-store-import-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; margin: 18px 0 12px; }
+.admin-store-import-form input { min-width: 0; padding: 12px 14px; border: 1px solid #303936; border-radius: 10px; background: #09100e; color: inherit; }
+.admin-store-import-form input:focus-visible, .admin-store-import-form button:focus-visible, .admin-saved-stores button:focus-visible { outline: 2px solid #00dfae; outline-offset: 2px; }
+.admin-store-scan-status { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.admin-store-scan-status strong { flex-basis: 100%; }
+.admin-saved-stores button { white-space: nowrap; }
+@media (max-width: 640px) { .admin-store-import-form { grid-template-columns: 1fr; } }
 .health-event-type { color: #11d4aa; }
 .health-event-type.record_failure, .health-event-type.record_partial { color: #ff817d; }
 .health-event-type.duplicate_blocked, .health-event-type.variation_count_changed { color: #ffd278; }

@@ -66,7 +66,7 @@ test("queues a validated mobile request with only a hashed device id", async () 
     assert.equal(payload.p_external_shop_id, validBody.shopId);
     assert.equal(payload.p_external_product_id, validBody.productId);
     assert.equal(payload.p_product_url, validBody.productUrl);
-    assert.match(payload.p_requested_date, /^2026-09-0[56]$/);
+    assert.equal(payload.p_requested_date, manilaDate());
     return { ok: true, json: async () => ({ status: "queued" }) };
   };
   const res = responseRecorder();

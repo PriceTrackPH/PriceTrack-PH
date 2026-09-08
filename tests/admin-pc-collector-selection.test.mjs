@@ -6,10 +6,12 @@ import handler, {
   claimNextProduct,
   claimPriorityProduct,
   claimRandomProduct,
+  claimStoreProduct,
   collectorSummary,
   collectorHistory,
   productCheckStatusByIdentity,
   releasePriorityProduct,
+  releaseStoreProduct,
   saveCollectorRun,
 } from "../api/admin-pc-collector.js";
 
@@ -24,11 +26,15 @@ test("summary uses the database availability cross-check", async () => {
     if (String(url).includes("public_collection_queue_pending_count")) {
       return { ok: true, json: async () => 7 };
     }
+    if (String(url).includes("store_collection_queue_pending_count")) {
+      return { ok: true, json: async () => 11 };
+    }
     throw new Error(`unexpected ${url}`);
   };
   try {
     const summary = await collectorSummary("https://example.supabase.co", "secret");
     assert.equal(summary.priorityPending, 7);
+    assert.equal(summary.storeQueuePending, 11);
     assert.equal(summary.samePriceDeferred, 23);
   } finally {
     global.fetch = originalFetch;
@@ -78,6 +84,49 @@ test("falls back to the existing random claim only when the priority queue is em
   assert.equal(calls.length, 2);
   assert.equal(claim.claimSource, "random");
   assert.equal(claim.productId, 42);
+});
+
+test("claims store imports after priority and before random when enabled", async () => {
+  const calls = [];
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    if (String(url).includes("claim_oldest_public_collection_request")) return { ok: true, json: async () => [] };
+    if (String(url).includes("claim_oldest_store_collection_request")) return { ok: true, json: async () => [{
+      request_id: "550e8400-e29b-41d4-a716-446655440000", shop_id: "123", external_product_id: "456",
+      product_url: "https://shopee.ph/product/123/456", lease_until: "2026-09-08T02:00:00.000Z",
+    }] };
+    throw new Error("random claim must not run");
+  };
+  const claim = await claimNextProduct(
+    "https://example.supabase.co", "secret", [], [], "2026-09-08T02:00:00.000Z",
+    ["660e8400-e29b-41d4-a716-446655440000"], true,
+  );
+  assert.deepEqual(calls.map((url) => url.split("/").at(-1)), ["claim_oldest_public_collection_request", "claim_oldest_store_collection_request"]);
+  assert.equal(claim.claimSource, "store");
+  assert.equal(claim.queueRequestId, "550e8400-e29b-41d4-a716-446655440000");
+});
+
+test("skips store claims when the run toggle is off", async () => {
+  const calls = [];
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    if (String(url).includes("claim_oldest_public_collection_request")) return { ok: true, json: async () => [] };
+    return { ok: true, json: async () => [{ product_id: 42, shop_id: "1", external_product_id: "2", product_url: "https://shopee.ph/product/1/2", lease_until: "2026-09-08T02:00:00.000Z" }] };
+  };
+  const claim = await claimNextProduct("https://example.supabase.co", "secret", [], [], "2026-09-08T02:00:00.000Z", [], false);
+  assert.equal(claim.claimSource, "random");
+  assert.equal(calls.some((url) => url.includes("claim_oldest_store_collection_request")), false);
+});
+
+test("releases only the matching store lease", async () => {
+  let request;
+  global.fetch = async (url, options) => {
+    request = { url: String(url), body: JSON.parse(options.body) };
+    return { ok: true, json: async () => null };
+  };
+  await releaseStoreProduct("https://example.supabase.co", "secret", "550e8400-e29b-41d4-a716-446655440000", "2026-09-08T02:00:00.000Z");
+  assert.match(request.url, /release_store_collection_request$/);
+  assert.deepEqual(request.body, { p_request_id: "550e8400-e29b-41d4-a716-446655440000", p_expected_lease_until: "2026-09-08T02:00:00.000Z" });
 });
 
 test("releases only the lease owned by the priority claim", async () => {
@@ -147,6 +196,9 @@ test("finish stores the database's live remaining count instead of the browser e
       return { ok: true, json: async () => [{ total_tracked: 500, total_due: 321, sold_out_deferred: 20, same_price_deferred: 30 }] };
     }
     if (String(url).includes("public_collection_queue_pending_count")) {
+      return { ok: true, json: async () => 0 };
+    }
+    if (String(url).includes("store_collection_queue_pending_count")) {
       return { ok: true, json: async () => 0 };
     }
     if (String(url).includes("collector_run_history") && options.method === "POST") {
