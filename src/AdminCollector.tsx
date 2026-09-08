@@ -128,7 +128,7 @@ export default function AdminCollector() {
   }
 
   async function storeApi<T>(action: string, body: Record<string, unknown> = {}) {
-    const response = await fetch(`/api/admin-store-import?action=${action}`, {
+    const response = await fetch(`/api/admin-pc-collector?action=store-${action}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),
