@@ -1,35 +1,38 @@
-const MAX_DISCOVERED_PRODUCTS = 5000;
+const MAX_STORE_PRODUCTS = 5000;
 
 export function normalizeShopeeStoreUrl(value) {
   try {
-    const url = new URL(value.trim());
-    if (url.protocol !== "https:" || url.hostname.toLowerCase() !== "shopee.ph") return null;
+    const url = new URL(String(value || "").trim());
+    if (url.protocol !== "https:" || url.hostname.toLowerCase() !== "shopee.ph" || url.username || url.password) return null;
     const segments = url.pathname.split("/").filter(Boolean);
-    const slug = segments[0]?.replace(/^@/, "") || "";
-    if (!/^[a-z0-9._-]{2,128}$/i.test(slug) || slug.toLowerCase() === "product") return null;
+    if (segments.length !== 1 || /^(?:product|item)$/i.test(segments[0]) || /-i\.\d+\.\d+$/i.test(segments[0])) return null;
+    const displayName = decodeURIComponent(segments[0]);
+    const storeKey = displayName.toLowerCase();
     return {
-      storeKey: slug.toLowerCase(),
-      storeUrl: `https://shopee.ph/${slug.toLowerCase()}`,
-      displayName: slug,
+      storeKey,
+      storeUrl: `https://shopee.ph/${encodeURIComponent(storeKey)}`,
+      displayName,
     };
   } catch {
     return null;
   }
 }
 
-export function normalizeDiscoveredProducts(value) {
-  if (!Array.isArray(value)) return [];
+export function normalizeDiscoveredProducts(values, maximum = MAX_STORE_PRODUCTS) {
+  if (!Array.isArray(values)) return [];
+  const limit = Math.min(MAX_STORE_PRODUCTS, Math.max(0, Number.isFinite(maximum) ? Math.floor(maximum) : MAX_STORE_PRODUCTS));
   const products = [];
   const seen = new Set();
-  for (const item of value) {
-    const shopId = String(item?.shopId || "");
-    const productId = String(item?.productId || "");
-    if (!/^\d+$/.test(shopId) || !/^\d+$/.test(productId)) continue;
-    const key = `${shopId}:${productId}`;
+  for (const value of values) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const shopId = String(value.shopId ?? "");
+    const externalProductId = String(value.externalProductId ?? value.productId ?? "");
+    if (!/^[1-9]\d*$/.test(shopId) || !/^[1-9]\d*$/.test(externalProductId)) continue;
+    const key = `${shopId}:${externalProductId}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    products.push({ shopId, productId, productUrl: `https://shopee.ph/product/${shopId}/${productId}` });
-    if (products.length >= MAX_DISCOVERED_PRODUCTS) break;
+    products.push({ shopId, externalProductId, productUrl: `https://shopee.ph/product/${shopId}/${externalProductId}` });
+    if (products.length >= limit) break;
   }
   return products;
 }
