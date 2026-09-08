@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFile } from "node:fs/promises";
 
 const originalUrl = process.env.SUPABASE_URL;
 const originalSecret = process.env.SUPABASE_SECRET_KEY;
@@ -9,6 +10,12 @@ process.env.SUPABASE_SECRET_KEY = "service-secret";
 process.env.ADMIN_HEALTH_TOKEN = "admin-secret";
 
 const { default: handler } = await import("../api/admin-store-import.js");
+
+test("keeps the Vercel API independent from frontend TypeScript configuration", async () => {
+  const source = await readFile(new URL("../api/admin-store-import.js", import.meta.url), "utf8");
+  assert.match(source, /from "\.\/store-import-contract\.js"/);
+  assert.doesNotMatch(source, /\.\.\/src\/.*\.ts/);
+});
 
 test.after(() => {
   for (const [key, value] of [["SUPABASE_URL", originalUrl], ["SUPABASE_SECRET_KEY", originalSecret], ["ADMIN_HEALTH_TOKEN", originalToken]]) {
