@@ -5,9 +5,11 @@ import {
   reachedCollectionLimit,
 } from "./collector-session-policy";
 import {
-  productUrlWithSkipUnchangedDay,
+  productUrlWithCollectorOptions,
+  skipSoldOutDefault,
   skipUnchangedDayDefault,
 } from "./admin-collector-settings";
+import { clearCollectorRunCheckpoint, readCollectorRunCheckpoint, saveCollectorRunCheckpoint } from "./collector-run-recovery";
 import {
   includeStoreImportsDefault,
   normalizeShopeeStoreUrl,
@@ -63,12 +65,14 @@ type CollectorRun = {
   recheckAt: string | null;
   samePrice: number;
   samePriceRecheckAt: string | null;
-  stopStatus: "stopped" | "stopped_safely";
+  stopStatus: "stopped" | "stopped_safely" | "interrupted";
 };
+type CollectionMode = "normal" | "unlimited";
 
 const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 const cooldownStorageKey = "pricetrack-admin-collector-cooldown-until";
 const skipUnchangedStorageKey = "pricetrack-admin-collector-skip-unchanged-day";
+const skipSoldOutStorageKey = "pricetrack-admin-collector-skip-sold-out";
 const includeStoreImportsStorageKey = "pricetrack-admin-collector-include-store-imports";
 
 export default function AdminCollector() {
@@ -88,6 +92,7 @@ export default function AdminCollector() {
   const [skipUnchangedDay, setSkipUnchangedDay] = useState(() =>
     skipUnchangedDayDefault(localStorage.getItem(skipUnchangedStorageKey))
   );
+  const [skipSoldOut, setSkipSoldOut] = useState(() => skipSoldOutDefault(localStorage.getItem(skipSoldOutStorageKey)));
   const [includeStoreImports, setIncludeStoreImports] = useState(() =>
     includeStoreImportsDefault(localStorage.getItem(includeStoreImportsStorageKey))
   );
@@ -110,6 +115,18 @@ export default function AdminCollector() {
   const recheckAt = useRef<string | null>(null);
   const samePriceCount = useRef(0);
   const samePriceRecheckAt = useRef<string | null>(null);
+  const collectionMode = useRef<CollectionMode>("normal");
+
+  function checkpointRun() {
+    if (!runId.current || !startedAt.current) return;
+    saveCollectorRunCheckpoint(localStorage, {
+      runId: runId.current, startedAt: startedAt.current,
+      succeeded: succeededCount.current, failed: failedCount.current,
+      soldOut: soldOutCount.current, recheckAt: recheckAt.current,
+      samePrice: samePriceCount.current, samePriceRecheckAt: samePriceRecheckAt.current,
+      remaining: Math.max(0, (summary?.totalDue || 0) - succeededCount.current - failedCount.current),
+    });
+  }
 
   async function api<T>(action: string, body: Record<string, unknown> = {}) {
     const response = await fetch(`/api/admin-pc-collector?action=${action}`, {
@@ -158,11 +175,17 @@ export default function AdminCollector() {
       window.location.replace("/admin");
       return () => document.body.classList.remove("admin-page-active");
     }
-    void Promise.all([
+    const interrupted = readCollectorRunCheckpoint(localStorage);
+    const recover = interrupted ? api("finish", { run: {
+      ...interrupted, stoppedAt: new Date().toISOString(),
+      durationSeconds: Math.max(0, Math.round((Date.now() - Date.parse(interrupted.startedAt)) / 1000)),
+      stopStatus: "interrupted",
+    }}).then(() => clearCollectorRunCheckpoint(localStorage)) : Promise.resolve();
+    void recover.then(() => Promise.all([
       api<CollectorSummary & { ok: boolean }>("summary"),
       api<{ ok: boolean; history: CollectorRun[] }>("history"),
       storeApi<{ ok: boolean; stores: SavedStore[] }>("list"),
-    ])
+    ]))
       .then(([next, runs, stores]) => { setSummary(next); setHistory(runs.history); setSavedStores(stores.stores); setMessage("Ready"); })
       .catch((cause) => setMessage(cause instanceof Error ? cause.message : "Unable to open collector."));
     return () => {
@@ -306,6 +329,7 @@ export default function AdminCollector() {
     };
     runId.current = null;
     const { saved } = await api<{ saved: CollectorRun }>("finish", { run });
+    clearCollectorRunCheckpoint(localStorage);
     setHistory((items) => [
       { ...run, remaining: saved.remaining },
       ...items.filter((item) => item.runId !== run.runId),
@@ -320,6 +344,7 @@ export default function AdminCollector() {
         attemptedQueueRequestIds: [...attemptedQueueRequestIds.current],
         attemptedStoreRequestIds: [...attemptedStoreRequestIds.current],
         includeStoreImports: includeStoreImports,
+        skipSoldOut,
       });
       const product = claim.product;
       if (!product) {
@@ -334,11 +359,10 @@ export default function AdminCollector() {
       setCurrentProduct(product);
       setMessage(`Opening ${product.shopId}.${product.externalProductId}`);
       if (!productTab.current || productTab.current.closed) throw new Error("The dedicated Shopee tab was closed.");
-      productTab.current.location.href = productUrlWithSkipUnchangedDay(product.productUrl, skipUnchangedDay);
+      productTab.current.location.href = productUrlWithCollectorOptions(product.productUrl, skipUnchangedDay, skipSoldOut);
 
       let completed = false;
-      const deadline = Date.now() + 75_000;
-      while (!stopped.current && Date.now() < deadline) {
+      while (!stopped.current) {
         await wait(1000);
         const status = await api<{ completed: boolean; soldOut: boolean; recheckAt: string | null; samePrice: boolean; samePriceRecheckAt: string | null }>("status",
           { ...(product.productId === null
@@ -355,6 +379,7 @@ export default function AdminCollector() {
             samePriceRecheckAt.current = status.samePriceRecheckAt;
           }
           completed = true;
+          checkpointRun();
           break;
         }
       }
@@ -378,7 +403,8 @@ export default function AdminCollector() {
         setSummary(next);
       }
       consecutiveFailures = 0;
-      if (reachedCollectionLimit(succeededCount.current)) {
+      checkpointRun();
+      if (collectionMode.current === "normal" && reachedCollectionLimit(succeededCount.current)) {
         stopped.current = true;
         setRunning(false);
         const nextCooldownUntil = cooldownEndAfterLimit(Date.now());
@@ -395,8 +421,8 @@ export default function AdminCollector() {
     setRunning(false);
   }
 
-  async function startCollection() {
-    if (cooldownSeconds > 0) return;
+  async function startCollection(mode: CollectionMode = "normal") {
+    if (mode === "normal" && cooldownSeconds > 0) return;
     const opened = window.open("about:blank", "ptph-admin-collector");
     if (!opened) { setMessage("Allow pop-ups for PriceTrack PH, then click Start collection again."); return; }
     productTab.current = opened;
@@ -409,6 +435,8 @@ export default function AdminCollector() {
     samePriceCount.current = 0; samePriceRecheckAt.current = null;
     startedAt.current = new Date().toISOString();
     runId.current = crypto.randomUUID();
+    collectionMode.current = mode;
+    checkpointRun();
     setSucceeded(0); setFailed(0); setRunning(true); setMessage("Starting");
     try {
       const next = await api<CollectorSummary & { ok: boolean }>("summary");
@@ -462,7 +490,8 @@ export default function AdminCollector() {
       </section>
       <section className="admin-collector-panel">
         <div className="admin-collector-actions">
-          <button type="button" onClick={() => void startCollection()} disabled={running || cooldownSeconds > 0 || !summary}>Start collection</button>
+          <button type="button" onClick={() => void startCollection("normal")} disabled={running || cooldownSeconds > 0 || !summary}>Start collection</button>
+          <button type="button" onClick={() => void startCollection("unlimited")} disabled={running || !summary}>Start unlimited collection</button>
           <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
         </div>
         <label className="admin-collector-option">
@@ -477,6 +506,14 @@ export default function AdminCollector() {
             }}
           />
           <span>Skip next day when price is unchanged</span>
+        </label>
+        <label className="admin-collector-option">
+          <input type="checkbox" checked={skipSoldOut} disabled={running} onChange={(event) => {
+            const nextValue = event.target.checked;
+            setSkipSoldOut(nextValue);
+            localStorage.setItem(skipSoldOutStorageKey, String(nextValue));
+          }} />
+          <span>Skip sold-out products</span>
         </label>
         <label className="admin-collector-option">
           <input type="checkbox" checked={includeStoreImports} disabled={running} onChange={(event) => {
@@ -514,7 +551,7 @@ export default function AdminCollector() {
             <td>{run.soldOut}{run.recheckAt ? ` — ${new Date(run.recheckAt).toLocaleDateString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit" })}` : ""}</td>
             <td>{run.samePrice}{run.samePriceRecheckAt ? ` — ${new Date(run.samePriceRecheckAt).toLocaleDateString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit" })}` : ""}</td>
             <td>{run.remaining}</td>
-            <td>{run.stopStatus === "stopped_safely" ? "Stopped safely" : "Stopped"}</td>
+            <td>{run.stopStatus === "stopped_safely" ? "Stopped safely" : run.stopStatus === "interrupted" ? "Interrupted" : "Stopped"}</td>
           </tr>)}</tbody>
         </table></div>}
       </section>

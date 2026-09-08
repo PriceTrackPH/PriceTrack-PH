@@ -7,5 +7,12 @@
         return false;
       }
     },
+    skipSoldOutFromUrl(value) {
+      try {
+        return new URL(value).searchParams.get("ptph_skip_sold_out") !== "0";
+      } catch {
+        return true;
+      }
+    },
   };
 })(globalThis);
