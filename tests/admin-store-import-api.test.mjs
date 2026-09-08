@@ -70,6 +70,7 @@ test("normalizes and submits one bounded product batch", async () => {
     assert.match(url, /\/rest\/v1\/rpc\/import_store_collection_batch$/);
     const body = JSON.parse(options.body);
     assert.equal(body.p_products.length, 1);
+    assert.equal(body.p_products[0].externalProductId, "34");
     assert.equal(body.p_products[0].productUrl, "https://shopee.ph/product/12/34");
     return { ok: true, json: async () => ({ discovered: 1, newlyQueued: 1, duplicate: 0, alreadyTracked: 0 }) };
   };
