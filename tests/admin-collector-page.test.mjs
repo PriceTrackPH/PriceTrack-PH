@@ -162,6 +162,14 @@ test("collection history uses the same boxed table layout as recent events", asy
   assert.match(styles, /\.admin-collector-history\s*\{[^}]*margin-top:\s*24px;/);
 });
 
+test("collector panels remain readable in light mode", async () => {
+  const styles = await readFile(new URL("../src/precision-fix.css", import.meta.url), "utf8");
+  assert.match(styles, /html:not\(\[data-theme="dark"\]\) \.admin-collector-panel\s*\{[^}]*background:\s*#fff;[^}]*color:\s*#17201d;/s);
+  assert.match(styles, /html:not\(\[data-theme="dark"\]\) \.admin-collector-option\s*\{[^}]*color:\s*#17201d;/s);
+  assert.match(styles, /html:not\(\[data-theme="dark"\]\) \.admin-collector-status\s*\{[^}]*background:\s*#f3f6f5;[^}]*color:\s*#17201d;/s);
+  assert.match(styles, /html:not\(\[data-theme="dark"\]\) \.admin-saved-stores a\s*\{[^}]*color:\s*#087e68;/s);
+});
+
 test("collection history shows the Philippine start date and exact time", async () => {
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
 
