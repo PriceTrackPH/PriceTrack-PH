@@ -367,7 +367,7 @@ export default function AdminCollector() {
         const status = await api<{ completed: boolean; soldOut: boolean; recheckAt: string | null; samePrice: boolean; samePriceRecheckAt: string | null }>("status",
           { ...(product.productId === null
             ? { shopId: product.shopId, externalProductId: product.externalProductId }
-            : { productId: product.productId }), skipUnchangedDay: skipUnchangedDay },
+            : { productId: product.productId }), skipUnchangedDay: skipUnchangedDay, skipSoldOut: skipSoldOut },
         );
         if (status.completed) {
           if (status.soldOut) {
