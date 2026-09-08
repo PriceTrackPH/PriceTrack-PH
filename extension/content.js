@@ -568,6 +568,7 @@ async function automaticallyRecordPrice() {
       installationId,
       observedAt: new Date().toISOString(),
       skipUnchangedDay: globalThis.PriceTrackCollectorOptions?.skipUnchangedDayFromUrl(location.href) === true,
+      skipSoldOut: globalThis.PriceTrackCollectorOptions?.skipSoldOutFromUrl(location.href) !== false,
     };
 
     let response;

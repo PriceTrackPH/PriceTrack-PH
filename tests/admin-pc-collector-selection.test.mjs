@@ -262,7 +262,7 @@ test("claim uses the atomic random database function and passes prior attempts",
     global.fetch = originalFetch;
   }
   assert.match(request.url, /\/rest\/v1\/rpc\/claim_random_available_product_check$/);
-  assert.deepEqual(JSON.parse(request.options.body), { p_excluded_product_ids: [3, 9] });
+  assert.deepEqual(JSON.parse(request.options.body), { p_excluded_product_ids: [3, 9], p_skip_sold_out: true });
 });
 
 test("status returns the exact product's exclusion reason and scheduled recheck", async () => {

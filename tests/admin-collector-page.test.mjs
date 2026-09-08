@@ -8,9 +8,12 @@ import {
   normalizeShopeeStoreUrl,
 } from "../src/store-import-contract.ts";
 import {
+  productUrlWithCollectorOptions,
   productUrlWithSkipUnchangedDay,
+  skipSoldOutDefault,
   skipUnchangedDayDefault,
 } from "../src/admin-collector-settings.ts";
+import { clearCollectorRunCheckpoint, readCollectorRunCheckpoint, saveCollectorRunCheckpoint } from "../src/collector-run-recovery.ts";
 
 test("admin collector scans, saves, and rechecks Shopee stores without auto-starting collection", async () => {
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
@@ -53,13 +56,40 @@ test("admin collector reuses one product tab and waits one second after recordin
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
   assert.match(source, /window\.open\("about:blank", "ptph-admin-collector"\)/);
   assert.match(source, /consecutiveFailures = 0;/);
-  assert.match(source, /if \(reachedCollectionLimit\(succeededCount\.current\)\)/);
+  assert.match(source, /reachedCollectionLimit\(succeededCount\.current\)/);
   assert.match(source, /await finishRun\("stopped_safely"\)/);
   assert.match(source, /await wait\(1_000\);/);
   assert.match(source, /disabled=\{running \|\| cooldownSeconds > 0 \|\| !summary\}/);
   assert.doesNotMatch(source, /setMessage\(String\(Math\.max/);
   assert.match(source, /Start collection/);
   assert.match(source, /Stop collection/);
+});
+
+test("unlimited collection bypasses cooldown and the 50-product cap while unresolved products stay pinned", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  assert.match(source, /Start unlimited collection/);
+  assert.match(source, /collectionMode\.current === "normal" && reachedCollectionLimit/);
+  assert.match(source, /if \(mode === "normal" && cooldownSeconds > 0\) return/);
+  assert.match(source, /while \(!stopped\.current\) \{/);
+  assert.doesNotMatch(source, /Date\.now\(\) < deadline|75_000/);
+});
+
+test("collector options carry independent default-on sold-out deferral", () => {
+  assert.equal(skipSoldOutDefault(null), true);
+  assert.equal(skipSoldOutDefault("false"), false);
+  const url = productUrlWithCollectorOptions("https://shopee.ph/item-i.12.34", false, false);
+  assert.match(url, /ptph_skip_unchanged=0/);
+  assert.match(url, /ptph_skip_sold_out=0/);
+});
+
+test("active collector checkpoints validate and clear safely", () => {
+  const values = new Map();
+  const storage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: (key) => values.delete(key) };
+  const checkpoint = { runId: crypto.randomUUID(), startedAt: new Date().toISOString(), succeeded: 3, failed: 1, soldOut: 1, recheckAt: null, samePrice: 2, samePriceRecheckAt: null, remaining: 20 };
+  saveCollectorRunCheckpoint(storage, checkpoint);
+  assert.deepEqual(readCollectorRunCheckpoint(storage), checkpoint);
+  clearCollectorRunCheckpoint(storage);
+  assert.equal(readCollectorRunCheckpoint(storage), null);
 });
 
 test("live admin collector remembers the unchanged-price skip toggle and sends it through Shopee", async () => {
@@ -72,7 +102,7 @@ test("live admin collector remembers the unchanged-price skip toggle and sends i
   assert.equal(skipUnchangedDayDefault("false"), false);
   assert.equal(
     productUrlWithSkipUnchangedDay("https://shopee.ph/item-i.12.34?x=1", true),
-    "https://shopee.ph/item-i.12.34?x=1&ptph_skip_unchanged=1",
+    "https://shopee.ph/item-i.12.34?x=1&ptph_skip_unchanged=1&ptph_skip_sold_out=1",
   );
 
   const context = vm.createContext({ URL });

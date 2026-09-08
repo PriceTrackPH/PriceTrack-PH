@@ -115,11 +115,11 @@ export async function claimPriorityProduct(supabaseUrl, secret, excludedRequestI
   };
 }
 
-export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds = []) {
+export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds = [], skipSoldOut = true) {
   const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_random_available_product_check`, {
     method: "POST",
     headers: adminHeaders(secret, { "Content-Type": "application/json" }),
-    body: JSON.stringify({ p_excluded_product_ids: excludedProductIds }),
+    body: JSON.stringify({ p_excluded_product_ids: excludedProductIds, p_skip_sold_out: skipSoldOut }),
   });
   if (!response.ok) throw new Error(`random_claim_${response.status}`);
   const [product] = await response.json();
@@ -166,14 +166,14 @@ export async function claimStoreProduct(supabaseUrl, secret, excludedRequestIds 
   };
 }
 
-export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false) {
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true) {
   const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
   if (priority) return priority;
   if (includeStoreImports) {
     const store = await claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
     if (store) return store;
   }
-  return claimRandomProduct(supabaseUrl, secret, excludedProductIds);
+  return claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut);
 }
 
 export async function releasePriorityProduct(supabaseUrl, secret, requestId, leaseUntil) {
@@ -217,7 +217,7 @@ export async function collectorHistory(supabaseUrl, secret) {
     recheckAt: typeof row.recheck_at === "string" ? row.recheck_at : null,
     samePrice: safeInteger(row.same_price),
     samePriceRecheckAt: typeof row.same_price_recheck_at === "string" ? row.same_price_recheck_at : null,
-    stopStatus: row.stop_status === "stopped_safely" ? "stopped_safely" : "stopped",
+    stopStatus: ["stopped_safely", "interrupted"].includes(row.stop_status) ? row.stop_status : "stopped",
   }));
 }
 
@@ -240,7 +240,7 @@ export async function saveCollectorRun(supabaseUrl, secret, run) {
       recheck_at: typeof run.recheckAt === "string" ? run.recheckAt : null,
       same_price: safeInteger(run.samePrice),
       same_price_recheck_at: typeof run.samePriceRecheckAt === "string" ? run.samePriceRecheckAt : null,
-      stop_status: run.stopStatus === "stopped_safely" ? "stopped_safely" : "stopped",
+      stop_status: ["stopped_safely", "interrupted"].includes(run.stopStatus) ? run.stopStatus : "stopped",
     }),
   });
   if (!response.ok) throw new Error(`collector_finish_${response.status}`);
@@ -313,9 +313,7 @@ async function productCheckStatus(supabaseUrl, secret, productId, skipUnchangedD
   const [product] = await productResponse.json();
   const soldOut = product?.all_variations_sold_out === true;
   const metadata = rows[0]?.metadata;
-  const samePrice = !soldOut
-    && skipUnchangedDay
-    && metadata?.all_variations_unchanged === true;
+  const samePrice = !soldOut && metadata?.all_variations_unchanged === true;
   const nextCheckAt = typeof product?.next_check_at === "string" ? product.next_check_at : null;
   const samePriceRecheckAt = samePrice
     ? await applyUnchangedPriceSkip(supabaseUrl, secret, productId, rows[0], metadata)
@@ -466,7 +464,7 @@ export default async function handler(req, res) {
       const leaseUntil = new Date(Date.now() + 5 * 60_000).toISOString();
       const product = await claimNextProduct(
         supabaseUrl, secret, attemptedProductIds, attemptedQueueRequestIds, leaseUntil,
-        attemptedStoreRequestIds, req.body?.includeStoreImports === true,
+        attemptedStoreRequestIds, req.body?.includeStoreImports === true, req.body?.skipSoldOut !== false,
       );
       return send(res, 200, { ok: true, product });
     }

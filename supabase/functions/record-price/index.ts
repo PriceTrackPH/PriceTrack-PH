@@ -48,6 +48,7 @@ type Observation = {
   variations?: VariationObservation[];
   source?: "extension" | "scheduled_collector";
   skipUnchangedDay?: boolean;
+  skipSoldOut?: boolean;
 };
 
 type NormalizedVariation = Required<Pick<VariationObservation, "variationId" | "variationName" | "price" | "isInStock">> & VariationObservation;
@@ -336,6 +337,7 @@ Deno.serve(async (request: Request) => {
     const checkMetadata = {
       ...productCheckMetadata,
       skip_unchanged_day: body.skipUnchangedDay === true,
+      skip_sold_out: body.skipSoldOut !== false,
       all_variations_unchanged: variationStatesMatchPrevious(
         variations,
         variationRowByExternalId,
