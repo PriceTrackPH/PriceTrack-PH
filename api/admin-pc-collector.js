@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
+import { normalizeDiscoveredProducts, normalizeShopeeStoreUrl } from "../server/store-import-contract.js";
 
 const MAX_BODY_BYTES = 512_000;
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function send(res, status, body) {
   res.status(status).setHeader("Cache-Control", "no-store").json(body);
@@ -17,6 +19,33 @@ function adminHeaders(secret, extra = {}) {
   const headers = { apikey: secret, ...extra };
   if (secret.startsWith("ey")) headers.Authorization = `Bearer ${secret}`;
   return headers;
+}
+
+function mapStore(row) {
+  return {
+    id: row.store_id,
+    storeKey: row.store_key,
+    storeUrl: row.store_url,
+    displayName: row.display_name,
+    firstAddedAt: row.first_added_at,
+    lastScanStartedAt: row.last_scan_started_at,
+    lastScanFinishedAt: row.last_scan_finished_at,
+    lastScanStatus: row.last_scan_status,
+    discovered: Number(row.last_discovered) || 0,
+    newlyQueued: Number(row.last_newly_queued) || 0,
+    duplicate: Number(row.last_duplicate) || 0,
+    alreadyTracked: Number(row.last_already_tracked) || 0,
+  };
+}
+
+async function rpc(supabaseUrl, secret, name, body) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers: adminHeaders(secret, { "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(`${name}_${response.status}`);
+  return response.json();
 }
 
 function safeInteger(value, fallback = 0) {
@@ -42,20 +71,24 @@ export async function collectorSummary(supabaseUrl, secret) {
     headers: adminHeaders(secret, { "Content-Type": "application/json" }),
     body: "{}",
   };
-  const [response, priorityResponse] = await Promise.all([
+  const [response, priorityResponse, storeResponse] = await Promise.all([
     fetch(`${supabaseUrl}/rest/v1/rpc/collector_available_summary_v2`, options),
     fetch(`${supabaseUrl}/rest/v1/rpc/public_collection_queue_pending_count`, options),
+    fetch(`${supabaseUrl}/rest/v1/rpc/store_collection_queue_pending_count`, options),
   ]);
   if (!response.ok) throw new Error(`collector_summary_${response.status}`);
   if (!priorityResponse.ok) throw new Error(`priority_count_${priorityResponse.status}`);
+  if (!storeResponse.ok) throw new Error(`store_count_${storeResponse.status}`);
   const [summary] = await response.json();
   const priorityPending = await priorityResponse.json();
+  const storePending = await storeResponse.json();
   return {
     totalTracked: safeInteger(summary?.total_tracked),
     totalDue: safeInteger(summary?.total_due),
     soldOutDeferred: safeInteger(summary?.sold_out_deferred),
     samePriceDeferred: safeInteger(summary?.same_price_deferred),
     priorityPending: safeInteger(Array.isArray(priorityPending) ? priorityPending[0] : priorityPending),
+    storeQueuePending: safeInteger(Array.isArray(storePending) ? storePending[0] : storePending),
   };
 }
 
@@ -110,9 +143,37 @@ export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds
   };
 }
 
-export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil) {
+export async function claimStoreProduct(supabaseUrl, secret, excludedRequestIds = [], leaseUntil) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_oldest_store_collection_request`, {
+    method: "POST",
+    headers: adminHeaders(secret, { "Content-Type": "application/json" }),
+    body: JSON.stringify({ p_excluded_request_ids: excludedRequestIds, p_lease_until: leaseUntil }),
+  });
+  if (!response.ok) throw new Error(`store_claim_${response.status}`);
+  const [request] = await response.json();
+  if (!request) return null;
+  if (!request.request_id || !/^\d+$/.test(String(request.shop_id || ""))
+    || !/^\d+$/.test(String(request.external_product_id || ""))
+    || typeof request.product_url !== "string") throw new Error("invalid_store_product");
+  return {
+    claimSource: "store",
+    queueRequestId: String(request.request_id),
+    productId: null,
+    shopId: String(request.shop_id),
+    externalProductId: String(request.external_product_id),
+    productUrl: request.product_url,
+    leaseUntil: request.lease_until,
+  };
+}
+
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false) {
   const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
-  return priority ?? claimRandomProduct(supabaseUrl, secret, excludedProductIds);
+  if (priority) return priority;
+  if (includeStoreImports) {
+    const store = await claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
+    if (store) return store;
+  }
+  return claimRandomProduct(supabaseUrl, secret, excludedProductIds);
 }
 
 export async function releasePriorityProduct(supabaseUrl, secret, requestId, leaseUntil) {
@@ -122,6 +183,15 @@ export async function releasePriorityProduct(supabaseUrl, secret, requestId, lea
     body: JSON.stringify({ p_request_id: requestId, p_expected_lease_until: leaseUntil }),
   });
   if (!response.ok) throw new Error(`priority_release_${response.status}`);
+}
+
+export async function releaseStoreProduct(supabaseUrl, secret, requestId, leaseUntil) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/release_store_collection_request`, {
+    method: "POST",
+    headers: adminHeaders(secret, { "Content-Type": "application/json" }),
+    body: JSON.stringify({ p_request_id: requestId, p_expected_lease_until: leaseUntil }),
+  });
+  if (!response.ok) throw new Error(`store_release_${response.status}`);
 }
 
 export async function collectorHistory(supabaseUrl, secret) {
@@ -313,12 +383,57 @@ export default async function handler(req, res) {
   const supabaseUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
   const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";
-  if (!supabaseUrl || !secret || !publishableKey) {
+  const action = String(req.query.action || req.body?.action || "claim").toLowerCase();
+  if (!supabaseUrl || !secret || (!action.startsWith("store-") && !publishableKey)) {
     return send(res, 503, { error: "PC collector is not configured" });
   }
-
-  const action = String(req.query.action || req.body?.action || "claim").toLowerCase();
   try {
+    if (action === "store-list") {
+      const select = "store_id,store_key,store_url,display_name,first_added_at,last_scan_started_at,last_scan_finished_at,last_scan_status,last_discovered,last_newly_queued,last_duplicate,last_already_tracked";
+      const response = await fetch(`${supabaseUrl}/rest/v1/collection_stores?select=${select}&order=first_added_at.desc`, {
+        headers: adminHeaders(secret),
+      });
+      if (!response.ok) throw new Error(`store_list_${response.status}`);
+      return send(res, 200, { ok: true, stores: (await response.json()).map(mapStore) });
+    }
+
+    if (action.startsWith("store-")) {
+      const scanId = String(req.body?.scanId || "");
+      if (!UUID_V4.test(scanId)) return send(res, 400, { error: "A valid store scan is required" });
+
+      if (action === "store-begin") {
+        const store = normalizeShopeeStoreUrl(String(req.body?.storeUrl || ""));
+        if (!store) return send(res, 400, { error: "Enter a valid Shopee Philippines store URL" });
+        const storeId = await rpc(supabaseUrl, secret, "begin_store_collection_scan", {
+          p_store_key: store.storeKey,
+          p_store_url: store.storeUrl,
+          p_display_name: store.displayName,
+          p_scan_id: scanId,
+        });
+        return send(res, 200, { ok: true, storeId, store });
+      }
+
+      if (action === "store-batch") {
+        const products = normalizeDiscoveredProducts(req.body?.products);
+        if (products.length === 0) return send(res, 400, { error: "No valid Shopee products were found" });
+        const totals = await rpc(supabaseUrl, secret, "import_store_collection_batch", {
+          p_scan_id: scanId,
+          p_products: products,
+        });
+        return send(res, 200, { ok: true, totals });
+      }
+
+      if (action === "store-finish" || action === "store-fail") {
+        const requestedStatus = action === "store-fail" ? "failed" : String(req.body?.status || "completed");
+        const status = requestedStatus === "incomplete" ? "incomplete" : action === "store-fail" ? "failed" : "completed";
+        const result = await rpc(supabaseUrl, secret, "finish_store_collection_scan", {
+          p_scan_id: scanId,
+          p_status: status,
+        });
+        return send(res, 200, { ok: true, result });
+      }
+    }
+
     if (action === "summary") {
       return send(res, 200, { ok: true, ...(await collectorSummary(supabaseUrl, secret)) });
     }
@@ -345,14 +460,25 @@ export default async function handler(req, res) {
       const attemptedQueueRequestIds = Array.isArray(req.body?.attemptedQueueRequestIds)
         ? req.body.attemptedQueueRequestIds.map(String).filter(Boolean).slice(0, 5000)
         : [];
+      const attemptedStoreRequestIds = Array.isArray(req.body?.attemptedStoreRequestIds)
+        ? req.body.attemptedStoreRequestIds.map(String).filter(Boolean).slice(0, 5000)
+        : [];
       const leaseUntil = new Date(Date.now() + 5 * 60_000).toISOString();
       const product = await claimNextProduct(
         supabaseUrl, secret, attemptedProductIds, attemptedQueueRequestIds, leaseUntil,
+        attemptedStoreRequestIds, req.body?.includeStoreImports === true,
       );
       return send(res, 200, { ok: true, product });
     }
 
     if (action === "release") {
+      if (req.body?.claimSource === "store") {
+        const queueRequestId = String(req.body?.queueRequestId || "");
+        const leaseUntil = String(req.body?.leaseUntil || "");
+        if (!queueRequestId || !leaseUntil) return send(res, 400, { error: "A valid store lease is required" });
+        await releaseStoreProduct(supabaseUrl, secret, queueRequestId, leaseUntil);
+        return send(res, 200, { ok: true });
+      }
       if (req.body?.claimSource === "priority") {
         const queueRequestId = String(req.body?.queueRequestId || "");
         const leaseUntil = String(req.body?.leaseUntil || "");

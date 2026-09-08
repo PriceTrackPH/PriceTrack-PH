@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "PriceTrack PH",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Detect Shopee product variations immediately at page start, then save price history in the background.",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "https://shopee.ph/*",
@@ -33,6 +34,15 @@
   "content_scripts": [
     {
       "matches": [
+        "https://pricetrackph.com/admin/collector*"
+      ],
+      "js": [
+        "admin-collector-bridge.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
         "https://shopee.ph/*",
         "https://*.shopee.ph/*"
       ],
@@ -49,6 +59,7 @@
       ],
       "js": [
         "collector-options.js",
+        "store-scanner.js",
         "content.js",
         "notification-trigger.js",
         "completion-toast.js"

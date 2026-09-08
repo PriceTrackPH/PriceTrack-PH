@@ -6,6 +6,7 @@ import {
   shouldSkipObservation,
   variationStatesMatchPrevious,
 } from "./observation-policy.ts";
+import { completeCollectionQueues } from "./queue-completion.ts";
 
 const cors = {
   "access-control-allow-origin": "*",
@@ -478,17 +479,11 @@ Deno.serve(async (request: Request) => {
       console.error("Daily check update failed", await markCheckResponse.text());
     }
     if (shouldCompleteQueue(checkStatus, markCheckResponse.ok)) {
-      const completionResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/complete_public_collection_request`, {
-        method: "POST",
-        headers: adminHeaders(secret, { "content-type": "application/json" }),
-        body: JSON.stringify({
-          p_platform: "shopee",
-          p_external_shop_id: shopId,
-          p_external_product_id: productId,
-        }),
+      const completionFailures = await completeCollectionQueues(fetch, supabaseUrl, adminHeaders(secret), {
+        platform: "shopee", shopId, productId,
       });
-      if (!completionResponse.ok) {
-        console.error("Collection queue completion failed", completionResponse.status);
+      for (const failure of completionFailures) {
+        console.error("Collection queue completion failed", failure.queue, failure.status);
       }
     }
 
