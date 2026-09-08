@@ -9,11 +9,11 @@ process.env.SUPABASE_URL = "https://example.supabase.co";
 process.env.SUPABASE_SECRET_KEY = "service-secret";
 process.env.ADMIN_HEALTH_TOKEN = "admin-secret";
 
-const { default: handler } = await import("../api/admin-store-import.js");
+const { default: handler } = await import("../api/admin-pc-collector.js");
 
 test("keeps the Vercel API independent from frontend TypeScript configuration", async () => {
-  const source = await readFile(new URL("../api/admin-store-import.js", import.meta.url), "utf8");
-  assert.match(source, /from "\.\/store-import-contract\.js"/);
+  const source = await readFile(new URL("../api/admin-pc-collector.js", import.meta.url), "utf8");
+  assert.match(source, /from "\.\.\/server\/store-import-contract\.js"/);
   assert.doesNotMatch(source, /\.\.\/src\/.*\.ts/);
 });
 
@@ -32,7 +32,7 @@ function responseRecorder() {
 }
 
 function request(action, body = {}, token = "admin-secret") {
-  return { method: "POST", query: { action }, headers: { authorization: `Bearer ${token}` }, body };
+  return { method: "POST", query: { action: `store-${action}` }, headers: { authorization: `Bearer ${token}` }, body };
 }
 
 test("rejects unauthenticated and oversized store import requests", async () => {
