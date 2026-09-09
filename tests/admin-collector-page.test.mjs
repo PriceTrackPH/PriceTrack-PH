@@ -28,6 +28,7 @@ test("admin collector scans, saves, and rechecks Shopee stores without auto-star
   assert.match(source, /storeApi<[^;]+>\("batch"/);
   assert.match(source, /failed \? "fail" : "finish"/);
   assert.match(source, /STORE_SCAN_PAGE_SOURCE/);
+  assert.doesNotMatch(source, /scanTimeout|4 \* 60_000/);
   assert.doesNotMatch(source, /await startCollection\(\)[\s\S]{0,200}Scan store/);
 });
 

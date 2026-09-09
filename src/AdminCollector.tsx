@@ -106,7 +106,6 @@ export default function AdminCollector() {
   const attemptedStoreRequestIds = useRef(new Set<string>());
   const activeScanId = useRef<string | null>(null);
   const scanChain = useRef<Promise<unknown>>(Promise.resolve());
-  const scanTimeout = useRef<number | null>(null);
   const startedAt = useRef<string | null>(null);
   const runId = useRef<string | null>(null);
   const succeededCount = useRef(0);
@@ -207,16 +206,6 @@ export default function AdminCollector() {
     try {
       await storeApi<{ storeId: string }>("begin", { storeUrl: store.storeUrl, scanId });
       window.postMessage({ source: STORE_SCAN_PAGE_SOURCE, type: "start", scanId, storeUrl: store.storeUrl }, window.location.origin);
-      scanTimeout.current = window.setTimeout(() => {
-        if (activeScanId.current !== scanId) return;
-        scanChain.current = scanChain.current.then(async () => {
-          await storeApi("finish", { scanId, status: "incomplete" });
-          await refreshStoresAndSummary();
-          activeScanId.current = null;
-          setScanningStore(false);
-          setStoreMessage("Scan incomplete. Update the extension or Recheck this store later.");
-        });
-      }, 4 * 60_000);
     } catch (cause) {
       activeScanId.current = null;
       setScanningStore(false);
@@ -256,7 +245,6 @@ export default function AdminCollector() {
               : "Scan incomplete. Imported products were saved and you can Recheck later.");
           setScanningStore(false);
           activeScanId.current = null;
-          if (scanTimeout.current) window.clearTimeout(scanTimeout.current);
         }).catch((cause) => {
           setStoreMessage(cause instanceof Error ? cause.message : "Store scan stopped.");
           setScanningStore(false);

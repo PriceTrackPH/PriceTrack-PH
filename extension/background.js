@@ -2,7 +2,7 @@
 // PriceTrack uses the in-page completion toast controlled by the Notifications toggle.
 
 const SITE = "https://pricetrackph.com";
-const STORE_SCAN_TTL_MS = 10 * 60_000;
+const STORE_SCAN_TTL_MS = 30 * 60_000;
 const STORE_SCAN_STORAGE_KEY = "activeStoreScans";
 const STORE_SCAN_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const storeScanSessions = new Map();
@@ -19,7 +19,8 @@ function validStart(message) {
 }
 
 function sessionExpired(session, now = Date.now()) {
-  return !session || !Number.isFinite(session.startedAt) || now - session.startedAt >= STORE_SCAN_TTL_MS;
+  const lastActivityAt = session?.lastActivityAt ?? session?.startedAt;
+  return !session || !Number.isFinite(lastActivityAt) || now - lastActivityAt >= STORE_SCAN_TTL_MS;
 }
 
 globalThis.PriceTrackStoreCoordinator = { validStart, sessionExpired };
@@ -37,7 +38,7 @@ async function loadStoreScans() {
   }
 }
 
-void loadStoreScans();
+const storeScansReady = loadStoreScans();
 
 function productReportUrl(value, variationId) {
   try {
@@ -60,45 +61,55 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return;
   }
   if (validStart(message)) {
-    const adminTabId = sender.tab?.id;
-    if (!Number.isInteger(adminTabId)) { sendResponse?.({ ok: false, error: "Open the private collector page first." }); return; }
-    const existing = [...storeScanSessions.values()].find((entry) => entry.adminTabId === adminTabId && !sessionExpired(entry));
-    const saveTab = async (tab) => {
-      if (!Number.isInteger(tab?.id)) { sendResponse?.({ ok: false, error: "Unable to open the Shopee store tab." }); return; }
-      if (existing) storeScanSessions.delete(existing.scanId);
-      storeScanSessions.set(message.scanId, { scanId: message.scanId, storeUrl: message.storeUrl, adminTabId, storeTabId: tab.id, startedAt: Date.now() });
-      await persistStoreScans();
-      sendResponse?.({ ok: true });
-    };
-    if (existing?.storeTabId) chrome.tabs.update(existing.storeTabId, { url: message.storeUrl, active: true }, saveTab);
-    else chrome.tabs.create({ url: message.storeUrl, active: true }, saveTab);
+    void storeScansReady.then(() => {
+      const adminTabId = sender.tab?.id;
+      if (!Number.isInteger(adminTabId)) { sendResponse?.({ ok: false, error: "Open the private collector page first." }); return; }
+      const existing = [...storeScanSessions.values()].find((entry) => entry.adminTabId === adminTabId && !sessionExpired(entry));
+      const saveTab = async (tab) => {
+        if (!Number.isInteger(tab?.id)) { sendResponse?.({ ok: false, error: "Unable to open the Shopee store tab." }); return; }
+        if (existing) storeScanSessions.delete(existing.scanId);
+        const now = Date.now();
+        storeScanSessions.set(message.scanId, { scanId: message.scanId, storeUrl: message.storeUrl, adminTabId, storeTabId: tab.id, startedAt: now, lastActivityAt: now });
+        await persistStoreScans();
+        sendResponse?.({ ok: true });
+      };
+      if (existing?.storeTabId) chrome.tabs.update(existing.storeTabId, { url: message.storeUrl, active: true }, saveTab);
+      else chrome.tabs.create({ url: message.storeUrl, active: true }, saveTab);
+    });
     return true;
   }
   if (message?.type === "storeScanProgress" || message?.type === "storeScanFinished") {
-    const session = storeScanSessions.get(String(message.scanId || ""));
-    if (!session || sessionExpired(session) || sender.tab?.id !== session.storeTabId) return;
-    chrome.tabs.sendMessage(session.adminTabId, { type: "storeScanRelay", payload: message });
-    if (message.type === "storeScanFinished") {
-      storeScanSessions.delete(session.scanId);
-      void persistStoreScans();
-    }
+    void storeScansReady.then(() => {
+      const session = storeScanSessions.get(String(message.scanId || ""));
+      if (!session || sessionExpired(session) || sender.tab?.id !== session.storeTabId) return;
+      session.lastActivityAt = Date.now();
+      chrome.tabs.sendMessage(session.adminTabId, { type: "storeScanRelay", payload: message });
+      if (message.type === "storeScanFinished") {
+        storeScanSessions.delete(session.scanId);
+        void persistStoreScans();
+      } else void persistStoreScans();
+    });
   }
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status !== "complete") return;
-  const session = [...storeScanSessions.values()].find((entry) => entry.storeTabId === tabId && !sessionExpired(entry));
-  if (session) chrome.tabs.sendMessage(tabId, { type: "startStoreScan", scanId: session.scanId, storeUrl: session.storeUrl });
+  void storeScansReady.then(() => {
+    const session = [...storeScanSessions.values()].find((entry) => entry.storeTabId === tabId && !sessionExpired(entry));
+    if (session) chrome.tabs.sendMessage(tabId, { type: "startStoreScan", scanId: session.scanId, storeUrl: session.storeUrl });
+  });
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  for (const [scanId, session] of storeScanSessions) {
-    if (session.adminTabId !== tabId && session.storeTabId !== tabId) continue;
-    if (session.adminTabId !== tabId) chrome.tabs.sendMessage(session.adminTabId, {
-      type: "storeScanRelay",
-      payload: { type: "storeScanFinished", scanId, status: "incomplete", error: "The Shopee store tab was closed." },
-    });
-    storeScanSessions.delete(scanId);
-  }
-  void persistStoreScans();
+  void storeScansReady.then(() => {
+    for (const [scanId, session] of storeScanSessions) {
+      if (session.adminTabId !== tabId && session.storeTabId !== tabId) continue;
+      if (session.adminTabId !== tabId) chrome.tabs.sendMessage(session.adminTabId, {
+        type: "storeScanRelay",
+        payload: { type: "storeScanFinished", scanId, status: "incomplete", error: "The Shopee store tab was closed." },
+      });
+      storeScanSessions.delete(scanId);
+    }
+    void persistStoreScans();
+  });
 });
