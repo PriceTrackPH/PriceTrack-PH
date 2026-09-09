@@ -89,6 +89,30 @@ test("normalizes and submits one bounded product batch", async () => {
   assert.equal(res.body.totals.soldOut, 1);
 });
 
+test("logs the bounded Supabase RPC error body for production diagnosis", async () => {
+  const originalConsoleError = console.error;
+  const logged = [];
+  console.error = (...args) => logged.push(args);
+  global.fetch = async () => ({
+    ok: false,
+    status: 404,
+    text: async () => JSON.stringify({ code: "PGRST202", message: "Function was not found" }),
+  });
+  try {
+    const res = responseRecorder();
+    await handler(request("batch", {
+      scanId: "550e8400-e29b-41d4-a716-446655440000",
+      products: [{ shopId: "12", productId: "34" }],
+      pagesCurrent: 1,
+      pagesTotal: 1,
+    }), res);
+    assert.equal(res.statusCode, 502);
+    assert.match(String(logged[0]?.[1]?.message), /import_store_collection_batch_404.*PGRST202.*Function was not found/);
+  } finally {
+    console.error = originalConsoleError;
+  }
+});
+
 test("lists private Store Scan History with validated filters and pagination", async () => {
   global.fetch = async (url, options) => {
     const parsed = new URL(url);

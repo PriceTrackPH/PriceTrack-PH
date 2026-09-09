@@ -64,7 +64,10 @@ async function rpc(supabaseUrl, secret, name, body) {
     headers: adminHeaders(secret, { "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
-  if (!response.ok) throw new Error(`${name}_${response.status}`);
+  if (!response.ok) {
+    const detail = (await response.text()).replace(/\s+/g, " ").slice(0, 1000);
+    throw new Error(`${name}_${response.status}${detail ? ` ${detail}` : ""}`);
+  }
   return response.json();
 }
 
