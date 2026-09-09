@@ -38,11 +38,41 @@ test("deduplicates numeric product identities and produces canonical Shopee URLs
       shopId: "1297824816",
       externalProductId: "26621066471",
       productUrl: "https://shopee.ph/product/1297824816/26621066471",
+      soldOut: false,
     },
     {
       shopId: "282024671",
       externalProductId: "19463132448",
       productUrl: "https://shopee.ph/product/282024671/19463132448",
+      soldOut: false,
+    },
+  ]);
+});
+
+test("preserves sold-out classification and merges duplicate identities safely", () => {
+  assert.deepEqual(normalizeDiscoveredProducts([
+    { shopId: "12", productId: "34", soldOut: false },
+    { shopId: "12", productId: "34", soldOut: true },
+    { shopId: "56", productId: "78" },
+    { shopId: "90", productId: "12", soldOut: "true" },
+  ]), [
+    {
+      shopId: "12",
+      externalProductId: "34",
+      productUrl: "https://shopee.ph/product/12/34",
+      soldOut: true,
+    },
+    {
+      shopId: "56",
+      externalProductId: "78",
+      productUrl: "https://shopee.ph/product/56/78",
+      soldOut: false,
+    },
+    {
+      shopId: "90",
+      externalProductId: "12",
+      productUrl: "https://shopee.ph/product/90/12",
+      soldOut: false,
     },
   ]);
 });

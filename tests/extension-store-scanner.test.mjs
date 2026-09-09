@@ -110,3 +110,47 @@ test("collects links only from Shopee's store-product grid", () => {
 
   assert.deepEqual(Array.from(scanner.storeProductLinks(root)), ["https://shopee.ph/Grid-product-i.12.34"]);
 });
+
+test("parses Shopee's current and total page counter", () => {
+  const root = { querySelectorAll: () => [{ textContent: "3/4" }, { textContent: "unrelated" }] };
+  assert.deepEqual({ ...scanner.readPageProgress(root) }, { current: 3, total: 4 });
+  assert.equal(scanner.isFinalStorePage({ current: 4, total: 4 }, null), true);
+  assert.equal(scanner.isFinalStorePage({ current: 3, total: 4 }, control()), false);
+});
+
+test("preserves Sold Out classification while deduplicating products", () => {
+  const candidates = [
+    { href: "https://shopee.ph/One-i.12.34", soldOut: false },
+    { href: "https://shopee.ph/product/12/34", soldOut: true },
+    { href: "https://shopee.ph/Two-i.12.56", soldOut: false },
+  ];
+  assert.deepEqual(Array.from(scanner.dedupeProductCandidates(candidates), (value) => ({ ...value })), [
+    { shopId: "12", externalProductId: "34", soldOut: true },
+    { shopId: "12", externalProductId: "56", soldOut: false },
+  ]);
+});
+
+test("finds the Sold Out See More control and recognizes when it is exhausted", () => {
+  const seeMore = control({ text: "See More" });
+  const product = { href: "https://shopee.ph/Sold-i.12.34" };
+  const section = { parentElement: null, querySelectorAll: (selector) => selector === "a[href]" ? [product] : [seeMore] };
+  const label = { textContent: "SOLD OUT", parentElement: section };
+  const root = { querySelectorAll: () => [label] };
+  assert.equal(scanner.findSoldOutSeeMoreControl(root), seeMore);
+  assert.equal(scanner.findSoldOutSeeMoreControl({ querySelectorAll: () => [] }), null);
+});
+
+test("keeps an exhausted Sold Out section scoped instead of climbing into regular products", () => {
+  const soldProduct = { href: "https://shopee.ph/Sold-i.12.34" };
+  const regularProduct = { href: "https://shopee.ph/Regular-i.12.56" };
+  const page = { parentElement: null, querySelectorAll: () => [soldProduct, regularProduct] };
+  const section = { parentElement: page, querySelectorAll: () => [soldProduct] };
+  const label = { textContent: "SOLD OUT", parentElement: section };
+  const root = { querySelectorAll: (selector) => selector === "a[href]" ? [regularProduct, soldProduct] : [label] };
+  assert.equal(scanner.findSoldOutSection(root), section);
+});
+
+test("never treats a clicked Sold Out See More control disappearing without growth as completion", () => {
+  assert.doesNotMatch(source, /absentRounds[\s\S]*return/);
+  assert.match(source, /if \(!grew\) throw new Error\("The Sold Out section did not finish loading\."\)/);
+});

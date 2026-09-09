@@ -38,6 +38,26 @@ function mapStore(row) {
   };
 }
 
+function mapStoreScan(row) {
+  const store = row.collection_stores || {};
+  return {
+    scanId: row.scan_id,
+    storeId: row.store_id,
+    storeUrl: store.store_url,
+    displayName: store.display_name,
+    startedAt: row.started_at,
+    finishedAt: row.finished_at,
+    status: row.status,
+    discovered: safeInteger(row.discovered),
+    newlyQueued: safeInteger(row.newly_queued),
+    duplicate: safeInteger(row.duplicate),
+    alreadyTracked: safeInteger(row.already_tracked),
+    soldOut: safeInteger(row.sold_out),
+    pagesCurrent: safeInteger(row.pages_current),
+    pagesTotal: safeInteger(row.pages_total),
+  };
+}
+
 async function rpc(supabaseUrl, secret, name, body) {
   const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${name}`, {
     method: "POST",
@@ -395,6 +415,31 @@ export default async function handler(req, res) {
       return send(res, 200, { ok: true, stores: (await response.json()).map(mapStore) });
     }
 
+    if (action === "store-history") {
+      const page = Math.max(1, safeInteger(req.body?.page, 1));
+      const pageSize = 20;
+      const status = String(req.body?.status || "all").toLowerCase();
+      if (!["all", "completed", "incomplete", "interrupted"].includes(status)) {
+        return send(res, 400, { error: "Invalid store scan status" });
+      }
+      const query = String(req.body?.query || "").trim().slice(0, 100);
+      const params = new URLSearchParams({
+        select: "scan_id,store_id,started_at,finished_at,status,discovered,newly_queued,duplicate,already_tracked,sold_out,pages_current,pages_total,collection_stores!inner(store_url,display_name)",
+        order: "started_at.desc,scan_id.desc",
+        limit: String(pageSize),
+        offset: String((page - 1) * pageSize),
+      });
+      if (status !== "all") params.set("status", `eq.${status}`);
+      if (query) params.set("collection_stores.display_name", `ilike.*${query}*`);
+      const response = await fetch(`${supabaseUrl}/rest/v1/store_scan_history?${params}`, {
+        headers: adminHeaders(secret, { Prefer: "count=exact" }),
+      });
+      if (!response.ok) throw new Error(`store_history_${response.status}`);
+      const range = String(response.headers?.get?.("content-range") || "");
+      const total = safeInteger(range.split("/")[1]);
+      return send(res, 200, { ok: true, scans: (await response.json()).map(mapStoreScan), page, pageSize, total });
+    }
+
     if (action.startsWith("store-")) {
       const scanId = String(req.body?.scanId || "");
       if (!UUID_V4.test(scanId)) return send(res, 400, { error: "A valid store scan is required" });
@@ -414,19 +459,29 @@ export default async function handler(req, res) {
       if (action === "store-batch") {
         const products = normalizeDiscoveredProducts(req.body?.products);
         if (products.length === 0) return send(res, 400, { error: "No valid Shopee products were found" });
+        const pagesCurrent = safeInteger(req.body?.pagesCurrent);
+        const pagesTotal = safeInteger(req.body?.pagesTotal);
+        if (pagesTotal > 0 && pagesCurrent > pagesTotal) return send(res, 400, { error: "Invalid store page progress" });
         const totals = await rpc(supabaseUrl, secret, "import_store_collection_batch", {
           p_scan_id: scanId,
           p_products: products,
+          p_pages_current: pagesCurrent,
+          p_pages_total: pagesTotal,
         });
         return send(res, 200, { ok: true, totals });
       }
 
       if (action === "store-finish" || action === "store-fail") {
-        const requestedStatus = action === "store-fail" ? "failed" : String(req.body?.status || "completed");
-        const status = requestedStatus === "incomplete" ? "incomplete" : action === "store-fail" ? "failed" : "completed";
+        const requestedStatus = action === "store-fail" ? "interrupted" : String(req.body?.status || "completed");
+        const status = requestedStatus === "incomplete" ? "incomplete" : action === "store-fail" ? "interrupted" : "completed";
+        const pagesCurrent = safeInteger(req.body?.pagesCurrent);
+        const pagesTotal = safeInteger(req.body?.pagesTotal);
+        if (pagesTotal > 0 && pagesCurrent > pagesTotal) return send(res, 400, { error: "Invalid store page progress" });
         const result = await rpc(supabaseUrl, secret, "finish_store_collection_scan", {
           p_scan_id: scanId,
           p_status: status,
+          p_pages_current: pagesCurrent,
+          p_pages_total: pagesTotal,
         });
         return send(res, 200, { ok: true, result });
       }

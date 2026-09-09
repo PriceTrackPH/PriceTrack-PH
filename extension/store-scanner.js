@@ -32,6 +32,19 @@
     return products;
   }
 
+  function dedupeProductCandidates(values) {
+    const products = new Map();
+    for (const value of Array.isArray(values) ? values : []) {
+      const identity = productIdentityFromUrl(value?.href || value);
+      if (!identity) continue;
+      const key = `${identity.shopId}:${identity.externalProductId}`;
+      const previous = products.get(key);
+      products.set(key, { ...identity, soldOut: value?.soldOut === true || previous?.soldOut === true });
+      if (products.size >= MAX_PRODUCTS) break;
+    }
+    return [...products.values()];
+  }
+
   function shouldStopScan({ stableRounds, discovered }) {
     return stableRounds >= STABLE_ROUNDS || discovered >= MAX_PRODUCTS;
   }
@@ -66,6 +79,52 @@
         .trim();
       return /(?:^|\s)next(?:\s+page)?(?:\s|$)/i.test(label);
     }) || null;
+  }
+
+  function readPageProgress(root) {
+    const elements = Array.from(root?.querySelectorAll?.("span, div") || []);
+    for (const element of elements) {
+      const match = String(element.textContent || "").trim().match(/^(\d+)\s*\/\s*(\d+)$/);
+      if (!match) continue;
+      const current = Number(match[1]);
+      const total = Number(match[2]);
+      if (Number.isInteger(current) && Number.isInteger(total) && current > 0 && total >= current) return { current, total };
+    }
+    const current = Number(currentPageMarker(root));
+    return { current: Number.isInteger(current) && current > 0 ? current : 1, total: 0 };
+  }
+
+  function isFinalStorePage(progress, nextControl) {
+    return (progress?.total > 0 && progress.current >= progress.total) || !nextControl || isPageControlDisabled(nextControl);
+  }
+
+  function findSoldOutSection(root) {
+    const labels = Array.from(root?.querySelectorAll?.("h1, h2, h3, h4, div, span") || [])
+      .filter((element) => /^sold\s*out$/i.test(String(element.textContent || "").trim()));
+    for (const label of labels) {
+      let parent = label.parentElement;
+      let insideProductLink = false;
+      for (let depth = 0; parent && depth < 6; depth += 1, parent = parent.parentElement) {
+        if (String(parent.tagName || "").toLowerCase() === "a" && productIdentityFromUrl(parent.href)) {
+          insideProductLink = true;
+          break;
+        }
+      }
+      if (insideProductLink) continue;
+      let element = label.parentElement;
+      for (let depth = 0; element && depth < 8; depth += 1, element = element.parentElement) {
+        const links = Array.from(element.querySelectorAll?.("a[href]") || []);
+        const productCount = links.filter((anchor) => productIdentityFromUrl(anchor.href)).length;
+        if (productCount > 0) return element;
+      }
+    }
+    return null;
+  }
+
+  function findSoldOutSeeMoreControl(root) {
+    const section = findSoldOutSection(root);
+    const controls = Array.from(section?.querySelectorAll?.("button, a, [role='button']") || []);
+    return controls.find((element) => /^see\s+more$/i.test(String(element.textContent || "").trim()) && !isPageControlDisabled(element)) || null;
   }
 
   function pageFingerprint(values) {
@@ -124,7 +183,15 @@
     return Array.from(grid.querySelectorAll?.("a[href]") || [], (anchor) => anchor.href);
   }
 
-  const api = { productIdentityFromUrl, dedupeProductLinks, shouldStopScan, findNextPageControl, isPageControlDisabled, pageFingerprint, nextPageStableRounds, hasPageTransitioned, beginScan, endScan, currentPageMarker, isConfirmedEmptyStore, storeProductLinks };
+  function storeProductCandidates(root) {
+    const regular = storeProductLinks(root).map((href) => ({ href, soldOut: false }));
+    const section = findSoldOutSection(root);
+    const soldOut = Array.from(section?.querySelectorAll?.("a[href]") || [])
+      .map((anchor) => ({ href: anchor.href, soldOut: true }));
+    return [...regular, ...soldOut];
+  }
+
+  const api = { productIdentityFromUrl, dedupeProductLinks, dedupeProductCandidates, shouldStopScan, findNextPageControl, isPageControlDisabled, readPageProgress, isFinalStorePage, findSoldOutSection, findSoldOutSeeMoreControl, pageFingerprint, nextPageStableRounds, hasPageTransitioned, beginScan, endScan, currentPageMarker, isConfirmedEmptyStore, storeProductLinks, storeProductCandidates };
   globalThis.PriceTrackStoreScanner = api;
 
   if (typeof chrome === "undefined" || !chrome.runtime?.onMessage || typeof document === "undefined") return;
@@ -134,6 +201,21 @@
 
   function pageLinks() {
     return storeProductLinks(document);
+  }
+
+  async function expandSoldOutSection() {
+    while (true) {
+      const control = findSoldOutSeeMoreControl(document);
+      if (!control) return;
+      const before = dedupeProductCandidates(storeProductCandidates(document)).length;
+      control.click();
+      let grew = false;
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        await sleep(500);
+        if (dedupeProductCandidates(storeProductCandidates(document)).length > before) { grew = true; break; }
+      }
+      if (!grew) throw new Error("The Sold Out section did not finish loading.");
+    }
   }
 
   async function waitForPageChange(previousFingerprint, previousPageMarker) {
@@ -158,7 +240,7 @@
   }
 
   async function scanStore(scanId) {
-    const seen = new Set();
+    const seen = new Map();
     try {
       while (true) {
         const pageStartedAt = Date.now();
@@ -166,12 +248,13 @@
         let fingerprint = "";
         while (stableRounds < STABLE_ROUNDS) {
           const links = pageLinks();
-          const products = dedupeProductLinks(links);
+          const products = dedupeProductCandidates(storeProductCandidates(document));
           const added = [];
           for (const product of products) {
             const key = `${product.shopId}:${product.externalProductId}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
+            const previous = seen.get(key);
+            if (previous && (previous.soldOut || !product.soldOut)) continue;
+            seen.set(key, product);
             added.push(product);
             if (seen.size >= MAX_PRODUCTS) break;
           }
@@ -187,7 +270,8 @@
             stableRounds = 0;
           }
           for (let index = 0; index < added.length; index += BATCH_SIZE) {
-            await send({ type: "storeScanProgress", scanId, products: added.slice(index, index + BATCH_SIZE), discovered: seen.size });
+            const pages = readPageProgress(document);
+            await send({ type: "storeScanProgress", scanId, products: added.slice(index, index + BATCH_SIZE), discovered: seen.size, pagesCurrent: pages.current, pagesTotal: pages.total });
           }
 
           if (seen.size >= MAX_PRODUCTS) {
@@ -201,8 +285,22 @@
         }
 
         const nextPage = findNextPageControl(document);
-        if (!nextPage || isPageControlDisabled(nextPage)) {
-          await send({ type: "storeScanFinished", scanId, status: "completed", discovered: seen.size });
+        const pages = readPageProgress(document);
+        if (isFinalStorePage(pages, nextPage)) {
+          await expandSoldOutSection();
+          const finalProducts = dedupeProductCandidates(storeProductCandidates(document));
+          const added = [];
+          for (const product of finalProducts) {
+            const key = `${product.shopId}:${product.externalProductId}`;
+            const previous = seen.get(key);
+            if (previous && (previous.soldOut || !product.soldOut)) continue;
+            seen.set(key, product);
+            added.push(product);
+          }
+          for (let index = 0; index < added.length; index += BATCH_SIZE) {
+            await send({ type: "storeScanProgress", scanId, products: added.slice(index, index + BATCH_SIZE), discovered: seen.size, pagesCurrent: pages.current, pagesTotal: pages.total });
+          }
+          await send({ type: "storeScanFinished", scanId, status: "completed", discovered: seen.size, pagesCurrent: pages.current, pagesTotal: pages.total });
           return;
         }
 
@@ -216,7 +314,8 @@
         await sleep(500);
       }
     } catch (error) {
-      await send({ type: "storeScanFinished", scanId, status: "incomplete", discovered: seen.size, error: "Store scan stopped before completion" });
+      const pages = readPageProgress(document);
+      await send({ type: "storeScanFinished", scanId, status: "incomplete", discovered: seen.size, pagesCurrent: pages.current, pagesTotal: pages.total, error: "Store scan stopped before completion" });
     }
   }
 

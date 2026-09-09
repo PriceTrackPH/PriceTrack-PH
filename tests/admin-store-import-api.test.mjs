@@ -72,12 +72,74 @@ test("normalizes and submits one bounded product batch", async () => {
     assert.equal(body.p_products.length, 1);
     assert.equal(body.p_products[0].externalProductId, "34");
     assert.equal(body.p_products[0].productUrl, "https://shopee.ph/product/12/34");
-    return { ok: true, json: async () => ({ discovered: 1, newlyQueued: 1, duplicate: 0, alreadyTracked: 0 }) };
+    assert.equal(body.p_products[0].soldOut, true);
+    assert.equal(body.p_pages_current, 4);
+    assert.equal(body.p_pages_total, 4);
+    return { ok: true, json: async () => ({ discovered: 1, newlyQueued: 1, duplicate: 0, alreadyTracked: 0, soldOut: 1, pagesCurrent: 4, pagesTotal: 4 }) };
   };
   const res = responseRecorder();
-  await handler(request("batch", { scanId: "550e8400-e29b-41d4-a716-446655440000", products: [{ shopId: "12", productId: "34" }, { shopId: "bad", productId: "2" }] }), res);
+  await handler(request("batch", {
+    scanId: "550e8400-e29b-41d4-a716-446655440000",
+    products: [{ shopId: "12", productId: "34", soldOut: true }, { shopId: "bad", productId: "2" }],
+    pagesCurrent: 4,
+    pagesTotal: 4,
+  }), res);
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.totals.newlyQueued, 1);
+  assert.equal(res.body.totals.soldOut, 1);
+});
+
+test("lists private Store Scan History with validated filters and pagination", async () => {
+  global.fetch = async (url, options) => {
+    const parsed = new URL(url);
+    assert.equal(parsed.pathname, "/rest/v1/store_scan_history");
+    assert.equal(parsed.searchParams.get("status"), "eq.completed");
+    assert.equal(parsed.searchParams.get("collection_stores.display_name"), "ilike.*Jabra Official*");
+    assert.equal(parsed.searchParams.get("limit"), "20");
+    assert.equal(parsed.searchParams.get("offset"), "20");
+    assert.equal(options.headers.Prefer, "count=exact");
+    return {
+      ok: true,
+      headers: { get: (name) => name.toLowerCase() === "content-range" ? "20-20/41" : null },
+      json: async () => [{
+        scan_id: "550e8400-e29b-41d4-a716-446655440000",
+        store_id: "store-id",
+        started_at: "2026-09-09T00:00:00Z",
+        finished_at: "2026-09-09T00:03:00Z",
+        status: "completed",
+        discovered: 320,
+        newly_queued: 45,
+        duplicate: 3,
+        already_tracked: 272,
+        sold_out: 20,
+        pages_current: 4,
+        pages_total: 4,
+        collection_stores: { store_url: "https://shopee.ph/jabraofficialstore", display_name: "Jabra Official" },
+      }],
+    };
+  };
+  const res = responseRecorder();
+  await handler(request("history", { query: "Jabra Official", status: "completed", page: 2 }), res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.total, 41);
+  assert.equal(res.body.page, 2);
+  assert.equal(res.body.pageSize, 20);
+  assert.deepEqual(res.body.scans[0], {
+    scanId: "550e8400-e29b-41d4-a716-446655440000",
+    storeId: "store-id",
+    storeUrl: "https://shopee.ph/jabraofficialstore",
+    displayName: "Jabra Official",
+    startedAt: "2026-09-09T00:00:00Z",
+    finishedAt: "2026-09-09T00:03:00Z",
+    status: "completed",
+    discovered: 320,
+    newlyQueued: 45,
+    duplicate: 3,
+    alreadyTracked: 272,
+    soldOut: 20,
+    pagesCurrent: 4,
+    pagesTotal: 4,
+  });
 });
 
 test("lists private saved stores in the UI contract", async () => {
@@ -100,14 +162,19 @@ test("lists private saved stores in the UI contract", async () => {
   });
 });
 
-test("finishes or fails only a valid scan id", async () => {
-  for (const [action, status] of [["finish", "completed"], ["fail", "failed"]]) {
+test("finishes or interrupts only a valid scan id with final page progress", async () => {
+  for (const [action, status] of [["finish", "completed"], ["fail", "interrupted"]]) {
     global.fetch = async (_url, options) => {
-      assert.deepEqual(JSON.parse(options.body), { p_scan_id: "550e8400-e29b-41d4-a716-446655440000", p_status: status });
+      assert.deepEqual(JSON.parse(options.body), {
+        p_scan_id: "550e8400-e29b-41d4-a716-446655440000",
+        p_status: status,
+        p_pages_current: 4,
+        p_pages_total: 4,
+      });
       return { ok: true, json: async () => ({ status }) };
     };
     const res = responseRecorder();
-    await handler(request(action, { scanId: "550e8400-e29b-41d4-a716-446655440000" }), res);
+    await handler(request(action, { scanId: "550e8400-e29b-41d4-a716-446655440000", pagesCurrent: 4, pagesTotal: 4 }), res);
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.result.status, status);
   }

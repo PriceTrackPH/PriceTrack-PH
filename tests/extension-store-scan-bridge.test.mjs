@@ -9,7 +9,7 @@ test("admin bridge forwards only valid same-window store scan commands", async (
   const sent = [];
   const pageMessages = [];
   const windowObject = {
-    location: { origin: "https://pricetrackph.com", pathname: "/admin/collector" },
+    location: { origin: "https://pricetrackph.com", pathname: "/admin/store-scanner" },
     addEventListener(type, listener) { listeners[type] = listener; },
     postMessage(message) { pageMessages.push(message); },
   };
@@ -31,6 +31,13 @@ test("admin bridge forwards only valid same-window store scan commands", async (
   assert.equal(sent.length, 1);
   assert.equal(sent[0].type, "startStoreScanSession");
   assert.equal(pageMessages.at(-1).type, "ready");
+
+  listeners.message({ source: windowObject, data: {
+    source: "pricetrack-store-scan-page", type: "completeAck",
+    scanId: "550e8400-e29b-41d4-a716-446655440000", completed: true,
+  } });
+  assert.equal(sent.at(-1).type, "storeScanCompletionAck");
+  assert.equal(sent.at(-1).completed, true);
 });
 
 test("background coordinator validates and expires scan sessions", async () => {
@@ -76,10 +83,15 @@ test("background waits for persisted scan sessions before relaying the wake-up e
   assert.equal(relayed[0].tabId, 11);
 });
 
+test("background removes a completed session before closing its store tab", async () => {
+  const source = await readFile(new URL("../extension/background.js", import.meta.url), "utf8");
+  assert.match(source, /storeScanCompletionAck[\s\S]+storeScanSessions\.delete\(session\.scanId\);[\s\S]+persistStoreScans\(\);[\s\S]+chrome\.tabs\.remove/);
+});
+
 test("manifest registers the private admin bridge and Shopee scanner", async () => {
   const manifest = JSON.parse(await readFile(new URL("../extension/manifest.json", import.meta.url), "utf8"));
-  assert.equal(manifest.version, "1.0.5");
+  assert.equal(manifest.version, "1.0.6");
   assert.ok(manifest.permissions.includes("tabs"));
-  assert.ok(manifest.content_scripts.some((entry) => entry.matches.includes("https://pricetrackph.com/admin/collector*") && entry.js.includes("admin-collector-bridge.js")));
+  assert.ok(manifest.content_scripts.some((entry) => entry.matches.includes("https://pricetrackph.com/admin/store-scanner*") && entry.js.includes("admin-collector-bridge.js")));
   assert.ok(manifest.content_scripts.some((entry) => entry.matches.includes("https://shopee.ph/*") && entry.js.includes("store-scanner.js")));
 });

@@ -15,6 +15,7 @@ import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import shopeeLogo from "./assets/shopee-logo.png";
 import AdminHealth from "./AdminHealth";
 import AdminCollector from "./AdminCollector";
+import AdminStoreScanner from "./AdminStoreScanner";
 import ReportAd from "./ReportAd";
 import { isMobileVisitor, requestUntrackedProduct } from "./public-collection-request";
 
@@ -1136,6 +1137,9 @@ function App() {
   }
   if (pathname === "/admin/collector" || pathname === "/admin/collector/") {
     return <AdminCollector />;
+  }
+  if (pathname === "/admin/store-scanner" || pathname === "/admin/store-scanner/") {
+    return <AdminStoreScanner />;
   }
   return <ReportApp />;
 }

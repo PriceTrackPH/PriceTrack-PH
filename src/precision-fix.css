@@ -428,7 +428,18 @@ html[data-theme="dark"] .support-section {
 .admin-store-scan-status { display: flex; flex-wrap: wrap; gap: 8px 18px; }
 .admin-store-scan-status strong { flex-basis: 100%; }
 .admin-saved-stores button { white-space: nowrap; }
-@media (max-width: 640px) { .admin-store-import-form { grid-template-columns: 1fr; } }
+.admin-store-scanner .admin-store-import-form { grid-template-columns: minmax(0, 1fr) auto auto; }
+.store-scan-summary { display: grid; grid-template-columns: repeat(7, minmax(100px, 1fr)); gap: 10px; margin-top: 18px; }
+.store-scan-summary span { display: grid; gap: 7px; padding: 14px; border: 1px solid #303936; border-radius: 12px; color: #aeb6b2; }
+.store-scan-summary strong { color: #f7faf9; font-size: 20px; }
+.store-scan-message { margin: 16px 0 0; }
+.store-scan-filters { display: flex; gap: 10px; margin: 16px 0; }
+.store-scan-filters input, .store-scan-filters select { padding: 10px 12px; border: 1px solid #303936; border-radius: 9px; background: #09100e; color: inherit; }
+.store-scan-filters input { min-width: min(360px, 70vw); }
+.store-scan-store-link { color: inherit; text-decoration: none; }
+.store-scan-pagination { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 18px; }
+.store-scan-pagination button { padding: 8px 12px; }
+@media (max-width: 640px) { .admin-store-import-form, .admin-store-scanner .admin-store-import-form { grid-template-columns: 1fr; } }
 .health-event-type { color: #11d4aa; }
 .health-event-type.record_failure, .health-event-type.record_partial { color: #ff817d; }
 .health-event-type.duplicate_blocked, .health-event-type.variation_count_changed { color: #ffd278; }
@@ -466,6 +477,10 @@ html:not([data-theme="dark"]) .admin-collector-panel { border-color: #d9e0dd; ba
 html:not([data-theme="dark"]) .admin-collector-option { color: #17201d; }
 html:not([data-theme="dark"]) .admin-collector-status { background: #f3f6f5; color: #17201d; }
 html:not([data-theme="dark"]) .admin-store-import-form input { border-color: #cbd5d1; background: #fff; color: #17201d; }
+html:not([data-theme="dark"]) .store-scan-summary span { border-color: #d9e0dd; color: #65706c; }
+html:not([data-theme="dark"]) .store-scan-summary strong { color: #17201d; }
+html:not([data-theme="dark"]) .store-scan-filters input,
+html:not([data-theme="dark"]) .store-scan-filters select { border-color: #cbd5d1; background: #fff; color: #17201d; }
 html:not([data-theme="dark"]) .admin-saved-stores a { color: #087e68; }
 html:not([data-theme="dark"]) .admin-collector-note { color: #765900; }
 html:not([data-theme="dark"]) .health-events th,
@@ -483,6 +498,7 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
   .health-status button { grid-column: 1; grid-row: auto; margin-top: 12px; }
   .health-stats { grid-template-columns: repeat(2, 1fr); }
   .health-stats div { border-bottom: 1px solid #303936; }
+  .store-scan-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .health-affiliate { grid-template-columns: 1fr; }
   .health-ads { grid-template-columns: 1fr; }
   .health-ads-control { align-items: flex-start; flex-direction: column; }

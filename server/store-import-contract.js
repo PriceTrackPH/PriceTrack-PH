@@ -22,16 +22,21 @@ export function normalizeDiscoveredProducts(values, maximum = MAX_STORE_PRODUCTS
   if (!Array.isArray(values)) return [];
   const limit = Math.min(MAX_STORE_PRODUCTS, Math.max(0, Number.isFinite(maximum) ? Math.floor(maximum) : MAX_STORE_PRODUCTS));
   const products = [];
-  const seen = new Set();
+  const byIdentity = new Map();
   for (const value of values) {
     if (!value || typeof value !== "object" || Array.isArray(value)) continue;
     const shopId = String(value.shopId ?? "");
     const externalProductId = String(value.externalProductId ?? value.productId ?? "");
     if (!/^[1-9]\d*$/.test(shopId) || !/^[1-9]\d*$/.test(externalProductId)) continue;
     const key = `${shopId}:${externalProductId}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    products.push({ shopId, externalProductId, productUrl: `https://shopee.ph/product/${shopId}/${externalProductId}` });
+    const existing = byIdentity.get(key);
+    if (existing) {
+      existing.soldOut ||= value.soldOut === true;
+      continue;
+    }
+    const product = { shopId, externalProductId, productUrl: `https://shopee.ph/product/${shopId}/${externalProductId}`, soldOut: value.soldOut === true };
+    byIdentity.set(key, product);
+    products.push(product);
     if (products.length >= limit) break;
   }
   return products;

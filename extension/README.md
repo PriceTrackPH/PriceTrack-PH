@@ -2,7 +2,7 @@
 
 Current public release candidate: **v1.0.5**.
 
-Version 1.0.5 scans every paginated Shopee store page through the private PriceTrack PH admin collector. Existing product-page price recording remains unchanged.
+Version 1.0.6 scans every paginated Shopee store page from the private Store Scanner, expands the final Sold Out section, and closes the store tab only after the scan history is saved. Existing product-page price recording remains unchanged.
 
 This extension runs on Shopee Philippines product pages, detects Shopee model/variation data as early as possible, and sends public product price observations to the PriceTrack PH website API.
 

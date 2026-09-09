@@ -78,16 +78,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true;
   }
+  if (message?.type === "storeScanCompletionAck" && STORE_SCAN_UUID.test(String(message.scanId || ""))) {
+    void storeScansReady.then(async () => {
+      const session = storeScanSessions.get(String(message.scanId));
+      if (!session || sender.tab?.id !== session.adminTabId) return;
+      storeScanSessions.delete(session.scanId);
+      await persistStoreScans();
+      if (message.completed === true && Number.isInteger(session.storeTabId)) {
+        await chrome.tabs.remove(session.storeTabId).catch?.(() => undefined);
+      }
+    });
+    return;
+  }
   if (message?.type === "storeScanProgress" || message?.type === "storeScanFinished") {
     void storeScansReady.then(() => {
       const session = storeScanSessions.get(String(message.scanId || ""));
       if (!session || sessionExpired(session) || sender.tab?.id !== session.storeTabId) return;
       session.lastActivityAt = Date.now();
       chrome.tabs.sendMessage(session.adminTabId, { type: "storeScanRelay", payload: message });
-      if (message.type === "storeScanFinished") {
-        storeScanSessions.delete(session.scanId);
-        void persistStoreScans();
-      } else void persistStoreScans();
+      void persistStoreScans();
     });
   }
 });

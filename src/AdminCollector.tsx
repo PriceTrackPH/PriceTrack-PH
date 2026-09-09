@@ -10,12 +10,7 @@ import {
   skipUnchangedDayDefault,
 } from "./admin-collector-settings";
 import { clearCollectorRunCheckpoint, readCollectorRunCheckpoint, saveCollectorRunCheckpoint } from "./collector-run-recovery";
-import {
-  includeStoreImportsDefault,
-  normalizeShopeeStoreUrl,
-  STORE_SCAN_EXTENSION_SOURCE,
-  STORE_SCAN_PAGE_SOURCE,
-} from "./store-import-contract";
+import { includeStoreImportsDefault } from "./store-import-contract";
 
 type CollectorSummary = {
   totalTracked: number;
@@ -35,23 +30,6 @@ type CollectorProduct = {
   productUrl: string;
   leaseUntil: string;
 };
-
-type SavedStore = {
-  id: string;
-  storeKey: string;
-  storeUrl: string;
-  displayName: string;
-  firstAddedAt: string;
-  lastScanStartedAt: string | null;
-  lastScanFinishedAt: string | null;
-  lastScanStatus: "completed" | "incomplete" | "failed" | null;
-  discovered: number;
-  newlyQueued: number;
-  duplicate: number;
-  alreadyTracked: number;
-};
-
-type ScanTotals = { discovered: number; newlyQueued: number; duplicate: number; alreadyTracked: number };
 
 type CollectorRun = {
   runId: string;
@@ -84,11 +62,6 @@ export default function AdminCollector() {
   const [succeeded, setSucceeded] = useState(0);
   const [failed, setFailed] = useState(0);
   const [history, setHistory] = useState<CollectorRun[]>([]);
-  const [savedStores, setSavedStores] = useState<SavedStore[]>([]);
-  const [storeUrl, setStoreUrl] = useState("");
-  const [scanningStore, setScanningStore] = useState(false);
-  const [storeMessage, setStoreMessage] = useState("Paste a Shopee store link to discover its visible products.");
-  const [scanTotals, setScanTotals] = useState<ScanTotals>({ discovered: 0, newlyQueued: 0, duplicate: 0, alreadyTracked: 0 });
   const [skipUnchangedDay, setSkipUnchangedDay] = useState(() =>
     skipUnchangedDayDefault(localStorage.getItem(skipUnchangedStorageKey))
   );
@@ -104,8 +77,6 @@ export default function AdminCollector() {
   const attemptedProductIds = useRef(new Set<number>());
   const attemptedQueueRequestIds = useRef(new Set<string>());
   const attemptedStoreRequestIds = useRef(new Set<string>());
-  const activeScanId = useRef<string | null>(null);
-  const scanChain = useRef<Promise<unknown>>(Promise.resolve());
   const startedAt = useRef<string | null>(null);
   const runId = useRef<string | null>(null);
   const succeededCount = useRef(0);
@@ -143,31 +114,6 @@ export default function AdminCollector() {
     return payload as T;
   }
 
-  async function storeApi<T>(action: string, body: Record<string, unknown> = {}) {
-    const response = await fetch(`/api/admin-pc-collector?action=store-${action}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (response.status === 401) {
-      sessionStorage.removeItem("pricetrack-admin-health-token");
-      window.location.replace("/admin");
-      throw new Error("Admin login expired.");
-    }
-    if (!response.ok) throw new Error(payload.error || "Store import request failed.");
-    return payload as T;
-  }
-
-  async function refreshStoresAndSummary() {
-    const [next, stores] = await Promise.all([
-      api<CollectorSummary & { ok: boolean }>("summary"),
-      storeApi<{ ok: boolean; stores: SavedStore[] }>("list"),
-    ]);
-    setSummary(next);
-    setSavedStores(stores.stores);
-  }
-
   useEffect(() => {
     document.body.classList.add("admin-page-active");
     if (!token) {
@@ -183,77 +129,13 @@ export default function AdminCollector() {
     void recover.then(() => Promise.all([
       api<CollectorSummary & { ok: boolean }>("summary"),
       api<{ ok: boolean; history: CollectorRun[] }>("history"),
-      storeApi<{ ok: boolean; stores: SavedStore[] }>("list"),
     ]))
-      .then(([next, runs, stores]) => { setSummary(next); setHistory(runs.history); setSavedStores(stores.stores); setMessage("Ready"); })
+      .then(([next, runs]) => { setSummary(next); setHistory(runs.history); setMessage("Ready"); })
       .catch((cause) => setMessage(cause instanceof Error ? cause.message : "Unable to open collector."));
     return () => {
       stopped.current = true;
       document.body.classList.remove("admin-page-active");
     };
-  }, []);
-
-  async function startStoreScan(value = storeUrl) {
-    if (scanningStore || running) return;
-    const store = normalizeShopeeStoreUrl(value);
-    if (!store) { setStoreMessage("Enter a valid Shopee Philippines store link."); return; }
-    const scanId = crypto.randomUUID();
-    setScanningStore(true);
-    setScanTotals({ discovered: 0, newlyQueued: 0, duplicate: 0, alreadyTracked: 0 });
-    setStoreMessage("Opening the Shopee store scanner…");
-    activeScanId.current = scanId;
-    scanChain.current = Promise.resolve();
-    try {
-      await storeApi<{ storeId: string }>("begin", { storeUrl: store.storeUrl, scanId });
-      window.postMessage({ source: STORE_SCAN_PAGE_SOURCE, type: "start", scanId, storeUrl: store.storeUrl }, window.location.origin);
-    } catch (cause) {
-      activeScanId.current = null;
-      setScanningStore(false);
-      setStoreMessage(cause instanceof Error ? cause.message : "Unable to start the store scan.");
-    }
-  }
-
-  useEffect(() => {
-    const onStoreScanMessage = (event: MessageEvent) => {
-      if (event.source !== window || event.origin !== window.location.origin) return;
-      const data = event.data;
-      if (data?.source !== STORE_SCAN_EXTENSION_SOURCE || data.scanId !== activeScanId.current) return;
-      if (data.type === "ready") {
-        setStoreMessage("Scanning visible products in the Shopee store tab…");
-        return;
-      }
-      if (data.type === "progress" || data.type === "storeScanProgress") {
-        scanChain.current = scanChain.current.then(async () => {
-          const result = await storeApi<{ totals: ScanTotals }>("batch", { scanId: data.scanId, products: data.products });
-          setScanTotals((current) => ({
-            discovered: current.discovered + result.totals.discovered,
-            newlyQueued: current.newlyQueued + result.totals.newlyQueued,
-            duplicate: current.duplicate + result.totals.duplicate,
-            alreadyTracked: current.alreadyTracked + result.totals.alreadyTracked,
-          }));
-        });
-        return;
-      }
-      if (data.type === "error" || data.type === "finished" || data.type === "storeScanFinished") {
-        scanChain.current = scanChain.current.then(async () => {
-          const failed = data.type === "error";
-          const status = failed ? "failed" : data.status === "completed" ? "completed" : "incomplete";
-          await storeApi<{ result: ScanTotals }>(failed ? "fail" : "finish", { scanId: data.scanId, status });
-          await refreshStoresAndSummary();
-          setStoreMessage(failed ? (data.error || "Extension update required or the scan could not start.")
-            : status === "completed" ? "Store scan completed. Click Start collection when ready."
-              : "Scan incomplete. Imported products were saved and you can Recheck later.");
-          setScanningStore(false);
-          activeScanId.current = null;
-        }).catch((cause) => {
-          setStoreMessage(cause instanceof Error ? cause.message : "Store scan stopped.");
-          setScanningStore(false);
-          activeScanId.current = null;
-        });
-      }
-    };
-    window.addEventListener("message", onStoreScanMessage);
-    return () => window.removeEventListener("message", onStoreScanMessage);
   }, []);
 
   useEffect(() => {
@@ -278,12 +160,14 @@ export default function AdminCollector() {
     const [healthLink, affiliateLink] = links;
     const adsLink = document.createElement("a");
     const collectorLink = document.createElement("a");
-    affiliateLink.after(adsLink, collectorLink);
+    const scannerLink = document.createElement("a");
+    affiliateLink.after(adsLink, collectorLink, scannerLink);
     healthLink.textContent = "Health"; healthLink.href = "/admin/health"; healthLink.removeAttribute("data-scroll-target");
     affiliateLink.textContent = "Affiliate"; affiliateLink.href = "/admin/affiliate"; affiliateLink.removeAttribute("data-scroll-target");
     adsLink.textContent = "Ads"; adsLink.href = "/admin/ads";
     collectorLink.textContent = "Collector"; collectorLink.href = "/admin/collector"; collectorLink.setAttribute("aria-current", "page");
-    return () => { adsLink.remove(); collectorLink.remove(); };
+    scannerLink.textContent = "Store Scanner"; scannerLink.href = "/admin/store-scanner";
+    return () => { adsLink.remove(); collectorLink.remove(); scannerLink.remove(); };
   }, []);
 
   async function releaseCurrent() {
@@ -453,29 +337,6 @@ export default function AdminCollector() {
   return <main className="health-page">
     <div className="health-shell">
       <div className="health-heading"><div><span className="health-kicker">PRIVATE ADMIN</span><h1>PriceTrack PH collector</h1><p>Randomly check available Shopee products in one dedicated Chrome tab.</p></div></div>
-      <section className="admin-collector-panel admin-store-import-panel">
-        <h2>Import a Shopee store</h2>
-        <p>Discover products visible in your browser, save the store, and collect full prices through the normal collector.</p>
-        <form className="admin-store-import-form" onSubmit={(event) => { event.preventDefault(); void startStoreScan(); }}>
-          <input type="url" value={storeUrl} onChange={(event) => setStoreUrl(event.target.value)} placeholder="Paste a Shopee store link" aria-label="Shopee store link" disabled={scanningStore || running} />
-          <button type="submit" disabled={scanningStore || running}>{scanningStore ? "Scanning…" : "Scan store"}</button>
-        </form>
-        <div className="admin-store-scan-status" aria-live="polite">
-          <strong>{storeMessage}</strong>
-          <span>Found: {scanTotals.discovered}</span><span>Newly queued: {scanTotals.newlyQueued}</span>
-          <span>Duplicate/queued: {scanTotals.duplicate}</span><span>Already tracked: {scanTotals.alreadyTracked}</span>
-        </div>
-        <h3>Saved stores</h3>
-        {savedStores.length === 0 ? <p className="health-empty">No saved stores yet.</p> : <div className="health-table-wrap admin-saved-stores"><table>
-          <thead><tr><th>Store</th><th>Last scan</th><th>Found</th><th>New</th><th>Status</th><th></th></tr></thead>
-          <tbody>{savedStores.map((store) => <tr key={store.id}>
-            <td><a href={store.storeUrl} target="_blank" rel="noreferrer">{store.displayName}</a></td>
-            <td>{store.lastScanFinishedAt ? new Date(store.lastScanFinishedAt).toLocaleString("en-US", { timeZone: "Asia/Manila", year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "—"}</td>
-            <td>{store.discovered}</td><td>{store.newlyQueued}</td><td>{store.lastScanStatus || "—"}</td>
-            <td><button type="button" onClick={() => void startStoreScan(store.storeUrl)} disabled={scanningStore || running}>Recheck</button></td>
-          </tr>)}</tbody>
-        </table></div>}
-      </section>
       <section className="admin-collector-panel">
         <div className="admin-collector-actions">
           <button type="button" onClick={() => void startCollection("normal")} disabled={running || cooldownSeconds > 0 || !summary}>Start collection</button>

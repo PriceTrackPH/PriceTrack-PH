@@ -12,6 +12,7 @@ export type StoreProductIdentity = {
   shopId: string;
   externalProductId: string;
   productUrl: string;
+  soldOut: boolean;
 };
 
 const numericId = /^[1-9]\d*$/;
@@ -35,7 +36,7 @@ export function normalizeDiscoveredProducts(values: unknown, maximum = MAX_STORE
   if (!Array.isArray(values)) return [];
   const limit = Math.min(MAX_STORE_SCAN_PRODUCTS, Math.max(0, Math.trunc(Number(maximum) || 0)));
   const products: StoreProductIdentity[] = [];
-  const seen = new Set<string>();
+  const byIdentity = new Map<string, StoreProductIdentity>();
   for (const value of values) {
     if (!value || typeof value !== "object" || Array.isArray(value)) continue;
     const candidate = value as Record<string, unknown>;
@@ -43,13 +44,19 @@ export function normalizeDiscoveredProducts(values: unknown, maximum = MAX_STORE
     const externalProductId = String(candidate.externalProductId ?? candidate.productId ?? "");
     if (!numericId.test(shopId) || !numericId.test(externalProductId)) continue;
     const key = `${shopId}:${externalProductId}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    products.push({
+    const existing = byIdentity.get(key);
+    if (existing) {
+      existing.soldOut ||= candidate.soldOut === true;
+      continue;
+    }
+    const product = {
       shopId,
       externalProductId,
       productUrl: `https://shopee.ph/product/${shopId}/${externalProductId}`,
-    });
+      soldOut: candidate.soldOut === true,
+    };
+    byIdentity.set(key, product);
+    products.push(product);
     if (products.length >= limit) break;
   }
   return products;

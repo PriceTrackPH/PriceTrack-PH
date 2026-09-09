@@ -15,21 +15,13 @@ import {
 } from "../src/admin-collector-settings.ts";
 import { clearCollectorRunCheckpoint, readCollectorRunCheckpoint, saveCollectorRunCheckpoint } from "../src/collector-run-recovery.ts";
 
-test("admin collector scans, saves, and rechecks Shopee stores without auto-starting collection", async () => {
+test("Shopee store URLs normalize while store scanning stays outside the collector page", async () => {
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
   assert.deepEqual(normalizeShopeeStoreUrl("https://shopee.ph/JabraOfficialStore#product_list"), {
     storeKey: "jabraofficialstore", storeUrl: "https://shopee.ph/jabraofficialstore", displayName: "JabraOfficialStore",
   });
-  assert.match(source, /placeholder="Paste a Shopee store link"/);
-  assert.match(source, /"Scan store"/);
-  assert.match(source, />Saved stores</);
-  assert.match(source, />Recheck</);
-  assert.match(source, /storeApi<[^;]+>\("begin"/);
-  assert.match(source, /storeApi<[^;]+>\("batch"/);
-  assert.match(source, /failed \? "fail" : "finish"/);
-  assert.match(source, /STORE_SCAN_PAGE_SOURCE/);
-  assert.doesNotMatch(source, /scanTimeout|4 \* 60_000/);
-  assert.doesNotMatch(source, /await startCollection\(\)[\s\S]{0,200}Scan store/);
+  assert.doesNotMatch(source, /Import a Shopee store|Saved stores|startStoreScan|STORE_SCAN_PAGE_SOURCE/);
+  assert.match(source, /Store Scanner/);
 });
 
 test("store imports participate in normal runs only when the default-on toggle is enabled", async () => {
