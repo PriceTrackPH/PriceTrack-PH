@@ -46,13 +46,39 @@ test("background coordinator validates and expires scan sessions", async () => {
   assert.equal(coordinator.validStart({ type: "startStoreScanSession", scanId: "bad", storeUrl: "https://shopee.ph/store" }), false);
   assert.equal(coordinator.validStart({ type: "startStoreScanSession", scanId: "550e8400-e29b-41d4-a716-446655440000", storeUrl: "https://evil.example/store" }), false);
   assert.equal(coordinator.validStart({ type: "startStoreScanSession", scanId: "550e8400-e29b-41d4-a716-446655440000", storeUrl: "https://shopee.ph/store" }), true);
-  assert.equal(coordinator.sessionExpired({ startedAt: 1_000 }, 601_001), true);
-  assert.equal(coordinator.sessionExpired({ startedAt: 1_000 }, 600_999), false);
+  assert.equal(coordinator.sessionExpired({ startedAt: 1_000, lastActivityAt: 1_500_000 }, 3_300_001), true);
+  assert.equal(coordinator.sessionExpired({ startedAt: 1_000, lastActivityAt: 1_500_000 }, 3_299_999), false);
+});
+
+test("background waits for persisted scan sessions before relaying the wake-up event", async () => {
+  const source = await readFile(new URL("../extension/background.js", import.meta.url), "utf8");
+  const listeners = {};
+  const relayed = [];
+  let resolveStored;
+  const stored = new Promise((resolve) => { resolveStored = resolve; });
+  const scanId = "550e8400-e29b-41d4-a716-446655440000";
+  const now = Date.now();
+  const chrome = {
+    runtime: { onMessage: { addListener(listener) { listeners.message = listener; } } },
+    tabs: {
+      sendMessage(tabId, message) { relayed.push({ tabId, message }); },
+      onUpdated: { addListener() {} }, onRemoved: { addListener() {} },
+    },
+    storage: { session: { get: () => stored, set: async () => {} } },
+  };
+  vm.runInContext(source, vm.createContext({ chrome, URL, globalThis: {}, Date }));
+
+  listeners.message({ type: "storeScanProgress", scanId, products: [] }, { tab: { id: 22 } });
+  resolveStored({ activeStoreScans: [{ scanId, storeUrl: "https://shopee.ph/store", adminTabId: 11, storeTabId: 22, startedAt: now, lastActivityAt: now }] });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(relayed.length, 1);
+  assert.equal(relayed[0].tabId, 11);
 });
 
 test("manifest registers the private admin bridge and Shopee scanner", async () => {
   const manifest = JSON.parse(await readFile(new URL("../extension/manifest.json", import.meta.url), "utf8"));
-  assert.equal(manifest.version, "1.0.4");
+  assert.equal(manifest.version, "1.0.5");
   assert.ok(manifest.permissions.includes("tabs"));
   assert.ok(manifest.content_scripts.some((entry) => entry.matches.includes("https://pricetrackph.com/admin/collector*") && entry.js.includes("admin-collector-bridge.js")));
   assert.ok(manifest.content_scripts.some((entry) => entry.matches.includes("https://shopee.ph/*") && entry.js.includes("store-scanner.js")));
