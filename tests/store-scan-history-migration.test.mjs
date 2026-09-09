@@ -44,3 +44,13 @@ test("scan functions persist sold-out and page progress without public execution
   assert.match(sql, /revoke all on function public\.finish_store_collection_scan\(uuid,text,integer,integer\) from public, anon, authenticated/i);
   assert.match(sql, /create or replace function public\.import_store_collection_batch\(p_scan_id uuid, p_products jsonb\)[\s\S]*import_store_collection_batch\(p_scan_id, p_products, 0, 0\)/i);
 });
+
+test("REST exposes only the four-argument store scan RPC signatures", async () => {
+  const cleanup = migrations.filter((name) => name.endsWith("_remove_store_scan_rpc_overloads.sql"));
+  assert.equal(cleanup.length, 1);
+  const sql = await readFile(new URL(`../supabase/migrations/${cleanup[0]}`, import.meta.url), "utf8");
+
+  assert.match(sql, /drop function if exists public\.import_store_collection_batch\(uuid, jsonb\)/i);
+  assert.match(sql, /drop function if exists public\.finish_store_collection_scan\(uuid, text\)/i);
+  assert.match(sql, /notify pgrst, 'reload schema'/i);
+});
