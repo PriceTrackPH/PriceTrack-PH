@@ -54,3 +54,13 @@ test("REST exposes only the four-argument store scan RPC signatures", async () =
   assert.match(sql, /drop function if exists public\.finish_store_collection_scan\(uuid, text\)/i);
   assert.match(sql, /notify pgrst, 'reload schema'/i);
 });
+
+test("store scan RPCs do not schema-qualify PostgreSQL GREATEST expressions", async () => {
+  const fixes = migrations.filter((name) => name.endsWith("_fix_store_scan_greatest.sql"));
+  assert.equal(fixes.length, 1);
+  const sql = await readFile(new URL(`../supabase/migrations/${fixes[0]}`, import.meta.url), "utf8");
+
+  assert.match(sql, /import_store_collection_batch\(uuid,jsonb,integer,integer\)/i);
+  assert.match(sql, /finish_store_collection_scan\(uuid,text,integer,integer\)/i);
+  assert.match(sql, /replace\(v_definition, 'pg_catalog\.greatest', 'greatest'\)/i);
+});
