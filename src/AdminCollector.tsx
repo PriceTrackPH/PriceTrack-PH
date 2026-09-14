@@ -13,6 +13,10 @@ import { clearCollectorRunCheckpoint, readCollectorRunCheckpoint, saveCollectorR
 import { includeStoreImportsDefault } from "./store-import-contract";
 import { nextNonPrioritySource } from "./collector-queue-policy";
 import { withCollectorRetry } from "./collector-request-policy";
+import {
+  collectorProductWaitExpired,
+  collectorStopGraceExpired,
+} from "./collector-product-wait-policy";
 import { subscribeToAdminHistory } from "./admin-realtime";
 
 type CollectorSummary = {
@@ -100,6 +104,7 @@ export default function AdminCollector() {
   const [cooldownSeconds, setCooldownSeconds] = useState(() => cooldownSecondsRemaining(Number(localStorage.getItem(cooldownStorageKey)) || 0, Date.now()));
   const stopped = useRef(true);
   const stopRequested = useRef(false);
+  const stopRequestedAt = useRef<number | null>(null);
   const productTab = useRef<Window | null>(null);
   const activeProduct = useRef<CollectorProduct | null>(null);
   const attemptedProductIds = useRef(new Set<number>());
@@ -355,6 +360,8 @@ export default function AdminCollector() {
       productTab.current.location.href = productUrlWithCollectorOptions(product.productUrl, skipUnchangedDay, skipSoldOut);
 
       let completed = false;
+      let confirmationTimedOut = false;
+      const productWaitStartedAt = Date.now();
       while (!stopped.current) {
         await wait(1000);
         const pageOutcome = currentPageOutcome.current;
@@ -402,6 +409,20 @@ export default function AdminCollector() {
           checkpointRun();
           break;
         }
+        if (
+          collectorProductWaitExpired(productWaitStartedAt, Date.now())
+          || collectorStopGraceExpired(stopRequestedAt.current, Date.now())
+        ) {
+          await releaseCurrent();
+          failedCount.current += 1;
+          setFailed(failedCount.current);
+          checkpointRun();
+          confirmationTimedOut = true;
+          setMessage(stopRequested.current
+            ? "Current product confirmation timed out; stopping safely"
+            : "Current product confirmation timed out; moving to the next product");
+          break;
+        }
       }
       if (stopped.current) break;
 
@@ -412,6 +433,17 @@ export default function AdminCollector() {
           stopped.current = true;
           setRunning(false);
           setMessage("Stopped safely");
+          await finishRun("stopped_safely");
+          break;
+        }
+        continue;
+      }
+
+      if (confirmationTimedOut) {
+        consecutiveFailures += 1;
+        if (stopRequested.current) {
+          stopped.current = true;
+          setRunning(false);
           await finishRun("stopped_safely");
           break;
         }
@@ -466,6 +498,7 @@ export default function AdminCollector() {
     productTab.current = opened;
     stopped.current = false;
     stopRequested.current = false;
+    stopRequestedAt.current = null;
     attemptedProductIds.current.clear();
     attemptedQueueRequestIds.current.clear();
     attemptedStoreRequestIds.current.clear();
@@ -486,7 +519,13 @@ export default function AdminCollector() {
       setSummary(next);
       await runCollection();
     } catch (cause) {
+      const hadActiveProduct = activeProduct.current !== null;
       await releaseCurrent();
+      if (hadActiveProduct) {
+        failedCount.current += 1;
+        setFailed(failedCount.current);
+        checkpointRun();
+      }
       stopped.current = true;
       setRunning(false);
       const errorMessage = cause instanceof Error ? cause.message : "Collector stopped.";
@@ -502,6 +541,7 @@ export default function AdminCollector() {
   async function stopCollection() {
     if (activeProduct.current) {
       stopRequested.current = true;
+      stopRequestedAt.current = Date.now();
       setMessage("Stopping after the current product finishes");
       return;
     }

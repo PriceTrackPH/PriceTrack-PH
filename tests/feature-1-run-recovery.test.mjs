@@ -4,6 +4,10 @@ import { readFile } from "node:fs/promises";
 
 import { withCollectorRetry } from "../src/collector-request-policy.js";
 import { readCollectorRunCheckpoint, saveCollectorRunCheckpoint } from "../src/collector-run-recovery.ts";
+import {
+  collectorProductWaitExpired,
+  collectorStopGraceExpired,
+} from "../src/collector-product-wait-policy.ts";
 
 test("collector retries transient failures and returns the successful response", async () => {
   let attempts = 0;
@@ -50,4 +54,24 @@ test("Stop waits for the active product and then finalizes safely", async () => 
   assert.match(source, /while \(!stopped\.current && !stopRequested\.current\)/);
   assert.match(source, /if \(stopRequested\.current\) \{[\s\S]*await finishRun\("stopped_safely"\)/);
   assert.match(source, /Stopping after the current product finishes/);
+});
+
+test("an unresolved product cannot block collection forever", () => {
+  assert.equal(collectorProductWaitExpired(1_000, 120_999), false);
+  assert.equal(collectorProductWaitExpired(1_000, 121_000), true);
+});
+
+test("Stop gives the current product a bounded confirmation grace period", () => {
+  assert.equal(collectorStopGraceExpired(null, 90_000), false);
+  assert.equal(collectorStopGraceExpired(60_000, 89_999), false);
+  assert.equal(collectorStopGraceExpired(60_000, 90_000), true);
+});
+
+test("timed-out confirmation is failed, released, checkpointed, and can stop safely", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  assert.match(source, /const stopRequestedAt = useRef<number \| null>\(null\)/);
+  assert.match(source, /collectorProductWaitExpired\(productWaitStartedAt, Date\.now\(\)\)/);
+  assert.match(source, /collectorStopGraceExpired\(stopRequestedAt\.current, Date\.now\(\)\)/);
+  assert.match(source, /await releaseCurrent\(\);[\s\S]*failedCount\.current \+= 1;[\s\S]*checkpointRun\(\)/);
+  assert.match(source, /stopRequestedAt\.current = Date\.now\(\)/);
 });
