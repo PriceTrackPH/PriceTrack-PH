@@ -412,6 +412,8 @@ html[data-theme="dark"] .support-section {
   max-height: calc(43px + (var(--visible-history-rows) * 52px));
   overflow-y: auto;
 }
+.admin-history-scroll thead { position: sticky; top: 0; z-index: 2; background: #171d1b; }
+.admin-history-scroll thead th { background: #171d1b; }
 .admin-history-scroll tbody tr { height: 52px; }
 .health-events table { width: 100%; border-collapse: collapse; margin-top: 12px; }
 .health-events th, .health-events td { padding: 13px 10px; border-top: 1px solid #303936; text-align: left; white-space: nowrap; }
@@ -489,6 +491,8 @@ html:not([data-theme="dark"]) .admin-collector-option { color: #17201d; }
 html:not([data-theme="dark"]) .admin-collector-status { background: #f3f6f5; color: #17201d; }
 html:not([data-theme="dark"]) .admin-store-import-form input { border-color: #cbd5d1; background: #fff; color: #17201d; }
 html:not([data-theme="dark"]) .store-scan-summary span { border-color: #d9e0dd; color: #65706c; }
+html:not([data-theme="dark"]) .admin-history-scroll thead,
+html:not([data-theme="dark"]) .admin-history-scroll thead th { background: #ffffff; }
 html:not([data-theme="dark"]) .store-scan-summary strong { color: #17201d; }
 html:not([data-theme="dark"]) .store-scan-filters input,
 html:not([data-theme="dark"]) .store-scan-filters select { border-color: #cbd5d1; background: #fff; color: #17201d; }
