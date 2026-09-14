@@ -46,7 +46,7 @@ test("Store Scan History keeps store links plain while preserving navigation", a
   const scanner = await readFile(new URL("../src/AdminStoreScanner.tsx", import.meta.url), "utf8");
   assert.match(scanner, /className="store-scan-store-link"/);
   assert.match(scanner, /target="_blank"/);
-  assert.match(scanner, /20/);
+  assert.match(scanner, /admin-history-scroll/);
   assert.match(scanner, /completed/);
   assert.match(scanner, /incomplete/);
   assert.match(scanner, /interrupted/);
