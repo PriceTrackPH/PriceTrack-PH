@@ -2,9 +2,6 @@
   "functions": {
     "api/*.js": { "regions": ["sin1"] }
   },
-  "crons": [
-    { "path": "/api/admin-history-cleanup", "schedule": "0 16 * * *" }
-  ],
   "redirects": [
     {
       "source": "/admin/monitoring",
