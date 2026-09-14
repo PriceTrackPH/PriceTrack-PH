@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 
 function send(res, status, body) {
-  res.status(status).setHeader("Cache-Control", "no-store").json(body);
+  res.status(status).setHeader("Cache-Control", status === 200 ? "private, max-age=15" : "no-store").json(body);
 }
 
 function secretsMatch(actual, expected) {
@@ -41,40 +41,29 @@ export default async function handler(req, res) {
 
   try {
     const headers = adminHeaders(secret);
-    const cleanupResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/delete_expired_diagnostic_events`, {
-      method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: "{}",
-    });
-    if (!cleanupResponse.ok) throw new Error(`cleanup_${cleanupResponse.status}`);
-
+    const offset = Math.max(0, Number.parseInt(String(req.query.offset || "0"), 10) || 0);
+    const limit = 200;
     const since = new Date(Date.now() - 30 * 864e5).toISOString();
     const recentParams = new URLSearchParams({
       select: "id,created_at,event_type,source,shop_id,product_id,variation_count,recorded_count,unchanged_count,failed_count,status_code,error_code,details",
       created_at: `gte.${since}`,
       order: "created_at.desc",
-      limit: "20",
+      limit: String(limit),
+      offset: String(offset),
     });
-
-    const [recentResponse, total, failures, partial, duplicates, variationChanges] = await Promise.all([
-      fetch(`${supabaseUrl}/rest/v1/diagnostic_events?${recentParams}`, { headers }),
-      fetchCount(supabaseUrl, headers),
-      fetchCount(supabaseUrl, headers, "record_failure"),
-      fetchCount(supabaseUrl, headers, "record_partial"),
-      fetchCount(supabaseUrl, headers, "duplicate_blocked"),
-      fetchCount(supabaseUrl, headers, "variation_count_changed"),
-    ]);
-
-    if (!recentResponse.ok) throw new Error(`events_${recentResponse.status}`);
-    const events = await recentResponse.json();
-    const lastSuccess = events.find((event) => event.event_type === "record_success")?.created_at || null;
-
-    return send(res, 200, {
-      windowDays: 30,
-      generatedAt: new Date().toISOString(),
-      summary: { total, failures, partial, duplicates, variationChanges, lastSuccess },
-      events,
+    if (offset > 0) {
+      const recentResponse = await fetch(`${supabaseUrl}/rest/v1/diagnostic_events?${recentParams}`, { headers });
+      if (!recentResponse.ok) throw new Error(`events_${recentResponse.status}`);
+      const events = await recentResponse.json();
+      return send(res, 200, { events, hasMore: events.length === limit });
+    }
+    const snapshotResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/admin_health_snapshot`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ p_limit: limit }),
     });
+    if (!snapshotResponse.ok) throw new Error(`snapshot_${snapshotResponse.status}`);
+    return send(res, 200, await snapshotResponse.json());
   } catch (error) {
     console.error("Admin health query failed", error);
     return send(res, 502, { error: "Unable to load diagnostics" });
