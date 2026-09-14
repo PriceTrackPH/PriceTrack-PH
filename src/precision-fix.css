@@ -438,7 +438,9 @@ html[data-theme="dark"] .support-section {
 .admin-store-scan-status strong { flex-basis: 100%; }
 .admin-saved-stores button { white-space: nowrap; }
 .admin-store-scanner .admin-store-import-form { grid-template-columns: minmax(0, 1fr) auto auto; }
-.store-scan-summary { display: grid; grid-template-columns: repeat(7, minmax(100px, 1fr)); gap: 10px; margin-top: 18px; }
+.admin-store-scanner .admin-store-import-form button { border: 0; border-radius: 10px; padding: 11px 16px; color: #fff; background: #281b6b; font-weight: 700; cursor: pointer; }
+.admin-store-scanner .admin-store-import-form button:disabled { opacity: .5; cursor: not-allowed; }
+.store-scan-summary { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-top: 18px; width: 100%; }
 .store-scan-summary span { display: grid; gap: 7px; padding: 14px; border: 1px solid #303936; border-radius: 12px; color: #aeb6b2; }
 .store-scan-summary strong { color: #f7faf9; font-size: 20px; }
 .store-scan-message { margin: 16px 0 0; }
