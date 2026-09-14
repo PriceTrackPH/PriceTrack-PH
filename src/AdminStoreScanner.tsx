@@ -53,8 +53,6 @@ export default function AdminStoreScanner() {
   const [history, setHistory] = useState<StoreScan[]>([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const [totalRows, setTotalRows] = useState(0);
   const activeScanId = useRef<string | null>(null);
   const scanActive = useRef(false);
   const readyTimer = useRef<number | null>(null);
@@ -99,17 +97,15 @@ export default function AdminStoreScanner() {
     return response.stores;
   }
 
-  async function refreshHistory(nextPage = page, nextQuery = query, nextStatus = status) {
+  async function refreshHistory(nextQuery = query, nextStatus = status) {
     const requestId = historyRequest.current + 1;
     historyRequest.current = requestId;
-    const response = await storeApi<{ scans: StoreScan[]; total: number }>("history", {
-      page: nextPage,
+    const response = await storeApi<{ scans: StoreScan[] }>("history", {
       query: nextQuery,
       status: nextStatus,
     });
     if (requestId !== historyRequest.current) return;
     setHistory(response.scans);
-    setTotalRows(response.total);
   }
 
   async function startStoreScan(value = storeUrl) {
@@ -132,7 +128,7 @@ export default function AdminStoreScanner() {
       readyTimer.current = window.setTimeout(() => {
         if (activeScanId.current !== scanId) return;
         void storeApi("fail", { scanId, status: "interrupted", pagesCurrent: 0, pagesTotal: 0 })
-          .then(() => refreshHistory(1, query, status))
+          .then(() => refreshHistory(query, status))
           .catch(() => undefined);
         scanActive.current = false;
         activeScanId.current = null;
@@ -177,7 +173,7 @@ export default function AdminStoreScanner() {
       window.location.replace("/admin");
       return () => document.body.classList.remove("admin-page-active");
     }
-    void Promise.all([refreshStores(), refreshHistory(1, "", "all")]).catch((cause) => {
+    void Promise.all([refreshStores(), refreshHistory("", "all")]).catch((cause) => {
       setMessage(cause instanceof Error ? cause.message : "Unable to open Store Scanner.");
     });
     return () => {
@@ -188,7 +184,7 @@ export default function AdminStoreScanner() {
 
   useEffect(() => {
     const realtime = subscribeToAdminHistory((event) => {
-      if (event.kind === "store") void refreshHistory(1, query, status);
+      if (event.kind === "store") void refreshHistory(query, status);
     });
     publishHistory.current = realtime.publish;
     return () => realtime.unsubscribe();
@@ -260,9 +256,8 @@ export default function AdminStoreScanner() {
             scanId: data.scanId,
             completed: finalStatus === "completed",
           }, window.location.origin);
-          await Promise.all([refreshStores(), refreshHistory(1, query, status)]);
+          await Promise.all([refreshStores(), refreshHistory(query, status)]);
           void publishHistory.current({ kind: "store", status: finalStatus, id: data.scanId });
-          setPage(1);
           setMessage(interrupted ? (data.error || "Store scan interrupted.")
             : finalStatus === "completed" ? "Scan completed"
               : "Scan incomplete. Discovered products were saved; recheck this store later.");
@@ -279,7 +274,7 @@ export default function AdminStoreScanner() {
             pagesTotal: data.pagesTotal || 0,
           }).catch(() => undefined);
           window.postMessage({ source: STORE_SCAN_PAGE_SOURCE, type: "completeAck", scanId: data.scanId, completed: false }, window.location.origin);
-          await refreshHistory(1, query, status).catch(() => undefined);
+          await refreshHistory(query, status).catch(() => undefined);
           setMessage(cause instanceof Error ? cause.message : "Store scan interrupted.");
           setScanning(false);
           scanActive.current = false;
@@ -292,8 +287,6 @@ export default function AdminStoreScanner() {
     window.addEventListener("message", onStoreScanMessage);
     return () => window.removeEventListener("message", onStoreScanMessage);
   }, [query, status]);
-
-  const totalPages = Math.max(1, Math.ceil(totalRows / 20));
 
   return <main className="health-page admin-store-scanner">
     <div className="health-shell">
@@ -318,12 +311,12 @@ export default function AdminStoreScanner() {
       <section className="health-events store-scan-history">
         <h2>Store Scan History</h2>
         <div className="store-scan-filters">
-          <input value={query} placeholder="Search store" aria-label="Search store" onChange={(event) => { const value = event.target.value; setQuery(value); setPage(1); void refreshHistory(1, value, status); }} />
-          <select value={status} aria-label="Filter scan status" onChange={(event) => { const value = event.target.value; setStatus(value); setPage(1); void refreshHistory(1, query, value); }}>
+          <input value={query} placeholder="Search store" aria-label="Search store" onChange={(event) => { const value = event.target.value; setQuery(value); void refreshHistory(value, status); }} />
+          <select value={status} aria-label="Filter scan status" onChange={(event) => { const value = event.target.value; setStatus(value); void refreshHistory(query, value); }}>
             <option value="all">All</option><option value="completed">Completed</option><option value="incomplete">Incomplete</option><option value="interrupted">Interrupted</option>
           </select>
         </div>
-        {history.length === 0 ? <p className="health-empty">No store scans found.</p> : <div className="health-table-wrap"><table>
+        {history.length === 0 ? <p className="health-empty">No store scans found.</p> : <div className="health-table-wrap admin-history-scroll"><table>
           <thead><tr><th>Scan time</th><th>Store</th><th>Running time</th><th>Found</th><th>New queued</th><th>Already queued</th><th>Sold Out</th><th>Pages</th><th>Tracked</th><th>Status</th><th>Action</th></tr></thead>
           <tbody>{history.map((scan) => <tr key={scan.scanId}>
             <td>{new Date(scan.startedAt).toLocaleString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", second: "2-digit" })}</td>
@@ -335,11 +328,6 @@ export default function AdminStoreScanner() {
             <td><button type="button" disabled={scanning} onClick={() => void startStoreScan(scan.storeUrl)}>Recheck</button></td>
           </tr>)}</tbody>
         </table></div>}
-        <div className="store-scan-pagination">
-          <button type="button" disabled={page <= 1} onClick={() => { const next = page - 1; setPage(next); void refreshHistory(next); }}>Previous</button>
-          <span>{page} / {totalPages}</span>
-          <button type="button" disabled={page >= totalPages} onClick={() => { const next = page + 1; setPage(next); void refreshHistory(next); }}>Next</button>
-        </div>
       </section>
     </div>
   </main>;
