@@ -5,6 +5,7 @@ import { SHOPEE_BATCH_TEMPLATE_BASE64 } from "./shopee-batch-template.js";
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 const MAX_ARCHIVE_BYTES = 6 * 1024 * 1024;
 const MAX_IMPORT_ROWS = 10000;
+const MAX_EXPORT_ROWS = 10000;
 const EXPORT_HEADERS = ["Original Link *", "Sub_id1", "Sub_id2", "Sub_id3", "Sub_id4", "Sub_id5"];
 const AFFILIATE_SUB_ID = "PriceTrackPH";
 
@@ -336,7 +337,8 @@ export default async function handler(req, res) {
       const products = await loadShopeeProducts(supabaseUrl, headers);
       const missing = products.filter((product) => !affiliateUrl(product.metadata));
       if (String(req.query?.action || "") === "export") {
-        const workbook = workbookBuffer(missing);
+        const exportBatch = missing.slice(0, MAX_EXPORT_ROWS);
+        const workbook = workbookBuffer(exportBatch);
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         const filename = `PriceTrack-PH-Missing-Affiliate-Links-${timestamp}.xlsx`;
         const archive = await archiveToGoogleDrive({
@@ -350,6 +352,8 @@ export default async function handler(req, res) {
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
         res.setHeader("X-PriceTrack-Drive-Archive", archive.status);
+        res.setHeader("X-PriceTrack-Export-Count", String(exportBatch.length));
+        res.setHeader("X-PriceTrack-Remaining-Count", String(Math.max(0, missing.length - exportBatch.length)));
         return res.send(workbook);
       }
       return send(res, 200, {
