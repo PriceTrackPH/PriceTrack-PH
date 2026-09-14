@@ -9,7 +9,13 @@ import {
   skipSoldOutDefault,
   skipUnchangedDayDefault,
 } from "./admin-collector-settings";
-import { clearCollectorRunCheckpoint, readCollectorRunCheckpoint, saveCollectorRunCheckpoint } from "./collector-run-recovery";
+import {
+  clearCollectorRunCheckpoint,
+  readCollectorRunCheckpoint,
+  saveCollectorRunCheckpoint,
+  type CollectorRunCheckpoint,
+  type CollectorStopStatus,
+} from "./collector-run-recovery";
 import { includeStoreImportsDefault } from "./store-import-contract";
 import { nextNonPrioritySource } from "./collector-queue-policy";
 import { withCollectorRetry } from "./collector-request-policy";
@@ -50,7 +56,7 @@ type CollectorRun = {
   recheckAt: string | null;
   samePrice: number;
   samePriceRecheckAt: string | null;
-  stopStatus: "stopped" | "stopped_safely" | "interrupted";
+  stopStatus: CollectorStopStatus;
 };
 type CollectionMode = "normal" | "unlimited";
 type ProductPageOutcome = "sold_out" | "does_not_exist" | "unlisted" | "page_error" | "verification";
@@ -63,6 +69,15 @@ const includeStoreImportsStorageKey = "pricetrack-admin-collector-include-store-
 const manilaDate = () => new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
 }).format(new Date());
+
+function stopStatusLabel(status: CollectorStopStatus) {
+  if (status === "stopped_safely") return "Stopped safely";
+  if (status === "interrupted") return "Interrupted";
+  if (status === "login_expired") return "Stopped — Login expired";
+  if (status === "api_failure") return "Stopped — API failure";
+  if (status === "confirmation_timeout") return "Stopped — Confirmation timeout";
+  return "Stopped";
+}
 
 function playVerificationSound() {
   try {
@@ -133,7 +148,11 @@ export default function AdminCollector() {
     setSucceeded(0); setFailed(0);
   }
 
-  function checkpointRun(phase: "running" | "pending_finalization" = "running", intendedStopStatus?: "stopped" | "stopped_safely") {
+  function checkpointRun(
+    phase: "running" | "pending_finalization" = "running",
+    intendedStopStatus?: CollectorStopStatus,
+    failureReason?: CollectorRunCheckpoint["failureReason"],
+  ) {
     if (!runId.current || !startedAt.current) return;
     saveCollectorRunCheckpoint(localStorage, {
       runId: runId.current, startedAt: startedAt.current,
@@ -143,6 +162,8 @@ export default function AdminCollector() {
       remaining: Math.max(0, (summary?.totalDue || 0) - succeededCount.current - failedCount.current),
       phase,
       intendedStopStatus,
+      failureReason,
+      activeProduct: activeProduct.current,
     });
   }
 
@@ -155,15 +176,66 @@ export default function AdminCollector() {
       });
       const payload = await response.json().catch(() => ({}));
       if (response.status === 401) {
+        checkpointRun("pending_finalization", "login_expired", "login_expired");
         sessionStorage.removeItem("pricetrack-admin-health-token");
         window.location.replace("/admin");
-        throw Object.assign(new Error("Admin login expired."), { retryable: false });
+        throw Object.assign(new Error("Admin login expired."), { retryable: false, code: "AUTH_EXPIRED" });
       }
       if (!response.ok) throw Object.assign(new Error(payload.error || "Collector request failed."), {
         retryable: response.status === 408 || response.status === 429 || response.status >= 500,
       });
       return payload as T;
     });
+  }
+
+  async function recoverCollectorCheckpoint(checkpoint: CollectorRunCheckpoint) {
+    const recovered = { ...checkpoint };
+    if (checkpoint.activeProduct) {
+      let status: {
+        completed: boolean; soldOut: boolean; recheckAt: string | null;
+        samePrice: boolean; samePriceRecheckAt: string | null;
+      } | null = null;
+      for (let attempt = 0; attempt < 15; attempt += 1) {
+        status = await api<{
+          completed: boolean; soldOut: boolean; recheckAt: string | null;
+          samePrice: boolean; samePriceRecheckAt: string | null;
+        }>("status", checkpoint.activeProduct.productId === null
+          ? { shopId: checkpoint.activeProduct.shopId, externalProductId: checkpoint.activeProduct.externalProductId }
+          : { productId: checkpoint.activeProduct.productId });
+        if (status.completed) break;
+        await wait(1_000);
+      }
+      if (status?.completed) {
+        recovered.succeeded += 1;
+        if (status.soldOut) {
+          recovered.soldOut += 1;
+          recovered.recheckAt = status.recheckAt;
+        }
+        if (status.samePrice) {
+          recovered.samePrice += 1;
+          recovered.samePriceRecheckAt = status.samePriceRecheckAt;
+        }
+      } else {
+        recovered.failed += 1;
+      }
+      await api("release", {
+        claimSource: checkpoint.activeProduct.claimSource,
+        queueRequestId: checkpoint.activeProduct.queueRequestId,
+        productId: checkpoint.activeProduct.productId,
+        leaseUntil: checkpoint.activeProduct.leaseUntil,
+      }).catch(() => undefined);
+      recovered.activeProduct = null;
+    }
+    const stoppedAt = new Date().toISOString();
+    const stopStatus: CollectorStopStatus = checkpoint.failureReason
+      || (checkpoint.phase === "pending_finalization" ? checkpoint.intendedStopStatus || "stopped" : "interrupted");
+    await api("finish", { run: {
+      ...recovered,
+      stoppedAt,
+      durationSeconds: Math.max(0, Math.round((Date.parse(stoppedAt) - Date.parse(checkpoint.startedAt)) / 1000)),
+      stopStatus,
+    } });
+    clearCollectorRunCheckpoint(localStorage);
   }
 
   useEffect(() => {
@@ -173,13 +245,7 @@ export default function AdminCollector() {
       return () => document.body.classList.remove("admin-page-active");
     }
     const interrupted = readCollectorRunCheckpoint(localStorage);
-    const recover = interrupted ? api("finish", { run: {
-      ...interrupted, stoppedAt: new Date().toISOString(),
-      durationSeconds: Math.max(0, Math.round((Date.now() - Date.parse(interrupted.startedAt)) / 1000)),
-      stopStatus: interrupted.phase === "pending_finalization"
-        ? interrupted.intendedStopStatus || "stopped"
-        : "interrupted",
-    }}).then(() => clearCollectorRunCheckpoint(localStorage)) : Promise.resolve();
+    const recover = interrupted ? recoverCollectorCheckpoint(interrupted) : Promise.resolve();
     void recover.then(() => api<CollectorSummary & { ok: boolean; history: CollectorRun[]; hasMore: boolean }>("bootstrap"))
       .then((next) => { setSummary(next); setHistory(next.history); setHistoryHasMore(next.hasMore); setMessage("Ready"); })
       .catch((cause) => setMessage(cause instanceof Error ? cause.message : "Unable to open collector."));
@@ -311,7 +377,10 @@ export default function AdminCollector() {
       samePriceRecheckAt: samePriceRecheckAt.current,
       stopStatus: status,
     };
-    checkpointRun("pending_finalization", status === "stopped_safely" ? "stopped_safely" : "stopped");
+    const failureReason = ["login_expired", "api_failure", "confirmation_timeout"].includes(status)
+      ? status as CollectorRunCheckpoint["failureReason"]
+      : undefined;
+    checkpointRun("pending_finalization", status, failureReason);
     const { saved } = await api<{ saved: CollectorRun }>("finish", { run });
     runId.current = null;
     clearCollectorRunCheckpoint(localStorage);
@@ -444,7 +513,7 @@ export default function AdminCollector() {
         if (stopRequested.current) {
           stopped.current = true;
           setRunning(false);
-          await finishRun("stopped_safely");
+          await finishRun("confirmation_timeout");
           break;
         }
         continue;
@@ -519,18 +588,25 @@ export default function AdminCollector() {
       setSummary(next);
       await runCollection();
     } catch (cause) {
-      const hadActiveProduct = activeProduct.current !== null;
-      await releaseCurrent();
-      if (hadActiveProduct) {
-        failedCount.current += 1;
-        setFailed(failedCount.current);
-        checkpointRun();
+      if (cause instanceof Error && (cause as Error & { code?: string }).code === "AUTH_EXPIRED") {
+        stopped.current = true;
+        setRunning(false);
+        return;
       }
       stopped.current = true;
       setRunning(false);
       const errorMessage = cause instanceof Error ? cause.message : "Collector stopped.";
+      checkpointRun("pending_finalization", "api_failure", "api_failure");
+      const pendingRecovery = readCollectorRunCheckpoint(localStorage);
       try {
-        await finishRun("stopped");
+        if (pendingRecovery) {
+          await recoverCollectorCheckpoint(pendingRecovery);
+          runId.current = null;
+          activeProduct.current = null;
+          setCurrentProduct(null);
+        } else {
+          await finishRun("api_failure");
+        }
         setMessage(errorMessage);
       } catch {
         setMessage(`${errorMessage} Run finalization will retry when this page opens again.`);
@@ -620,7 +696,7 @@ export default function AdminCollector() {
             <td>{run.soldOut}{run.recheckAt ? ` — ${new Date(run.recheckAt).toLocaleDateString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit" })}` : ""}</td>
             <td>{run.samePrice}{run.samePriceRecheckAt ? ` — ${new Date(run.samePriceRecheckAt).toLocaleDateString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit" })}` : ""}</td>
             <td>{run.remaining}</td>
-            <td>{run.stopStatus === "stopped_safely" ? "Stopped safely" : run.stopStatus === "interrupted" ? "Interrupted" : "Stopped"}</td>
+            <td>{stopStatusLabel(run.stopStatus)}</td>
           </tr>)}</tbody>
         </table></div>}
       </section>

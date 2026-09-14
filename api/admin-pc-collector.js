@@ -244,7 +244,9 @@ export async function collectorHistory(supabaseUrl, secret, offset = 0) {
     recheckAt: typeof row.recheck_at === "string" ? row.recheck_at : null,
     samePrice: safeInteger(row.same_price),
     samePriceRecheckAt: typeof row.same_price_recheck_at === "string" ? row.same_price_recheck_at : null,
-    stopStatus: ["stopped_safely", "interrupted"].includes(row.stop_status) ? row.stop_status : "stopped",
+    stopStatus: ["stopped_safely", "interrupted", "login_expired", "api_failure", "confirmation_timeout"].includes(row.stop_status)
+      ? row.stop_status
+      : "stopped",
   }));
 }
 
@@ -267,7 +269,9 @@ export async function saveCollectorRun(supabaseUrl, secret, run) {
       recheck_at: typeof run.recheckAt === "string" ? run.recheckAt : null,
       same_price: safeInteger(run.samePrice),
       same_price_recheck_at: typeof run.samePriceRecheckAt === "string" ? run.samePriceRecheckAt : null,
-      stop_status: ["stopped_safely", "interrupted"].includes(run.stopStatus) ? run.stopStatus : "stopped",
+      stop_status: ["stopped_safely", "interrupted", "login_expired", "api_failure", "confirmation_timeout"].includes(run.stopStatus)
+        ? run.stopStatus
+        : "stopped",
     }),
   });
   if (!response.ok) throw new Error(`collector_finish_${response.status}`);

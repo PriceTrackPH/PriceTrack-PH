@@ -41,11 +41,27 @@ test("pending finalization checkpoint preserves its intended stop status", () =>
   assert.deepEqual(readCollectorRunCheckpoint(storage), checkpoint);
 });
 
+test("checkpoint preserves the active claim and an accurate failure reason", () => {
+  const values = new Map();
+  const storage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+  const checkpoint = {
+    runId: crypto.randomUUID(), startedAt: new Date().toISOString(), succeeded: 9, failed: 0,
+    soldOut: 0, recheckAt: null, samePrice: 0, samePriceRecheckAt: null, remaining: 20,
+    phase: "pending_finalization", intendedStopStatus: "login_expired", failureReason: "login_expired",
+    activeProduct: {
+      claimSource: "random", queueRequestId: null, productId: 44, shopId: "12",
+      externalProductId: "34", productUrl: "https://shopee.ph/item-i.12.34", leaseUntil: new Date().toISOString(),
+    },
+  };
+  saveCollectorRunCheckpoint(storage, checkpoint);
+  assert.deepEqual(readCollectorRunCheckpoint(storage), checkpoint);
+});
+
 test("Collector retries API requests and finalizes errors instead of leaving a stale run", async () => {
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
   assert.match(source, /withCollectorRetry/);
   assert.match(source, /checkpointRun\("pending_finalization"/);
-  assert.match(source, /await finishRun\("stopped"\)/);
+  assert.match(source, /await finishRun\("api_failure"\)/);
 });
 
 test("Stop waits for the active product and then finalizes safely", async () => {
@@ -74,4 +90,29 @@ test("timed-out confirmation is failed, released, checkpointed, and can stop saf
   assert.match(source, /collectorStopGraceExpired\(stopRequestedAt\.current, Date\.now\(\)\)/);
   assert.match(source, /await releaseCurrent\(\);[\s\S]*failedCount\.current \+= 1;[\s\S]*checkpointRun\(\)/);
   assert.match(source, /stopRequestedAt\.current = Date\.now\(\)/);
+});
+
+test("reload reconciles the checkpointed active product before finalizing", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  assert.match(source, /async function recoverCollectorCheckpoint/);
+  assert.match(source, /checkpoint\.activeProduct[\s\S]*api<[^>]+>\("status"/);
+  assert.match(source, /recovered\.succeeded \+= 1/);
+  assert.match(source, /await api\("release"/);
+  assert.match(source, /await api\("finish"/);
+});
+
+test("401 saves login-expired recovery state before redirecting", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  assert.match(source, /response\.status === 401[\s\S]*checkpointRun\("pending_finalization", "login_expired", "login_expired"\)[\s\S]*window\.location\.replace\("\/admin"\)/);
+});
+
+test("run history supports accurate safe failure statuses", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  const api = await readFile(new URL("../api/admin-pc-collector.js", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20260915_feature_8_run_recovery.sql", import.meta.url), "utf8");
+  for (const status of ["login_expired", "api_failure", "confirmation_timeout"]) {
+    assert.match(source, new RegExp(status));
+    assert.match(api, new RegExp(status));
+    assert.match(migration, new RegExp(status));
+  }
 });
