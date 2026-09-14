@@ -545,7 +545,7 @@ export default function AdminCollector() {
       </section>
       <section className="health-events admin-collector-history">
         <h2>Collection history</h2>
-        {history.length === 0 ? <p className="health-empty">No stopped collection runs yet.</p> : <div className="health-table-wrap"><table>
+        {history.length === 0 ? <p className="health-empty">No stopped collection runs yet.</p> : <div className="health-table-wrap admin-history-scroll"><table>
           <thead><tr><th>Time</th><th>Running time</th><th>Succeeded</th><th>Failed</th><th>Sold out</th><th>Same Price</th><th>Remaining</th><th>Status</th></tr></thead>
           <tbody>{history.map((run) => <tr key={run.runId}>
             <td>{new Date(run.startedAt).toLocaleString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", second: "2-digit" })}</td>
