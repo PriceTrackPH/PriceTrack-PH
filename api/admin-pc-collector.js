@@ -618,7 +618,7 @@ export default async function handler(req, res) {
       const externalProductId = String(req.body?.externalProductId || "");
       const outcome = String(req.body?.outcome || "");
       if (!["priority", "store", "random"].includes(claimSource)
-        || !["does_not_exist", "unlisted", "page_error"].includes(outcome)
+        || !["sold_out", "does_not_exist", "unlisted", "page_error"].includes(outcome)
         || !/^\d+$/.test(shopId) || !/^\d+$/.test(externalProductId)
         || (claimSource === "random" && !productId)
         || (claimSource !== "random" && !UUID_V4.test(queueRequestId))) {
