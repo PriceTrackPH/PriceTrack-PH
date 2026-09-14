@@ -429,7 +429,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
             {!isAffiliate && !isAds && <section className="health-events">
               <div className="health-events-heading">
                 <h2>Recent events</h2>
-                <span>Latest 50 · no personal data or full URLs</span>
+                <span>Latest 20 · no personal data or full URLs</span>
               </div>
               {data.events.length ? (
                 <div className="health-table-wrap">

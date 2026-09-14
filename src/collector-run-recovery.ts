@@ -2,6 +2,8 @@ export type CollectorRunCheckpoint = {
   runId: string; startedAt: string; succeeded: number; failed: number;
   soldOut: number; recheckAt: string | null; samePrice: number;
   samePriceRecheckAt: string | null; remaining: number;
+  phase?: "running" | "pending_finalization";
+  intendedStopStatus?: "stopped" | "stopped_safely";
 };
 
 export const activeCollectorRunKey = "pricetrack-admin-collector-active-run";
@@ -13,6 +15,8 @@ export function readCollectorRunCheckpoint(storage: Pick<Storage, "getItem">): C
     for (const key of ["succeeded", "failed", "soldOut", "samePrice", "remaining"] as const) {
       if (!Number.isInteger(value[key]) || value[key] < 0) return null;
     }
+    if (value.phase && !["running", "pending_finalization"].includes(value.phase)) return null;
+    if (value.intendedStopStatus && !["stopped", "stopped_safely"].includes(value.intendedStopStatus)) return null;
     return value;
   } catch { return null; }
 }

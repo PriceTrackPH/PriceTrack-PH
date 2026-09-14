@@ -11,6 +11,9 @@ import {
 } from "./admin-collector-settings";
 import { clearCollectorRunCheckpoint, readCollectorRunCheckpoint, saveCollectorRunCheckpoint } from "./collector-run-recovery";
 import { includeStoreImportsDefault } from "./store-import-contract";
+import { nextNonPrioritySource } from "./collector-queue-policy";
+import { withCollectorRetry } from "./collector-request-policy";
+import { subscribeToAdminHistory } from "./admin-realtime";
 
 type CollectorSummary = {
   totalTracked: number;
@@ -46,12 +49,33 @@ type CollectorRun = {
   stopStatus: "stopped" | "stopped_safely" | "interrupted";
 };
 type CollectionMode = "normal" | "unlimited";
+type ProductPageOutcome = "does_not_exist" | "unlisted" | "page_error" | "verification";
 
 const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 const cooldownStorageKey = "pricetrack-admin-collector-cooldown-until";
 const skipUnchangedStorageKey = "pricetrack-admin-collector-skip-unchanged-day";
 const skipSoldOutStorageKey = "pricetrack-admin-collector-skip-sold-out";
 const includeStoreImportsStorageKey = "pricetrack-admin-collector-include-store-imports";
+const manilaDate = () => new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
+}).format(new Date());
+
+function playVerificationSound() {
+  try {
+    const AudioContextClass = window.AudioContext;
+    const audio = new AudioContextClass();
+  const oscillator = audio.createOscillator();
+  const gain = audio.createGain();
+  oscillator.frequency.value = 880;
+  gain.gain.setValueAtTime(0.18, audio.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.7);
+  oscillator.connect(gain); gain.connect(audio.destination);
+  oscillator.start(); oscillator.stop(audio.currentTime + 0.7);
+    oscillator.addEventListener("ended", () => void audio.close(), { once: true });
+  } catch {
+    // The visible pause message remains available if browser audio is blocked.
+  }
+}
 
 export default function AdminCollector() {
   const token = sessionStorage.getItem("pricetrack-admin-health-token") || "";
@@ -62,6 +86,7 @@ export default function AdminCollector() {
   const [succeeded, setSucceeded] = useState(0);
   const [failed, setFailed] = useState(0);
   const [history, setHistory] = useState<CollectorRun[]>([]);
+  const [remoteNotice, setRemoteNotice] = useState("");
   const [skipUnchangedDay, setSkipUnchangedDay] = useState(() =>
     skipUnchangedDayDefault(localStorage.getItem(skipUnchangedStorageKey))
   );
@@ -72,6 +97,7 @@ export default function AdminCollector() {
   const [cooldownUntil, setCooldownUntil] = useState(() => Number(localStorage.getItem(cooldownStorageKey)) || 0);
   const [cooldownSeconds, setCooldownSeconds] = useState(() => cooldownSecondsRemaining(Number(localStorage.getItem(cooldownStorageKey)) || 0, Date.now()));
   const stopped = useRef(true);
+  const stopRequested = useRef(false);
   const productTab = useRef<Window | null>(null);
   const activeProduct = useRef<CollectorProduct | null>(null);
   const attemptedProductIds = useRef(new Set<number>());
@@ -86,8 +112,21 @@ export default function AdminCollector() {
   const samePriceCount = useRef(0);
   const samePriceRecheckAt = useRef<string | null>(null);
   const collectionMode = useRef<CollectionMode>("normal");
+  const nonPriorityCadence = useRef(0);
+  const currentPageOutcome = useRef<ProductPageOutcome | null>(null);
+  const verificationAlertedFor = useRef(new Set<string>());
+  const publishHistory = useRef<(event: { kind: "collector" | "store"; status: string; id: string }) => unknown>(() => undefined);
+  const remoteNoticeTimer = useRef<number | null>(null);
+  const runManilaDate = useRef(manilaDate());
+  const pageErrorRetries = useRef<CollectorProduct[]>([]);
 
-  function checkpointRun() {
+  function resetDailyRunCounters() {
+    succeededCount.current = 0; failedCount.current = 0; soldOutCount.current = 0; samePriceCount.current = 0;
+    recheckAt.current = null; samePriceRecheckAt.current = null;
+    setSucceeded(0); setFailed(0);
+  }
+
+  function checkpointRun(phase: "running" | "pending_finalization" = "running", intendedStopStatus?: "stopped" | "stopped_safely") {
     if (!runId.current || !startedAt.current) return;
     saveCollectorRunCheckpoint(localStorage, {
       runId: runId.current, startedAt: startedAt.current,
@@ -95,23 +134,29 @@ export default function AdminCollector() {
       soldOut: soldOutCount.current, recheckAt: recheckAt.current,
       samePrice: samePriceCount.current, samePriceRecheckAt: samePriceRecheckAt.current,
       remaining: Math.max(0, (summary?.totalDue || 0) - succeededCount.current - failedCount.current),
+      phase,
+      intendedStopStatus,
     });
   }
 
   async function api<T>(action: string, body: Record<string, unknown> = {}) {
-    const response = await fetch(`/api/admin-pc-collector?action=${action}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+    return withCollectorRetry(async () => {
+      const response = await fetch(`/api/admin-pc-collector?action=${action}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        sessionStorage.removeItem("pricetrack-admin-health-token");
+        window.location.replace("/admin");
+        throw Object.assign(new Error("Admin login expired."), { retryable: false });
+      }
+      if (!response.ok) throw Object.assign(new Error(payload.error || "Collector request failed."), {
+        retryable: response.status === 408 || response.status === 429 || response.status >= 500,
+      });
+      return payload as T;
     });
-    const payload = await response.json().catch(() => ({}));
-    if (response.status === 401) {
-      sessionStorage.removeItem("pricetrack-admin-health-token");
-      window.location.replace("/admin");
-      throw new Error("Admin login expired.");
-    }
-    if (!response.ok) throw new Error(payload.error || "Collector request failed.");
-    return payload as T;
   }
 
   useEffect(() => {
@@ -124,7 +169,9 @@ export default function AdminCollector() {
     const recover = interrupted ? api("finish", { run: {
       ...interrupted, stoppedAt: new Date().toISOString(),
       durationSeconds: Math.max(0, Math.round((Date.now() - Date.parse(interrupted.startedAt)) / 1000)),
-      stopStatus: "interrupted",
+      stopStatus: interrupted.phase === "pending_finalization"
+        ? interrupted.intendedStopStatus || "stopped"
+        : "interrupted",
     }}).then(() => clearCollectorRunCheckpoint(localStorage)) : Promise.resolve();
     void recover.then(() => Promise.all([
       api<CollectorSummary & { ok: boolean }>("summary"),
@@ -153,6 +200,43 @@ export default function AdminCollector() {
     const timer = window.setInterval(updateCountdown, 1000);
     return () => window.clearInterval(timer);
   }, [cooldownUntil]);
+
+  useEffect(() => {
+    const realtime = subscribeToAdminHistory((event) => {
+      if (event.kind !== "collector") return;
+      void api<{ ok: boolean; history: CollectorRun[] }>("history").then((result) => setHistory(result.history));
+      setRemoteNotice(`Another Collector run ${event.status.replace(/_/g, " ")}`);
+      if (remoteNoticeTimer.current !== null) window.clearTimeout(remoteNoticeTimer.current);
+      remoteNoticeTimer.current = window.setTimeout(() => setRemoteNotice(""), 5_000);
+    });
+    publishHistory.current = realtime.publish;
+    return () => {
+      realtime.unsubscribe();
+      if (remoteNoticeTimer.current !== null) window.clearTimeout(remoteNoticeTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onProductOutcome = (event: MessageEvent) => {
+      if (event.origin !== "https://shopee.ph" || event.source !== productTab.current) return;
+      const data = event.data;
+      if (data?.source !== "pricetrack-ph-collector-product" || data?.type !== "product-outcome") return;
+      const product = activeProduct.current;
+      if (!product || data.shopId !== product.shopId || data.externalProductId !== product.externalProductId) return;
+      if (!["does_not_exist", "unlisted", "page_error", "verification"].includes(data.outcome)) return;
+      currentPageOutcome.current = data.outcome;
+      if (data.outcome === "verification") {
+        const key = `${product.shopId}.${product.externalProductId}`;
+        if (!verificationAlertedFor.current.has(key)) {
+          verificationAlertedFor.current.add(key);
+          playVerificationSound();
+        }
+        setMessage("Shopee verification required — collection paused until you complete it in the collector tab");
+      }
+    };
+    window.addEventListener("message", onProductOutcome);
+    return () => window.removeEventListener("message", onProductOutcome);
+  }, []);
 
   useEffect(() => {
     const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a"));
@@ -199,25 +283,38 @@ export default function AdminCollector() {
       samePriceRecheckAt: samePriceRecheckAt.current,
       stopStatus: status,
     };
-    runId.current = null;
+    checkpointRun("pending_finalization", status === "stopped_safely" ? "stopped_safely" : "stopped");
     const { saved } = await api<{ saved: CollectorRun }>("finish", { run });
+    runId.current = null;
     clearCollectorRunCheckpoint(localStorage);
     setHistory((items) => [
       { ...run, remaining: saved.remaining },
       ...items.filter((item) => item.runId !== run.runId),
-    ].slice(0, 50));
+    ].slice(0, 20));
+    void publishHistory.current({ kind: "collector", status, id: run.runId });
   }
 
   async function runCollection() {
     let consecutiveFailures = 0;
-    while (!stopped.current) {
-      const claim = await api<{ product: CollectorProduct | null }>("claim", {
+    while (!stopped.current && !stopRequested.current) {
+      const today = manilaDate();
+      if (today !== runManilaDate.current) {
+        runManilaDate.current = today;
+        resetDailyRunCounters();
+        setSummary(await api<CollectorSummary & { ok: boolean }>("summary"));
+      }
+      let claim = await api<{ product: CollectorProduct | null }>("claim", {
         attemptedProductIds: [...attemptedProductIds.current],
         attemptedQueueRequestIds: [...attemptedQueueRequestIds.current],
         attemptedStoreRequestIds: [...attemptedStoreRequestIds.current],
         includeStoreImports: includeStoreImports,
         skipSoldOut,
+        preferredSource: nextNonPrioritySource(nonPriorityCadence.current),
       });
+      if (!claim.product && pageErrorRetries.current.length) {
+        const retryProduct = pageErrorRetries.current.shift();
+        if (retryProduct) claim = await api<{ product: CollectorProduct | null }>("reclaim", { product: retryProduct });
+      }
       const product = claim.product;
       if (!product) {
         setMessage("No more available due products");
@@ -228,6 +325,7 @@ export default function AdminCollector() {
       if (product.queueRequestId !== null && product.claimSource === "priority") attemptedQueueRequestIds.current.add(product.queueRequestId);
       if (product.queueRequestId !== null && product.claimSource === "store") attemptedStoreRequestIds.current.add(product.queueRequestId);
       activeProduct.current = product;
+      currentPageOutcome.current = null;
       setCurrentProduct(product);
       setMessage(`Opening ${product.shopId}.${product.externalProductId}`);
       if (!productTab.current || productTab.current.closed) throw new Error("The dedicated Shopee tab was closed.");
@@ -236,6 +334,27 @@ export default function AdminCollector() {
       let completed = false;
       while (!stopped.current) {
         await wait(1000);
+        const pageOutcome = currentPageOutcome.current;
+        if (pageOutcome && pageOutcome !== "verification") {
+          const outcomeResult = await api<{ result?: { retryAfterCurrentRun?: boolean } }>("outcome", {
+            claimSource: product.claimSource,
+            queueRequestId: product.queueRequestId,
+            productId: product.productId,
+            shopId: product.shopId,
+            externalProductId: product.externalProductId,
+            outcome: pageOutcome,
+          });
+          if (pageOutcome === "page_error" && outcomeResult.result?.retryAfterCurrentRun) {
+            pageErrorRetries.current.push(product);
+          }
+          activeProduct.current = null;
+          setCurrentProduct(null);
+          failedCount.current += 1;
+          setFailed(failedCount.current);
+          checkpointRun();
+          setMessage(`${String(pageOutcome).replace(/_/g, " ")} skipped`);
+          break;
+        }
         const status = await api<{ completed: boolean; soldOut: boolean; recheckAt: string | null; samePrice: boolean; samePriceRecheckAt: string | null }>("status",
           { ...(product.productId === null
             ? { shopId: product.shopId, externalProductId: product.externalProductId }
@@ -257,6 +376,19 @@ export default function AdminCollector() {
       }
       if (stopped.current) break;
 
+      if (currentPageOutcome.current && currentPageOutcome.current !== "verification") {
+        currentPageOutcome.current = null;
+        consecutiveFailures = 0;
+        if (stopRequested.current) {
+          stopped.current = true;
+          setRunning(false);
+          setMessage("Stopped safely");
+          await finishRun("stopped_safely");
+          break;
+        }
+        continue;
+      }
+
       if (!completed) {
         await releaseCurrent();
         failedCount.current += 1;
@@ -269,6 +401,7 @@ export default function AdminCollector() {
       activeProduct.current = null;
       setCurrentProduct(null);
       succeededCount.current += 1;
+      if (product.claimSource !== "priority") nonPriorityCadence.current += 1;
       setSucceeded(succeededCount.current);
       if (product.claimSource !== "random") {
         const next = await api<CollectorSummary & { ok: boolean }>("summary");
@@ -276,6 +409,13 @@ export default function AdminCollector() {
       }
       consecutiveFailures = 0;
       checkpointRun();
+      if (stopRequested.current) {
+        stopped.current = true;
+        setRunning(false);
+        setMessage("Stopped safely");
+        await finishRun("stopped_safely");
+        break;
+      }
       if (collectionMode.current === "normal" && reachedCollectionLimit(succeededCount.current)) {
         stopped.current = true;
         setRunning(false);
@@ -287,7 +427,7 @@ export default function AdminCollector() {
         await finishRun("stopped_safely");
         break;
       }
-      await wait(1_000);
+      if (collectionMode.current === "normal") await wait(1_000);
     }
     stopped.current = true;
     setRunning(false);
@@ -299,15 +439,20 @@ export default function AdminCollector() {
     if (!opened) { setMessage("Allow pop-ups for PriceTrack PH, then click Start collection again."); return; }
     productTab.current = opened;
     stopped.current = false;
+    stopRequested.current = false;
     attemptedProductIds.current.clear();
     attemptedQueueRequestIds.current.clear();
     attemptedStoreRequestIds.current.clear();
+    verificationAlertedFor.current.clear();
+    pageErrorRetries.current = [];
     succeededCount.current = 0; failedCount.current = 0;
     soldOutCount.current = 0; recheckAt.current = null;
     samePriceCount.current = 0; samePriceRecheckAt.current = null;
     startedAt.current = new Date().toISOString();
     runId.current = crypto.randomUUID();
     collectionMode.current = mode;
+    nonPriorityCadence.current = 0;
+    runManilaDate.current = manilaDate();
     checkpointRun();
     setSucceeded(0); setFailed(0); setRunning(true); setMessage("Starting");
     try {
@@ -318,18 +463,26 @@ export default function AdminCollector() {
       await releaseCurrent();
       stopped.current = true;
       setRunning(false);
-      setMessage(cause instanceof Error ? cause.message : "Collector stopped.");
+      const errorMessage = cause instanceof Error ? cause.message : "Collector stopped.";
+      try {
+        await finishRun("stopped");
+        setMessage(errorMessage);
+      } catch {
+        setMessage(`${errorMessage} Run finalization will retry when this page opens again.`);
+      }
     }
   }
 
   async function stopCollection() {
-    const wasProcessing = Boolean(activeProduct.current);
+    if (activeProduct.current) {
+      stopRequested.current = true;
+      setMessage("Stopping after the current product finishes");
+      return;
+    }
     stopped.current = true;
-    await releaseCurrent();
     setRunning(false);
-    const status: CollectorRun["stopStatus"] = wasProcessing ? "stopped" : "stopped_safely";
-    setMessage(status === "stopped_safely" ? "Stopped safely" : "Stopped");
-    await finishRun(status);
+    setMessage("Stopped safely");
+    await finishRun("stopped_safely");
   }
 
   const remaining = Math.max(0, (summary?.totalDue || 0) - succeeded - failed - (currentProduct ? 1 : 0));
@@ -388,6 +541,7 @@ export default function AdminCollector() {
             : message}</strong>
         </div>
         <p className="admin-collector-note">Keep this page and the dedicated Shopee tab open. Complete Shopee verification manually if it appears.</p>
+        {remoteNotice && <p className="admin-collector-remote-notice" role="status">{remoteNotice}</p>}
       </section>
       <section className="health-events admin-collector-history">
         <h2>Collection history</h2>

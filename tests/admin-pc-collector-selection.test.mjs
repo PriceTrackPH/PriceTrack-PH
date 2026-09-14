@@ -350,11 +350,11 @@ test("status applies the collector checkbox when Shopee strips the URL setting",
       query: { action: "status" }, body: { productId: 42, skipUnchangedDay: true },
     }, response);
     assert.equal(responseBody.samePrice, true);
-    assert.equal(responseBody.samePriceRecheckAt, "2026-09-08T16:00:00.000Z");
+    assert.equal(responseBody.samePriceRecheckAt, "2026-09-07T16:00:00.000Z");
     const checkPatch = calls.find((call) => call.url.includes("product_daily_checks?id=eq.91") && call.options.method === "PATCH");
     assert.equal(JSON.parse(checkPatch.options.body).metadata.skip_unchanged_day, true);
     const productPatch = calls.find((call) => call.url.includes("products?id=eq.42") && call.options.method === "PATCH");
-    assert.equal(JSON.parse(productPatch.options.body).next_check_at, "2026-09-08T16:00:00.000Z");
+    assert.equal(JSON.parse(productPatch.options.body).next_check_at, "2026-09-07T16:00:00.000Z");
   } finally {
     global.fetch = originalFetch;
     if (originalToken === undefined) delete process.env.ADMIN_HEALTH_TOKEN; else process.env.ADMIN_HEALTH_TOKEN = originalToken;

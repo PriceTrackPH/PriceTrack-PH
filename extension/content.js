@@ -87,6 +87,30 @@ function storageSet(key, value) {
   return new Promise(resolve => chrome.storage.local.set({ [key]: value }, resolve));
 }
 
+function reportCollectorPageOutcome(outcome, ids) {
+  if (!outcome || window.name !== "ptph-admin-collector" || !window.opener) return;
+  window.opener.postMessage({
+    source: "pricetrack-ph-collector-product",
+    type: "product-outcome",
+    outcome,
+    shopId: ids.shopId,
+    externalProductId: ids.productId,
+  }, PRICETRACK_SITE);
+}
+
+async function terminalPageOutcome(ids, statusKey) {
+  const outcome = globalThis.PriceTrackProductPageOutcome?.classifyProductPage(document.body?.innerText || "");
+  if (!outcome) return null;
+  await storageSet(statusKey, {
+    state: "terminal",
+    outcome,
+    message: outcome === "verification" ? "Shopee verification is required." : "Shopee product page is unavailable.",
+    at: new Date().toISOString(),
+  });
+  reportCollectorPageOutcome(outcome, ids);
+  return outcome;
+}
+
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -224,6 +248,7 @@ function normalizeShopeePayload(payload, ids) {
     imageUrl: imageFromShopeeKey(item.image || item.images?.[0] || "").slice(0, 2000),
     storeName: String(shop.name ?? shop.shop_name ?? shop.username ?? "Shopee Store").trim().slice(0, 200),
     variations,
+    activity: globalThis.PriceTrackProductActivity?.extractProductActivity(item) || null,
     collectionMode: "shopee-models",
   };
 }
@@ -493,6 +518,8 @@ async function automaticallyRecordPrice() {
     at: new Date().toISOString(),
   });
 
+  if (await terminalPageOutcome(ids, statusKey)) return { ok: false, terminal: true };
+
   let product = await collectAllVariations(ids);
   if (!product) {
     // Only use the visible-price fallback after giving Shopee enough time to
@@ -500,6 +527,7 @@ async function automaticallyRecordPrice() {
     // showing "Price and variation data were not found" for valid products.
     const visible = await waitForVisibleProduct(6000);
     if (!visible?.price) {
+      if (await terminalPageOutcome(ids, statusKey)) return { ok: false, terminal: true };
       await storageSet(statusKey, {
         state: "error",
         message: "Product data is still unavailable. Reload the Shopee page and PriceTrack will retry.",
@@ -569,6 +597,8 @@ async function automaticallyRecordPrice() {
       observedAt: new Date().toISOString(),
       skipUnchangedDay: globalThis.PriceTrackCollectorOptions?.skipUnchangedDayFromUrl(location.href) === true,
       skipSoldOut: globalThis.PriceTrackCollectorOptions?.skipSoldOutFromUrl(location.href) !== false,
+      activity: product.activity || null,
+      isAdminCollector: window.name === "ptph-admin-collector",
     };
 
     let response;

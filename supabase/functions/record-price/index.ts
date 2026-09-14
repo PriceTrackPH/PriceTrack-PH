@@ -49,6 +49,15 @@ type Observation = {
   source?: "extension" | "scheduled_collector";
   skipUnchangedDay?: boolean;
   skipSoldOut?: boolean;
+  isAdminCollector?: boolean;
+  activity?: {
+    totalSold?: number | null;
+    viewCount?: number | null;
+    reviewCount?: number | null;
+    favoriteCount?: number | null;
+    rating?: number | null;
+    discountPercent?: number | null;
+  };
 };
 
 type NormalizedVariation = Required<Pick<VariationObservation, "variationId" | "variationName" | "price" | "isInStock">> & VariationObservation;
@@ -298,6 +307,26 @@ Deno.serve(async (request: Request) => {
     const [product] = await productResponse.json() as Array<{ id: number }>;
     if (!product?.id) throw new Error("Product upsert returned no product ID");
 
+    const activity = body.activity && typeof body.activity === "object" ? body.activity : {};
+    const activityResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/record_product_activity`, {
+      method: "POST",
+      headers: adminHeaders(secret, { "content-type": "application/json" }),
+      body: JSON.stringify({
+        p_product_id: product.id,
+        p_observed_date: observedDate,
+        p_observed_at: observedAt.toISOString(),
+        p_client_hash: internalRequest || body.isAdminCollector === true ? null : await digest(clientId),
+        p_is_admin_collector: internalRequest || body.isAdminCollector === true,
+        p_total_sold: activity.totalSold != null && Number.isFinite(Number(activity.totalSold)) ? Number(activity.totalSold) : null,
+        p_view_count: activity.viewCount != null && Number.isFinite(Number(activity.viewCount)) ? Number(activity.viewCount) : null,
+        p_review_count: activity.reviewCount != null && Number.isFinite(Number(activity.reviewCount)) ? Number(activity.reviewCount) : null,
+        p_favorite_count: activity.favoriteCount != null && Number.isFinite(Number(activity.favoriteCount)) ? Number(activity.favoriteCount) : null,
+        p_rating: activity.rating != null && Number.isFinite(Number(activity.rating)) ? Number(activity.rating) : null,
+        p_discount_percent: activity.discountPercent != null && Number.isFinite(Number(activity.discountPercent)) ? Number(activity.discountPercent) : null,
+      }),
+    });
+    if (!activityResponse.ok) throw new Error(`Activity update failed: ${await activityResponse.text()}`);
+
     const nowIso = new Date().toISOString();
     const variationPayloads = variations.map((item) => ({
       product_id: product.id,
@@ -352,6 +381,7 @@ Deno.serve(async (request: Request) => {
     let duplicateConflictCount = 0;
     const results: Array<{ variationId: string; variationName: string; changed: boolean }> = [];
     const pending: Array<{ item: NormalizedVariation; payload: Record<string, unknown> }> = [];
+    let hasPriceDrop = false;
 
     for (const item of variations) {
       const row = variationRowByExternalId.get(item.variationId);
@@ -361,6 +391,7 @@ Deno.serve(async (request: Request) => {
       }
 
       const latest = latestByVariationId.get(row.id);
+      if (latest && item.price < Number(latest.price)) hasPriceDrop = true;
       if (shouldSkipObservation(latest, item, observedDate)) {
         unchangedCount += 1;
         results.push({ variationId: item.variationId, variationName: item.variationName, changed: false });
@@ -424,6 +455,15 @@ Deno.serve(async (request: Request) => {
           }
         }
       }
+    }
+
+    if (hasPriceDrop) {
+      const priceDropResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${product.id}`, {
+        method: "PATCH",
+        headers: adminHeaders(secret, { "content-type": "application/json", prefer: "return=minimal" }),
+        body: JSON.stringify({ price_drop_at: observedAt.toISOString() }),
+      });
+      if (!priceDropResponse.ok) throw new Error(`Price-drop update failed: ${await priceDropResponse.text()}`);
     }
 
     const inStock = variations.filter((item) => item.isInStock);

@@ -90,7 +90,7 @@ test("background removes a completed session before closing its store tab", asyn
 
 test("manifest registers the private admin bridge and Shopee scanner", async () => {
   const manifest = JSON.parse(await readFile(new URL("../extension/manifest.json", import.meta.url), "utf8"));
-  assert.equal(manifest.version, "1.0.6");
+  assert.equal(manifest.version, "1.0.7");
   assert.ok(manifest.permissions.includes("tabs"));
   assert.ok(manifest.content_scripts.some((entry) => entry.matches.includes("https://pricetrackph.com/admin/store-scanner*") && entry.js.includes("admin-collector-bridge.js")));
   assert.ok(manifest.content_scripts.some((entry) => entry.matches.includes("https://shopee.ph/*") && entry.js.includes("store-scanner.js")));

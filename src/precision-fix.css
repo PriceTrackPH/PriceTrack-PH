@@ -404,6 +404,9 @@ html[data-theme="dark"] .support-section {
 .health-events-heading { display: flex; justify-content: space-between; gap: 20px; align-items: baseline; }
 .health-events-heading h2 { margin-top: 0; }
 .health-table-wrap { overflow-x: auto; }
+.admin-collector-history .health-table-wrap,
+.store-scan-history .health-table-wrap,
+.health-events .health-table-wrap { max-height: 620px; overflow-y: auto; }
 .health-events table { width: 100%; border-collapse: collapse; margin-top: 12px; }
 .health-events th, .health-events td { padding: 13px 10px; border-top: 1px solid #303936; text-align: left; white-space: nowrap; }
 .health-events th { color: #aeb6b2; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }

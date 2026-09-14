@@ -5,6 +5,7 @@ import {
   STORE_SCAN_PAGE_SOURCE,
 } from "./store-import-contract";
 import { formatPageProgress, nextUnscannedStore, runningTimeLabel } from "./store-scan-ui";
+import { subscribeToAdminHistory } from "./admin-realtime";
 
 type SavedStore = {
   id: string;
@@ -61,6 +62,7 @@ export default function AdminStoreScanner() {
   const scanChain = useRef<Promise<unknown>>(Promise.resolve());
   const recheckQueue = useRef<SavedStore[]>([]);
   const recheckedIds = useRef(new Set<string>());
+  const publishHistory = useRef<(event: { kind: "collector" | "store"; status: string; id: string }) => unknown>(() => undefined);
 
   async function storeApi<T>(action: string, body: Record<string, unknown> = {}) {
     const response = await fetch(`/api/admin-pc-collector?action=store-${action}`, {
@@ -185,6 +187,14 @@ export default function AdminStoreScanner() {
   }, []);
 
   useEffect(() => {
+    const realtime = subscribeToAdminHistory((event) => {
+      if (event.kind === "store") void refreshHistory(1, query, status);
+    });
+    publishHistory.current = realtime.publish;
+    return () => realtime.unsubscribe();
+  }, [query, status]);
+
+  useEffect(() => {
     const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a"));
     if (links.length < 2) return;
     const [healthLink, affiliateLink] = links;
@@ -251,10 +261,12 @@ export default function AdminStoreScanner() {
             completed: finalStatus === "completed",
           }, window.location.origin);
           await Promise.all([refreshStores(), refreshHistory(1, query, status)]);
+          void publishHistory.current({ kind: "store", status: finalStatus, id: data.scanId });
           setPage(1);
           setMessage(interrupted ? (data.error || "Store scan interrupted.")
             : finalStatus === "completed" ? "Scan completed"
               : "Scan incomplete. Discovered products were saved; recheck this store later.");
+          if (finalStatus === "completed") setStoreUrl("");
           setScanning(false);
           scanActive.current = false;
           activeScanId.current = null;
@@ -299,7 +311,6 @@ export default function AdminStoreScanner() {
           <span>Already tracked<strong>{totals.alreadyTracked}</strong></span>
           <span>Sold Out<strong>{totals.soldOut}</strong></span>
           <span>Pages scanned<strong>{formatPageProgress(totals.pagesCurrent, totals.pagesTotal)}</strong></span>
-          <span>Current page<strong>{totals.pagesCurrent || "—"}</strong></span>
         </div>
         <p className="store-scan-message"><strong>{message}</strong></p>
       </section>

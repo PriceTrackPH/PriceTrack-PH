@@ -189,14 +189,16 @@ export async function claimStoreProduct(supabaseUrl, secret, excludedRequestIds 
   };
 }
 
-export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true) {
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store") {
   const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
   if (priority) return priority;
-  if (includeStoreImports) {
+  if (includeStoreImports && preferredSource === "store") {
     const store = await claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
     if (store) return store;
   }
-  return claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut);
+  const normal = await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut);
+  if (normal || !includeStoreImports || preferredSource === "store") return normal;
+  return claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
 }
 
 export async function releasePriorityProduct(supabaseUrl, secret, requestId, leaseUntil) {
@@ -221,7 +223,7 @@ export async function collectorHistory(supabaseUrl, secret) {
   const params = new URLSearchParams({
     select: "run_id,started_at,stopped_at,duration_seconds,succeeded,failed,sold_out,remaining,recheck_at,same_price,same_price_recheck_at,stop_status",
     order: "stopped_at.desc",
-    limit: "50",
+    limit: "20",
   });
   const response = await fetch(`${supabaseUrl}/rest/v1/collector_run_history?${params}`, {
     headers: adminHeaders(secret),
@@ -287,7 +289,7 @@ function unchangedPriceRecheckAt(checkedAt) {
   const manilaDate = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date(checkedAt));
-  return new Date(Date.parse(`${manilaDate}T00:00:00+08:00`) + 2 * 24 * 60 * 60_000).toISOString();
+  return new Date(Date.parse(`${manilaDate}T00:00:00+08:00`) + 1 * 24 * 60 * 60_000).toISOString();
 }
 
 async function applyUnchangedPriceSkip(supabaseUrl, secret, productId, check, metadata) {
@@ -366,6 +368,18 @@ export async function productCheckStatusByIdentity(supabaseUrl, secret, shopId, 
   return productCheckStatus(supabaseUrl, secret, product.id, skipUnchangedDay, skipSoldOut);
 }
 
+export async function markCollectorProductOutcome(supabaseUrl, secret, payload) {
+  return rpc(supabaseUrl, secret, "mark_collector_product_outcome", {
+    p_claim_source: payload.claimSource,
+    p_queue_request_id: payload.queueRequestId || null,
+    p_product_id: payload.productId || null,
+    p_external_shop_id: payload.shopId,
+    p_external_product_id: payload.externalProductId,
+    p_outcome: payload.outcome,
+    p_checked_at: new Date().toISOString(),
+  });
+}
+
 async function recordProduct(supabaseUrl, secret, publishableKey, payload) {
   const response = await fetch(`${supabaseUrl}/functions/v1/record-price`, {
     method: "POST",
@@ -409,6 +423,9 @@ export default async function handler(req, res) {
     return send(res, 503, { error: "PC collector is not configured" });
   }
   try {
+    if (action === "history" || action === "store-history") {
+      await rpc(supabaseUrl, secret, "delete_expired_admin_history", {});
+    }
     if (action === "store-list") {
       const select = "store_id,store_key,store_url,display_name,first_added_at,last_scan_started_at,last_scan_finished_at,last_scan_status,last_discovered,last_newly_queued,last_duplicate,last_already_tracked";
       const response = await fetch(`${supabaseUrl}/rest/v1/collection_stores?select=${select}&order=first_added_at.desc`, {
@@ -523,8 +540,27 @@ export default async function handler(req, res) {
       const product = await claimNextProduct(
         supabaseUrl, secret, attemptedProductIds, attemptedQueueRequestIds, leaseUntil,
         attemptedStoreRequestIds, req.body?.includeStoreImports === true, req.body?.skipSoldOut !== false,
+        req.body?.preferredSource === "normal" ? "normal" : "store",
       );
       return send(res, 200, { ok: true, product });
+    }
+
+    if (action === "reclaim") {
+      const product = req.body?.product;
+      if (!product || !["priority", "store", "random"].includes(product.claimSource)
+        || !/^\d+$/.test(String(product.shopId || "")) || !/^\d+$/.test(String(product.externalProductId || ""))) {
+        return send(res, 400, { error: "A valid retry product is required" });
+      }
+      const leaseUntil = new Date(Date.now() + 5 * 60_000).toISOString();
+      const claimed = await rpc(supabaseUrl, secret, "reclaim_collector_product", {
+        p_claim_source: product.claimSource,
+        p_queue_request_id: product.queueRequestId || null,
+        p_product_id: product.productId || null,
+        p_external_shop_id: product.shopId,
+        p_external_product_id: product.externalProductId,
+        p_lease_until: leaseUntil,
+      });
+      return send(res, 200, { ok: true, product: claimed ? { ...product, leaseUntil } : null });
     }
 
     if (action === "release") {
@@ -564,6 +600,27 @@ export default async function handler(req, res) {
         ok: true,
         ...(await productCheckStatusByIdentity(supabaseUrl, secret, shopId, externalProductId, skipUnchangedDay, skipSoldOut)),
       });
+    }
+
+    if (action === "outcome") {
+      const claimSource = String(req.body?.claimSource || "");
+      const queueRequestId = String(req.body?.queueRequestId || "");
+      const productId = safeInteger(req.body?.productId);
+      const shopId = String(req.body?.shopId || "");
+      const externalProductId = String(req.body?.externalProductId || "");
+      const outcome = String(req.body?.outcome || "");
+      if (!["priority", "store", "random"].includes(claimSource)
+        || !["does_not_exist", "unlisted", "page_error"].includes(outcome)
+        || !/^\d+$/.test(shopId) || !/^\d+$/.test(externalProductId)
+        || (claimSource === "random" && !productId)
+        || (claimSource !== "random" && !UUID_V4.test(queueRequestId))) {
+        return send(res, 400, { error: "A valid collector product outcome is required" });
+      }
+      const result = await markCollectorProductOutcome(supabaseUrl, secret, {
+        claimSource, queueRequestId: queueRequestId || null, productId: productId || null,
+        shopId, externalProductId, outcome,
+      });
+      return send(res, 200, { ok: true, result });
     }
 
     if (action === "record") {

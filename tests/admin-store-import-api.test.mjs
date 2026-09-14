@@ -116,6 +116,9 @@ test("logs the bounded Supabase RPC error body for production diagnosis", async 
 test("lists private Store Scan History with validated filters and pagination", async () => {
   global.fetch = async (url, options) => {
     const parsed = new URL(url);
+    if (parsed.pathname === "/rest/v1/rpc/delete_expired_admin_history") {
+      return { ok: true, json: async () => 0 };
+    }
     assert.equal(parsed.pathname, "/rest/v1/store_scan_history");
     assert.equal(parsed.searchParams.get("status"), "eq.completed");
     assert.equal(parsed.searchParams.get("collection_stores.display_name"), "ilike.*Jabra Official*");

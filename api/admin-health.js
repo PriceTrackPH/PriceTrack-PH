@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       select: "id,created_at,event_type,source,shop_id,product_id,variation_count,recorded_count,unchanged_count,failed_count,status_code,error_code,details",
       created_at: `gte.${since}`,
       order: "created_at.desc",
-      limit: "50",
+      limit: "20",
     });
 
     const [recentResponse, total, failures, partial, duplicates, variationChanges] = await Promise.all([

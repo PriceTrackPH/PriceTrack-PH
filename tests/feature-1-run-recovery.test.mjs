@@ -1,0 +1,53 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+import { withCollectorRetry } from "../src/collector-request-policy.js";
+import { readCollectorRunCheckpoint, saveCollectorRunCheckpoint } from "../src/collector-run-recovery.ts";
+
+test("collector retries transient failures and returns the successful response", async () => {
+  let attempts = 0;
+  const value = await withCollectorRetry(async () => {
+    attempts += 1;
+    if (attempts < 3) throw Object.assign(new Error("temporary"), { retryable: true });
+    return "saved";
+  }, { attempts: 3, delays: [0, 0] });
+  assert.equal(value, "saved");
+  assert.equal(attempts, 3);
+});
+
+test("collector does not retry a permanent authentication failure", async () => {
+  let attempts = 0;
+  await assert.rejects(() => withCollectorRetry(async () => {
+    attempts += 1;
+    throw Object.assign(new Error("expired"), { retryable: false });
+  }, { attempts: 3, delays: [0, 0] }), /expired/);
+  assert.equal(attempts, 1);
+});
+
+test("pending finalization checkpoint preserves its intended stop status", () => {
+  const values = new Map();
+  const storage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+  const checkpoint = {
+    runId: crypto.randomUUID(), startedAt: new Date().toISOString(), succeeded: 3, failed: 0,
+    soldOut: 0, recheckAt: null, samePrice: 0, samePriceRecheckAt: null, remaining: 20,
+    phase: "pending_finalization", intendedStopStatus: "stopped_safely",
+  };
+  saveCollectorRunCheckpoint(storage, checkpoint);
+  assert.deepEqual(readCollectorRunCheckpoint(storage), checkpoint);
+});
+
+test("Collector retries API requests and finalizes errors instead of leaving a stale run", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  assert.match(source, /withCollectorRetry/);
+  assert.match(source, /checkpointRun\("pending_finalization"/);
+  assert.match(source, /await finishRun\("stopped"\)/);
+});
+
+test("Stop waits for the active product and then finalizes safely", async () => {
+  const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  assert.match(source, /const stopRequested = useRef\(false\)/);
+  assert.match(source, /while \(!stopped\.current && !stopRequested\.current\)/);
+  assert.match(source, /if \(stopRequested\.current\) \{[\s\S]*await finishRun\("stopped_safely"\)/);
+  assert.match(source, /Stopping after the current product finishes/);
+});
