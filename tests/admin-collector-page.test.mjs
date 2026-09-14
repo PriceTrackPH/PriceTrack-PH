@@ -151,7 +151,7 @@ test("collection history uses the same boxed table layout as recent events", asy
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
   const styles = await readFile(new URL("../src/precision-fix.css", import.meta.url), "utf8");
   assert.match(source, /className="health-events admin-collector-history"/);
-  assert.match(source, /className="health-table-wrap"/);
+  assert.match(source, /className="health-table-wrap admin-history-scroll"/);
   assert.match(source, /<table>/);
   assert.match(styles, /\.admin-collector-history\s*\{[^}]*margin-top:\s*24px;/);
 });
