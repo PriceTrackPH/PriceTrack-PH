@@ -436,8 +436,6 @@ export default async function handler(req, res) {
     }
 
     if (action === "store-history") {
-      const page = Math.max(1, safeInteger(req.body?.page, 1));
-      const pageSize = 20;
       const status = String(req.body?.status || "all").toLowerCase();
       if (!["all", "completed", "incomplete", "interrupted"].includes(status)) {
         return send(res, 400, { error: "Invalid store scan status" });
@@ -446,8 +444,7 @@ export default async function handler(req, res) {
       const params = new URLSearchParams({
         select: "scan_id,store_id,started_at,finished_at,status,discovered,newly_queued,duplicate,already_tracked,sold_out,pages_current,pages_total,collection_stores!inner(store_url,display_name)",
         order: "started_at.desc,scan_id.desc",
-        limit: String(pageSize),
-        offset: String((page - 1) * pageSize),
+        limit: "20",
       });
       if (status !== "all") params.set("status", `eq.${status}`);
       if (query) params.set("collection_stores.display_name", `ilike.*${query}*`);
@@ -455,9 +452,7 @@ export default async function handler(req, res) {
         headers: adminHeaders(secret, { Prefer: "count=exact" }),
       });
       if (!response.ok) throw new Error(`store_history_${response.status}`);
-      const range = String(response.headers?.get?.("content-range") || "");
-      const total = safeInteger(range.split("/")[1]);
-      return send(res, 200, { ok: true, scans: (await response.json()).map(mapStoreScan), page, pageSize, total });
+      return send(res, 200, { ok: true, scans: (await response.json()).map(mapStoreScan) });
     }
 
     if (action.startsWith("store-")) {
