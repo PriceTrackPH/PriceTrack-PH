@@ -49,7 +49,7 @@ type CollectorRun = {
   stopStatus: "stopped" | "stopped_safely" | "interrupted";
 };
 type CollectionMode = "normal" | "unlimited";
-type ProductPageOutcome = "does_not_exist" | "unlisted" | "page_error" | "verification";
+type ProductPageOutcome = "sold_out" | "does_not_exist" | "unlisted" | "page_error" | "verification";
 
 const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 const cooldownStorageKey = "pricetrack-admin-collector-cooldown-until";
