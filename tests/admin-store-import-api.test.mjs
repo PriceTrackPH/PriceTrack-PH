@@ -113,7 +113,7 @@ test("logs the bounded Supabase RPC error body for production diagnosis", async 
   }
 });
 
-test("lists private Store Scan History with validated filters and pagination", async () => {
+test("lists the newest 20 private Store Scan History rows with validated filters", async () => {
   global.fetch = async (url, options) => {
     const parsed = new URL(url);
     if (parsed.pathname === "/rest/v1/rpc/delete_expired_admin_history") {
@@ -123,7 +123,7 @@ test("lists private Store Scan History with validated filters and pagination", a
     assert.equal(parsed.searchParams.get("status"), "eq.completed");
     assert.equal(parsed.searchParams.get("collection_stores.display_name"), "ilike.*Jabra Official*");
     assert.equal(parsed.searchParams.get("limit"), "20");
-    assert.equal(parsed.searchParams.get("offset"), "20");
+    assert.equal(parsed.searchParams.get("offset"), null);
     assert.equal(options.headers.Prefer, "count=exact");
     return {
       ok: true,
@@ -146,11 +146,11 @@ test("lists private Store Scan History with validated filters and pagination", a
     };
   };
   const res = responseRecorder();
-  await handler(request("history", { query: "Jabra Official", status: "completed", page: 2 }), res);
+  await handler(request("history", { query: "Jabra Official", status: "completed" }), res);
   assert.equal(res.statusCode, 200);
-  assert.equal(res.body.total, 41);
-  assert.equal(res.body.page, 2);
-  assert.equal(res.body.pageSize, 20);
+  assert.equal(res.body.total, undefined);
+  assert.equal(res.body.page, undefined);
+  assert.equal(res.body.pageSize, undefined);
   assert.deepEqual(res.body.scans[0], {
     scanId: "550e8400-e29b-41d4-a716-446655440000",
     storeId: "store-id",
