@@ -86,6 +86,8 @@ export default function AdminCollector() {
   const [succeeded, setSucceeded] = useState(0);
   const [failed, setFailed] = useState(0);
   const [history, setHistory] = useState<CollectorRun[]>([]);
+  const [historyHasMore, setHistoryHasMore] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [remoteNotice, setRemoteNotice] = useState("");
   const [skipUnchangedDay, setSkipUnchangedDay] = useState(() =>
     skipUnchangedDayDefault(localStorage.getItem(skipUnchangedStorageKey))
@@ -173,11 +175,8 @@ export default function AdminCollector() {
         ? interrupted.intendedStopStatus || "stopped"
         : "interrupted",
     }}).then(() => clearCollectorRunCheckpoint(localStorage)) : Promise.resolve();
-    void recover.then(() => Promise.all([
-      api<CollectorSummary & { ok: boolean }>("summary"),
-      api<{ ok: boolean; history: CollectorRun[] }>("history"),
-    ]))
-      .then(([next, runs]) => { setSummary(next); setHistory(runs.history); setMessage("Ready"); })
+    void recover.then(() => api<CollectorSummary & { ok: boolean; history: CollectorRun[]; hasMore: boolean }>("bootstrap"))
+      .then((next) => { setSummary(next); setHistory(next.history); setHistoryHasMore(next.hasMore); setMessage("Ready"); })
       .catch((cause) => setMessage(cause instanceof Error ? cause.message : "Unable to open collector."));
     return () => {
       stopped.current = true;
@@ -204,7 +203,7 @@ export default function AdminCollector() {
   useEffect(() => {
     const realtime = subscribeToAdminHistory((event) => {
       if (event.kind !== "collector") return;
-      void api<{ ok: boolean; history: CollectorRun[] }>("history").then((result) => setHistory(result.history));
+      void api<{ ok: boolean; history: CollectorRun[]; hasMore: boolean }>("history").then((result) => { setHistory(result.history); setHistoryHasMore(result.hasMore); });
       setRemoteNotice(`Another Collector run ${event.status.replace(/_/g, " ")}`);
       if (remoteNoticeTimer.current !== null) window.clearTimeout(remoteNoticeTimer.current);
       remoteNoticeTimer.current = window.setTimeout(() => setRemoteNotice(""), 5_000);
@@ -215,6 +214,16 @@ export default function AdminCollector() {
       if (remoteNoticeTimer.current !== null) window.clearTimeout(remoteNoticeTimer.current);
     };
   }, []);
+
+  async function loadMoreHistory() {
+    if (!historyHasMore || historyLoading) return;
+    setHistoryLoading(true);
+    try {
+      const result = await api<{ history: CollectorRun[]; hasMore: boolean }>("history", { offset: history.length });
+      setHistory((items) => [...items, ...result.history]);
+      setHistoryHasMore(result.hasMore);
+    } finally { setHistoryLoading(false); }
+  }
 
   useEffect(() => {
     const onProductOutcome = (event: MessageEvent) => {
@@ -545,7 +554,7 @@ export default function AdminCollector() {
       </section>
       <section className="health-events admin-collector-history">
         <h2>Collection history</h2>
-        {history.length === 0 ? <p className="health-empty">No stopped collection runs yet.</p> : <div className="health-table-wrap admin-history-scroll"><table>
+        {history.length === 0 ? <p className="health-empty">No stopped collection runs yet.</p> : <div className="health-table-wrap admin-history-scroll" onScroll={(event) => { const node = event.currentTarget; if (node.scrollTop + node.clientHeight >= node.scrollHeight - 160) void loadMoreHistory(); }}><table>
           <thead><tr><th>Time</th><th>Running time</th><th>Succeeded</th><th>Failed</th><th>Sold out</th><th>Same Price</th><th>Remaining</th><th>Status</th></tr></thead>
           <tbody>{history.map((run) => <tr key={run.runId}>
             <td>{new Date(run.startedAt).toLocaleString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", second: "2-digit" })}</td>
