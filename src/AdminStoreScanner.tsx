@@ -51,6 +51,8 @@ export default function AdminStoreScanner() {
   const [totals, setTotals] = useState<ScanTotals>(emptyTotals);
   const [stores, setStores] = useState<SavedStore[]>([]);
   const [history, setHistory] = useState<StoreScan[]>([]);
+  const [historyHasMore, setHistoryHasMore] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const activeScanId = useRef<string | null>(null);
@@ -97,15 +99,24 @@ export default function AdminStoreScanner() {
     return response.stores;
   }
 
-  async function refreshHistory(nextQuery = query, nextStatus = status) {
+  async function refreshHistory(nextQuery = query, nextStatus = status, offset = 0) {
     const requestId = historyRequest.current + 1;
     historyRequest.current = requestId;
-    const response = await storeApi<{ scans: StoreScan[] }>("history", {
+    const response = await storeApi<{ scans: StoreScan[]; hasMore: boolean }>("history", {
       query: nextQuery,
       status: nextStatus,
+      offset,
     });
     if (requestId !== historyRequest.current) return;
-    setHistory(response.scans);
+    setHistory((items) => offset ? [...items, ...response.scans] : response.scans);
+    setHistoryHasMore(response.hasMore);
+  }
+
+  async function loadMoreHistory() {
+    if (!historyHasMore || historyLoading) return;
+    setHistoryLoading(true);
+    try { await refreshHistory(query, status, history.length); }
+    finally { setHistoryLoading(false); }
   }
 
   async function startStoreScan(value = storeUrl) {
@@ -316,7 +327,7 @@ export default function AdminStoreScanner() {
             <option value="all">All</option><option value="completed">Completed</option><option value="incomplete">Incomplete</option><option value="interrupted">Interrupted</option>
           </select>
         </div>
-        {history.length === 0 ? <p className="health-empty">No store scans found.</p> : <div className="health-table-wrap admin-history-scroll"><table>
+        {history.length === 0 ? <p className="health-empty">No store scans found.</p> : <div className="health-table-wrap admin-history-scroll" onScroll={(event) => { const node = event.currentTarget; if (node.scrollTop + node.clientHeight >= node.scrollHeight - 160) void loadMoreHistory(); }}><table>
           <thead><tr><th>Scan time</th><th>Store</th><th>Running time</th><th>Found</th><th>New queued</th><th>Already queued</th><th>Sold Out</th><th>Pages</th><th>Tracked</th><th>Status</th><th>Action</th></tr></thead>
           <tbody>{history.map((scan) => <tr key={scan.scanId}>
             <td>{new Date(scan.startedAt).toLocaleString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", second: "2-digit" })}</td>
