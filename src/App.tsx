@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -13,11 +13,12 @@ import type { XAxisTickContentProps } from "recharts";
 import type { Tables } from "./database.types";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import shopeeLogo from "./assets/shopee-logo.png";
-import AdminHealth from "./AdminHealth";
-import AdminCollector from "./AdminCollector";
-import AdminStoreScanner from "./AdminStoreScanner";
 import ReportAd from "./ReportAd";
 import { isMobileVisitor, requestUntrackedProduct } from "./public-collection-request";
+
+const AdminHealth = lazy(() => import("./AdminHealth"));
+const AdminCollector = lazy(() => import("./AdminCollector"));
+const AdminStoreScanner = lazy(() => import("./AdminStoreScanner"));
 
 type Product = Tables<"products">;
 type Variation = Tables<"product_variations">;
@@ -1123,23 +1124,24 @@ function ReportApp() {
 
 function App() {
   const pathname = window.location.pathname;
+  const admin = (content: React.ReactNode) => <Suspense fallback={<main className="health-page"><div className="health-shell">Loading admin page…</div></main>}>{content}</Suspense>;
   if (pathname === "/admin" || pathname === "/admin/") {
-    return <AdminHealth view="login" />;
+    return admin(<AdminHealth view="login" />);
   }
   if (pathname === "/admin/health" || pathname === "/admin/health/") {
-    return <AdminHealth view="health" />;
+    return admin(<AdminHealth view="health" />);
   }
   if (pathname === "/admin/affiliate" || pathname === "/admin/affiliate/") {
-    return <AdminHealth view="affiliate" />;
+    return admin(<AdminHealth view="affiliate" />);
   }
   if (pathname === "/admin/ads" || pathname === "/admin/ads/") {
-    return <AdminHealth view="ads" />;
+    return admin(<AdminHealth view="ads" />);
   }
   if (pathname === "/admin/collector" || pathname === "/admin/collector/") {
-    return <AdminCollector />;
+    return admin(<AdminCollector />);
   }
   if (pathname === "/admin/store-scanner" || pathname === "/admin/store-scanner/") {
-    return <AdminStoreScanner />;
+    return admin(<AdminStoreScanner />);
   }
   return <ReportApp />;
 }
