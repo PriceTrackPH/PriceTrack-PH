@@ -28,6 +28,7 @@ type HealthData = {
     lastSuccess: string | null;
   };
   events: HealthEvent[];
+  hasMore: boolean;
 };
 
 type AffiliateSummary = {
@@ -77,6 +78,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [data, setData] = useState<HealthData | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [affiliateSummary, setAffiliateSummary] = useState<AffiliateSummary | null>(null);
   const [affiliateError, setAffiliateError] = useState("");
   const [affiliateBusy, setAffiliateBusy] = useState<"export" | "import" | "">("");
@@ -211,6 +213,19 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadMoreEvents() {
+    if (!data?.hasMore || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const response = await fetch(`/api/admin-health?offset=${data.events.length}`, { headers: { Authorization: `Bearer ${token}` } });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Unable to load more events.");
+      setData((current) => current ? { ...current, events: [...current.events, ...payload.events], hasMore: payload.hasMore } : current);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to load more events.");
+    } finally { setLoadingMore(false); }
   }
 
   useEffect(() => {
@@ -429,10 +444,10 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
             {!isAffiliate && !isAds && <section className="health-events">
               <div className="health-events-heading">
                 <h2>Recent events</h2>
-                <span>Latest 20 · no personal data or full URLs</span>
+                <span>Last 30 days · no personal data or full URLs</span>
               </div>
               {data.events.length ? (
-                <div className="health-table-wrap admin-history-scroll">
+                <div className="health-table-wrap admin-history-scroll" onScroll={(event) => { const node = event.currentTarget; if (node.scrollTop + node.clientHeight >= node.scrollHeight - 160) void loadMoreEvents(); }}>
                   <table>
                     <thead><tr><th>Time</th><th>Event</th><th>Product</th><th>Variations</th><th>Result</th></tr></thead>
                     <tbody>
