@@ -359,7 +359,7 @@ export default function AdminCollector() {
         await wait(1000);
         const pageOutcome = currentPageOutcome.current;
         if (pageOutcome && pageOutcome !== "verification") {
-          const outcomeResult = await api<{ result?: { retryAfterCurrentRun?: boolean } }>("outcome", {
+          const outcomeResult = await api<{ result?: { retryAfterCurrentRun?: boolean; recheckAt?: string | null } }>("outcome", {
             claimSource: product.claimSource,
             queueRequestId: product.queueRequestId,
             productId: product.productId,
@@ -372,8 +372,13 @@ export default function AdminCollector() {
           }
           activeProduct.current = null;
           setCurrentProduct(null);
-          failedCount.current += 1;
-          setFailed(failedCount.current);
+          if (pageOutcome === "sold_out") {
+            soldOutCount.current += 1;
+            recheckAt.current = outcomeResult.result?.recheckAt || null;
+          } else {
+            failedCount.current += 1;
+            setFailed(failedCount.current);
+          }
           await refreshSharedSummary(product);
           checkpointRun();
           setMessage(`${String(pageOutcome).replace(/_/g, " ")} skipped`);
