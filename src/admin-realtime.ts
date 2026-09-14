@@ -1,6 +1,6 @@
 import { supabase } from "./lib/supabase";
 
-export type AdminHistoryEvent = { kind: "collector" | "store"; status: string; id: string };
+export type AdminHistoryEvent = { kind: "collector" | "store" | "collector-progress"; status: string; id: string };
 
 export function subscribeToAdminHistory(onEvent: (event: AdminHistoryEvent) => void) {
   const channel = supabase?.channel("admin-history-changed", { config: { broadcast: { self: false } } });
