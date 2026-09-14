@@ -432,7 +432,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                 <span>Latest 20 · no personal data or full URLs</span>
               </div>
               {data.events.length ? (
-                <div className="health-table-wrap">
+                <div className="health-table-wrap admin-history-scroll">
                   <table>
                     <thead><tr><th>Time</th><th>Event</th><th>Product</th><th>Variations</th><th>Result</th></tr></thead>
                     <tbody>
