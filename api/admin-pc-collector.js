@@ -219,11 +219,13 @@ export async function releaseStoreProduct(supabaseUrl, secret, requestId, leaseU
   if (!response.ok) throw new Error(`store_release_${response.status}`);
 }
 
-export async function collectorHistory(supabaseUrl, secret) {
+export async function collectorHistory(supabaseUrl, secret, offset = 0) {
+  const limit = 200;
   const params = new URLSearchParams({
     select: "run_id,started_at,stopped_at,duration_seconds,succeeded,failed,sold_out,remaining,recheck_at,same_price,same_price_recheck_at,stop_status",
     order: "stopped_at.desc",
-    limit: "20",
+    limit: String(limit),
+    offset: String(offset),
   });
   const response = await fetch(`${supabaseUrl}/rest/v1/collector_run_history?${params}`, {
     headers: adminHeaders(secret),
@@ -423,9 +425,6 @@ export default async function handler(req, res) {
     return send(res, 503, { error: "PC collector is not configured" });
   }
   try {
-    if (action === "history" || action === "store-history") {
-      await rpc(supabaseUrl, secret, "delete_expired_admin_history", {});
-    }
     if (action === "store-list") {
       const select = "store_id,store_key,store_url,display_name,first_added_at,last_scan_started_at,last_scan_finished_at,last_scan_status,last_discovered,last_newly_queued,last_duplicate,last_already_tracked";
       const response = await fetch(`${supabaseUrl}/rest/v1/collection_stores?select=${select}&order=first_added_at.desc`, {
@@ -436,6 +435,8 @@ export default async function handler(req, res) {
     }
 
     if (action === "store-history") {
+      const offset = Math.max(0, safeInteger(req.body?.offset));
+      const limit = 200;
       const status = String(req.body?.status || "all").toLowerCase();
       if (!["all", "completed", "incomplete", "interrupted"].includes(status)) {
         return send(res, 400, { error: "Invalid store scan status" });
@@ -444,7 +445,8 @@ export default async function handler(req, res) {
       const params = new URLSearchParams({
         select: "scan_id,store_id,started_at,finished_at,status,discovered,newly_queued,duplicate,already_tracked,sold_out,pages_current,pages_total,collection_stores!inner(store_url,display_name)",
         order: "started_at.desc,scan_id.desc",
-        limit: "20",
+        limit: String(limit),
+        offset: String(offset),
       });
       if (status !== "all") params.set("status", `eq.${status}`);
       if (query) params.set("collection_stores.display_name", `ilike.*${query}*`);
@@ -452,7 +454,8 @@ export default async function handler(req, res) {
         headers: adminHeaders(secret, { Prefer: "count=exact" }),
       });
       if (!response.ok) throw new Error(`store_history_${response.status}`);
-      return send(res, 200, { ok: true, scans: (await response.json()).map(mapStoreScan) });
+      const scans = (await response.json()).map(mapStoreScan);
+      return send(res, 200, { ok: true, scans, hasMore: scans.length === limit });
     }
 
     if (action.startsWith("store-")) {
@@ -506,8 +509,18 @@ export default async function handler(req, res) {
       return send(res, 200, { ok: true, ...(await collectorSummary(supabaseUrl, secret)) });
     }
 
+    if (action === "bootstrap") {
+      const [summary, history] = await Promise.all([
+        collectorSummary(supabaseUrl, secret),
+        collectorHistory(supabaseUrl, secret, 0),
+      ]);
+      return send(res, 200, { ok: true, ...summary, history, hasMore: history.length === 200 });
+    }
+
     if (action === "history") {
-      return send(res, 200, { ok: true, history: await collectorHistory(supabaseUrl, secret) });
+      const offset = Math.max(0, safeInteger(req.body?.offset));
+      const history = await collectorHistory(supabaseUrl, secret, offset);
+      return send(res, 200, { ok: true, history, hasMore: history.length === 200 });
     }
 
     if (action === "finish") {
