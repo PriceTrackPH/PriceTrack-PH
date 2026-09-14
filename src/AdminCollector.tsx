@@ -117,7 +117,7 @@ export default function AdminCollector() {
   const nonPriorityCadence = useRef(0);
   const currentPageOutcome = useRef<ProductPageOutcome | null>(null);
   const verificationAlertedFor = useRef(new Set<string>());
-  const publishHistory = useRef<(event: { kind: "collector" | "store"; status: string; id: string }) => unknown>(() => undefined);
+  const publishHistory = useRef<(event: { kind: "collector" | "store" | "collector-progress"; status: string; id: string }) => unknown>(() => undefined);
   const remoteNoticeTimer = useRef<number | null>(null);
   const runManilaDate = useRef(manilaDate());
   const pageErrorRetries = useRef<CollectorProduct[]>([]);
@@ -202,6 +202,10 @@ export default function AdminCollector() {
 
   useEffect(() => {
     const realtime = subscribeToAdminHistory((event) => {
+      if (event.kind === "collector-progress") {
+        void api<CollectorSummary & { ok: boolean }>("summary").then(setSummary);
+        return;
+      }
       if (event.kind !== "collector") return;
       void api<{ ok: boolean; history: CollectorRun[]; hasMore: boolean }>("history").then((result) => { setHistory(result.history); setHistoryHasMore(result.hasMore); });
       setRemoteNotice(`Another Collector run ${event.status.replace(/_/g, " ")}`);
@@ -214,6 +218,16 @@ export default function AdminCollector() {
       if (remoteNoticeTimer.current !== null) window.clearTimeout(remoteNoticeTimer.current);
     };
   }, []);
+
+  async function refreshSharedSummary(product: CollectorProduct) {
+    const next = await api<CollectorSummary & { ok: boolean }>("summary");
+    setSummary(next);
+    void publishHistory.current({
+      kind: "collector-progress",
+      status: "updated",
+      id: `${product.shopId}.${product.externalProductId}`,
+    });
+  }
 
   async function loadMoreHistory() {
     if (!historyHasMore || historyLoading) return;
@@ -360,6 +374,7 @@ export default function AdminCollector() {
           setCurrentProduct(null);
           failedCount.current += 1;
           setFailed(failedCount.current);
+          await refreshSharedSummary(product);
           checkpointRun();
           setMessage(`${String(pageOutcome).replace(/_/g, " ")} skipped`);
           break;
@@ -412,10 +427,7 @@ export default function AdminCollector() {
       succeededCount.current += 1;
       if (product.claimSource !== "priority") nonPriorityCadence.current += 1;
       setSucceeded(succeededCount.current);
-      if (product.claimSource !== "random") {
-        const next = await api<CollectorSummary & { ok: boolean }>("summary");
-        setSummary(next);
-      }
+      await refreshSharedSummary(product);
       consecutiveFailures = 0;
       checkpointRun();
       if (stopRequested.current) {
@@ -494,7 +506,7 @@ export default function AdminCollector() {
     await finishRun("stopped_safely");
   }
 
-  const remaining = Math.max(0, (summary?.totalDue || 0) - succeeded - failed - (currentProduct ? 1 : 0));
+  const remaining = Math.max(0, summary?.totalDue || 0);
 
   return <main className="health-page">
     <div className="health-shell">
