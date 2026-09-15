@@ -66,9 +66,9 @@ const cooldownStorageKey = "pricetrack-admin-collector-cooldown-until";
 const skipUnchangedStorageKey = "pricetrack-admin-collector-skip-unchanged-day";
 const skipSoldOutStorageKey = "pricetrack-admin-collector-skip-sold-out";
 const includeStoreImportsStorageKey = "pricetrack-admin-collector-include-store-imports";
-const manilaDate = () => new Intl.DateTimeFormat("en-CA", {
+const manilaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
-}).format(new Date());
+}).format(date);
 
 function stopStatusLabel(status: CollectorStopStatus) {
   if (status === "stopped_safely") return "Stopped safely";
@@ -196,12 +196,13 @@ export default function AdminCollector() {
         samePrice: boolean; samePriceRecheckAt: string | null;
       } | null = null;
       for (let attempt = 0; attempt < 15; attempt += 1) {
+        const identity = checkpoint.activeProduct.productId === null
+          ? { shopId: checkpoint.activeProduct.shopId, externalProductId: checkpoint.activeProduct.externalProductId }
+          : { productId: checkpoint.activeProduct.productId };
         status = await api<{
           completed: boolean; soldOut: boolean; recheckAt: string | null;
           samePrice: boolean; samePriceRecheckAt: string | null;
-        }>("status", checkpoint.activeProduct.productId === null
-          ? { shopId: checkpoint.activeProduct.shopId, externalProductId: checkpoint.activeProduct.externalProductId }
-          : { productId: checkpoint.activeProduct.productId });
+        }>("status", { ...identity, checkedDate: manilaDate(new Date(checkpoint.startedAt)) });
         if (status.completed) break;
         await wait(1_000);
       }

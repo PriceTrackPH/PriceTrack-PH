@@ -94,11 +94,14 @@ test("timed-out confirmation is failed, released, checkpointed, and can stop saf
 
 test("reload reconciles the checkpointed active product before finalizing", async () => {
   const source = await readFile(new URL("../src/AdminCollector.tsx", import.meta.url), "utf8");
+  const api = await readFile(new URL("../api/admin-pc-collector.js", import.meta.url), "utf8");
   assert.match(source, /async function recoverCollectorCheckpoint/);
   assert.match(source, /checkpoint\.activeProduct[\s\S]*api<[^>]+>\("status"/);
   assert.match(source, /recovered\.succeeded \+= 1/);
   assert.match(source, /await api\("release"/);
   assert.match(source, /await api\("finish"/);
+  assert.match(source, /checkedDate: manilaDate\(new Date\(checkpoint\.startedAt\)\)/);
+  assert.match(api, /requestedCheckDate[\s\S]*\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$/);
 });
 
 test("401 saves login-expired recovery state before redirecting", async () => {
