@@ -125,9 +125,61 @@ test("preserves Sold Out classification while deduplicating products", () => {
     { href: "https://shopee.ph/Two-i.12.56", soldOut: false },
   ];
   assert.deepEqual(Array.from(scanner.dedupeProductCandidates(candidates), (value) => ({ ...value })), [
-    { shopId: "12", externalProductId: "34", soldOut: true },
-    { shopId: "12", externalProductId: "56", soldOut: false },
+    { shopId: "12", externalProductId: "34", soldOut: true, totalSold: null, salesActivity: null, rating: null, reviewCount: null },
+    { shopId: "12", externalProductId: "56", soldOut: false, totalSold: null, salesActivity: null, rating: null, reviewCount: null },
   ]);
+});
+
+test("parses compact Shopee listing activity while leaving unavailable values unknown", () => {
+  assert.equal(scanner.parseCompactCount("12.5K sold"), 12500);
+  assert.equal(scanner.parseCompactCount("1.2M sold"), 1200000);
+  assert.equal(scanner.parseCompactCount("Sold"), null);
+
+  const rich = {
+    href: "https://shopee.ph/One-i.12.34",
+    textContent: "Example product 12.5K sold 4.8 (321)",
+    getAttribute: () => null,
+    closest: () => null,
+  };
+  assert.deepEqual({ ...scanner.productCandidateFromAnchor(rich, false) }, {
+    href: rich.href,
+    soldOut: false,
+    totalSold: 12500,
+    salesActivity: "12.5K sold",
+    rating: 4.8,
+    reviewCount: 321,
+  });
+
+  const sparse = {
+    href: "https://shopee.ph/Two-i.56.78",
+    textContent: "Example product",
+    getAttribute: () => null,
+    closest: () => null,
+  };
+  assert.deepEqual({ ...scanner.productCandidateFromAnchor(sparse, true) }, {
+    href: sparse.href,
+    soldOut: true,
+    totalSold: null,
+    salesActivity: null,
+    rating: null,
+    reviewCount: null,
+  });
+});
+
+test("merges complementary listing metadata for duplicate product cards", () => {
+  const products = scanner.dedupeProductCandidates([
+    { href: "https://shopee.ph/One-i.12.34", totalSold: 100, salesActivity: "100 sold", rating: null, reviewCount: null },
+    { href: "https://shopee.ph/product/12/34", soldOut: true, totalSold: null, salesActivity: null, rating: 4.9, reviewCount: 20 },
+  ]);
+  assert.deepEqual(Array.from(products, (value) => ({ ...value })), [{
+    shopId: "12",
+    externalProductId: "34",
+    soldOut: true,
+    totalSold: 100,
+    salesActivity: "100 sold",
+    rating: 4.9,
+    reviewCount: 20,
+  }]);
 });
 
 test("finds the Sold Out See More control and recognizes when it is exhausted", () => {

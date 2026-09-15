@@ -39,12 +39,14 @@ test("deduplicates numeric product identities and produces canonical Shopee URLs
       externalProductId: "26621066471",
       productUrl: "https://shopee.ph/product/1297824816/26621066471",
       soldOut: false,
+      totalSold: null, salesActivity: null, rating: null, reviewCount: null,
     },
     {
       shopId: "282024671",
       externalProductId: "19463132448",
       productUrl: "https://shopee.ph/product/282024671/19463132448",
       soldOut: false,
+      totalSold: null, salesActivity: null, rating: null, reviewCount: null,
     },
   ]);
 });
@@ -61,20 +63,67 @@ test("preserves sold-out classification and merges duplicate identities safely",
       externalProductId: "34",
       productUrl: "https://shopee.ph/product/12/34",
       soldOut: true,
+      totalSold: null, salesActivity: null, rating: null, reviewCount: null,
     },
     {
       shopId: "56",
       externalProductId: "78",
       productUrl: "https://shopee.ph/product/56/78",
       soldOut: false,
+      totalSold: null, salesActivity: null, rating: null, reviewCount: null,
     },
     {
       shopId: "90",
       externalProductId: "12",
       productUrl: "https://shopee.ph/product/90/12",
       soldOut: false,
+      totalSold: null, salesActivity: null, rating: null, reviewCount: null,
     },
   ]);
+});
+
+test("preserves listing activity metadata without turning missing values into zero", () => {
+  assert.deepEqual(normalizeDiscoveredProducts([
+    { shopId: "12", productId: "34", totalSold: 12500, salesActivity: "12.5K sold", rating: 4.8, reviewCount: 321 },
+    { shopId: "12", productId: "34", soldOut: true },
+    { shopId: "56", productId: "78" },
+  ]), [
+    {
+      shopId: "12",
+      externalProductId: "34",
+      productUrl: "https://shopee.ph/product/12/34",
+      soldOut: true,
+      totalSold: 12500,
+      salesActivity: "12.5K sold",
+      rating: 4.8,
+      reviewCount: 321,
+    },
+    {
+      shopId: "56",
+      externalProductId: "78",
+      productUrl: "https://shopee.ph/product/56/78",
+      soldOut: false,
+      totalSold: null,
+      salesActivity: null,
+      rating: null,
+      reviewCount: null,
+    },
+  ]);
+});
+
+test("rejects invalid listing activity metadata rather than storing false zeroes", () => {
+  assert.deepEqual(normalizeDiscoveredProducts([
+    { shopId: "12", productId: "34", totalSold: -1, salesActivity: " ", rating: 8, reviewCount: "unknown" },
+  ]), [{
+    shopId: "12",
+    externalProductId: "34",
+    productUrl: "https://shopee.ph/product/12/34",
+    soldOut: false,
+    totalSold: null,
+    salesActivity: null,
+    rating: null,
+    reviewCount: null,
+  }]);
 });
 
 test("caps one scan without allowing a caller to exceed the global maximum", () => {

@@ -490,6 +490,10 @@ export default async function handler(req, res) {
           p_pages_current: pagesCurrent,
           p_pages_total: pagesTotal,
         });
+        await rpc(supabaseUrl, secret, "upsert_store_listing_metadata", {
+          p_scan_id: scanId,
+          p_products: products,
+        });
         return send(res, 200, { ok: true, totals });
       }
 

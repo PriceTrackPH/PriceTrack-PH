@@ -66,9 +66,18 @@ test("begins a normalized saved-store scan", async () => {
 });
 
 test("normalizes and submits one bounded product batch", async () => {
+  const calls = [];
   global.fetch = async (url, options) => {
-    assert.match(url, /\/rest\/v1\/rpc\/import_store_collection_batch$/);
+    calls.push(url);
     const body = JSON.parse(options.body);
+    if (/\/rest\/v1\/rpc\/upsert_store_listing_metadata$/.test(url)) {
+      assert.equal(body.p_products[0].totalSold, 1200);
+      assert.equal(body.p_products[0].salesActivity, "1.2K sold");
+      assert.equal(body.p_products[0].rating, 4.8);
+      assert.equal(body.p_products[0].reviewCount, 45);
+      return { ok: true, json: async () => 1 };
+    }
+    assert.match(url, /\/rest\/v1\/rpc\/import_store_collection_batch$/);
     assert.equal(body.p_products.length, 1);
     assert.equal(body.p_products[0].externalProductId, "34");
     assert.equal(body.p_products[0].productUrl, "https://shopee.ph/product/12/34");
@@ -80,13 +89,14 @@ test("normalizes and submits one bounded product batch", async () => {
   const res = responseRecorder();
   await handler(request("batch", {
     scanId: "550e8400-e29b-41d4-a716-446655440000",
-    products: [{ shopId: "12", productId: "34", soldOut: true }, { shopId: "bad", productId: "2" }],
+    products: [{ shopId: "12", productId: "34", soldOut: true, totalSold: 1200, salesActivity: "1.2K sold", rating: 4.8, reviewCount: 45 }, { shopId: "bad", productId: "2" }],
     pagesCurrent: 4,
     pagesTotal: 4,
   }), res);
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.totals.newlyQueued, 1);
   assert.equal(res.body.totals.soldOut, 1);
+  assert.equal(calls.length, 2);
 });
 
 test("logs the bounded Supabase RPC error body for production diagnosis", async () => {

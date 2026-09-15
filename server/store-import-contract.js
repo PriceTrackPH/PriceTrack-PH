@@ -32,12 +32,37 @@ export function normalizeDiscoveredProducts(values, maximum = MAX_STORE_PRODUCTS
     const existing = byIdentity.get(key);
     if (existing) {
       existing.soldOut ||= value.soldOut === true;
+      existing.totalSold ??= nullableInteger(value.totalSold);
+      existing.salesActivity ??= nullableText(value.salesActivity, 100);
+      existing.rating ??= nullableRating(value.rating);
+      existing.reviewCount ??= nullableInteger(value.reviewCount);
       continue;
     }
-    const product = { shopId, externalProductId, productUrl: `https://shopee.ph/product/${shopId}/${externalProductId}`, soldOut: value.soldOut === true };
+    const product = {
+      shopId, externalProductId,
+      productUrl: `https://shopee.ph/product/${shopId}/${externalProductId}`,
+      soldOut: value.soldOut === true,
+      totalSold: nullableInteger(value.totalSold),
+      salesActivity: nullableText(value.salesActivity, 100),
+      rating: nullableRating(value.rating),
+      reviewCount: nullableInteger(value.reviewCount),
+    };
     byIdentity.set(key, product);
     products.push(product);
     if (products.length >= limit) break;
   }
   return products;
+}
+
+function nullableInteger(value) {
+  return Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
+function nullableRating(value) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 5 ? value : null;
+}
+
+function nullableText(value, maximum) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text && text.length <= maximum ? text : null;
 }

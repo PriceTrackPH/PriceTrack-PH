@@ -13,7 +13,24 @@ export type StoreProductIdentity = {
   externalProductId: string;
   productUrl: string;
   soldOut: boolean;
+  totalSold: number | null;
+  salesActivity: string | null;
+  rating: number | null;
+  reviewCount: number | null;
 };
+
+function nullableInteger(value: unknown): number | null {
+  return Number.isSafeInteger(value) && Number(value) >= 0 ? Number(value) : null;
+}
+
+function nullableRating(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 5 ? value : null;
+}
+
+function nullableText(value: unknown, maximum: number): string | null {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text && text.length <= maximum ? text : null;
+}
 
 const numericId = /^[1-9]\d*$/;
 
@@ -47,6 +64,10 @@ export function normalizeDiscoveredProducts(values: unknown, maximum = MAX_STORE
     const existing = byIdentity.get(key);
     if (existing) {
       existing.soldOut ||= candidate.soldOut === true;
+      existing.totalSold ??= nullableInteger(candidate.totalSold);
+      existing.salesActivity ??= nullableText(candidate.salesActivity, 100);
+      existing.rating ??= nullableRating(candidate.rating);
+      existing.reviewCount ??= nullableInteger(candidate.reviewCount);
       continue;
     }
     const product = {
@@ -54,6 +75,10 @@ export function normalizeDiscoveredProducts(values: unknown, maximum = MAX_STORE
       externalProductId,
       productUrl: `https://shopee.ph/product/${shopId}/${externalProductId}`,
       soldOut: candidate.soldOut === true,
+      totalSold: nullableInteger(candidate.totalSold),
+      salesActivity: nullableText(candidate.salesActivity, 100),
+      rating: nullableRating(candidate.rating),
+      reviewCount: nullableInteger(candidate.reviewCount),
     };
     byIdentity.set(key, product);
     products.push(product);

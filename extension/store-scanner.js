@@ -39,7 +39,14 @@
       if (!identity) continue;
       const key = `${identity.shopId}:${identity.externalProductId}`;
       const previous = products.get(key);
-      products.set(key, { ...identity, soldOut: value?.soldOut === true || previous?.soldOut === true });
+      products.set(key, {
+        ...identity,
+        soldOut: value?.soldOut === true || previous?.soldOut === true,
+        totalSold: previous?.totalSold ?? value?.totalSold ?? null,
+        salesActivity: previous?.salesActivity ?? value?.salesActivity ?? null,
+        rating: previous?.rating ?? value?.rating ?? null,
+        reviewCount: previous?.reviewCount ?? value?.reviewCount ?? null,
+      });
       if (products.size >= MAX_PRODUCTS) break;
     }
     return [...products.values()];
@@ -183,15 +190,44 @@
     return Array.from(grid.querySelectorAll?.("a[href]") || [], (anchor) => anchor.href);
   }
 
+  function parseCompactCount(value) {
+    const match = String(value || "").match(/(\d+(?:\.\d+)?)\s*([km])?\+?/i);
+    if (!match) return null;
+    const multiplier = match[2]?.toLowerCase() === "m" ? 1_000_000 : match[2]?.toLowerCase() === "k" ? 1_000 : 1;
+    const count = Math.round(Number(match[1]) * multiplier);
+    return Number.isSafeInteger(count) && count >= 0 ? count : null;
+  }
+
+  function productCandidateFromAnchor(anchor, soldOut) {
+    const card = anchor?.closest?.("[data-sqe='item'], [class*='product-card'], [class*='shop-search-result-view__item']") || anchor;
+    const text = String(card?.textContent || anchor?.textContent || "").replace(/\s+/g, " ").trim();
+    const soldMatch = text.match(/(\d+(?:\.\d+)?\s*[km]?\+?\s+sold)\b/i);
+    const ratingMatch = text.match(/\b([0-5](?:\.\d+)?)\s*\(([\d,.]+\s*[km]?)\)/i);
+    return {
+      href: anchor?.href,
+      soldOut: soldOut === true,
+      totalSold: soldMatch ? parseCompactCount(soldMatch[1]) : null,
+      salesActivity: soldMatch ? soldMatch[1].replace(/\s+/g, " ").trim() : null,
+      rating: ratingMatch ? Number(ratingMatch[1]) : null,
+      reviewCount: ratingMatch ? parseCompactCount(ratingMatch[2].replace(/,/g, "")) : null,
+    };
+  }
+
   function storeProductCandidates(root) {
-    const regular = storeProductLinks(root).map((href) => ({ href, soldOut: false }));
+    const grid = root?.querySelector?.([
+      "#product_list",
+      ".shop-search-result-view",
+      ".shop-page__all-products-section",
+      "[data-testid='shop-all-products']",
+    ].join(", "));
+    const regular = Array.from(grid?.querySelectorAll?.("a[href]") || [], (anchor) => productCandidateFromAnchor(anchor, false));
     const section = findSoldOutSection(root);
     const soldOut = Array.from(section?.querySelectorAll?.("a[href]") || [])
-      .map((anchor) => ({ href: anchor.href, soldOut: true }));
+      .map((anchor) => productCandidateFromAnchor(anchor, true));
     return [...regular, ...soldOut];
   }
 
-  const api = { productIdentityFromUrl, dedupeProductLinks, dedupeProductCandidates, shouldStopScan, findNextPageControl, isPageControlDisabled, readPageProgress, isFinalStorePage, findSoldOutSection, findSoldOutSeeMoreControl, pageFingerprint, nextPageStableRounds, hasPageTransitioned, beginScan, endScan, currentPageMarker, isConfirmedEmptyStore, storeProductLinks, storeProductCandidates };
+  const api = { productIdentityFromUrl, dedupeProductLinks, dedupeProductCandidates, shouldStopScan, findNextPageControl, isPageControlDisabled, readPageProgress, isFinalStorePage, findSoldOutSection, findSoldOutSeeMoreControl, pageFingerprint, nextPageStableRounds, hasPageTransitioned, beginScan, endScan, currentPageMarker, isConfirmedEmptyStore, storeProductLinks, parseCompactCount, productCandidateFromAnchor, storeProductCandidates };
   globalThis.PriceTrackStoreScanner = api;
 
   if (typeof chrome === "undefined" || !chrome.runtime?.onMessage || typeof document === "undefined") return;
