@@ -206,3 +206,32 @@ test("never treats a clicked Sold Out See More control disappearing without grow
   assert.doesNotMatch(source, /absentRounds[\s\S]*return/);
   assert.match(source, /if \(!grew\) throw new Error\("The Sold Out section did not finish loading\."\)/);
 });
+
+test("stops scrolling at the top of Shopee's footer instead of entering it", () => {
+  const footer = { getBoundingClientRect: () => ({ top: 900 }) };
+  const root = {
+    querySelector: (selector) => selector.includes("footer") ? footer : null,
+    body: { scrollHeight: 5000 },
+    documentElement: { scrollHeight: 5000 },
+  };
+  const view = { scrollY: 100, innerHeight: 600 };
+
+  assert.equal(scanner.findPageFooter(root), footer);
+  assert.equal(scanner.productBoundaryScrollTop(root, view), 400);
+});
+
+test("recalculates the footer boundary after Sold Out products expand", () => {
+  let footerTop = 900;
+  const footer = { getBoundingClientRect: () => ({ top: footerTop }) };
+  const root = { querySelector: () => footer, body: { scrollHeight: 5000 }, documentElement: { scrollHeight: 5000 } };
+  const view = { scrollY: 100, innerHeight: 600 };
+
+  assert.equal(scanner.productBoundaryScrollTop(root, view), 400);
+  footerTop = 1500;
+  assert.equal(scanner.productBoundaryScrollTop(root, view), 1000);
+});
+
+test("uses the product boundary for normal scrolling and each Sold Out expansion", () => {
+  assert.match(source, /async function expandSoldOutSection\(\)[\s\S]*scrollToProductBoundary\(document, window\)/);
+  assert.doesNotMatch(source, /window\.scrollTo\(\{ top: Math\.max\(document\.body\.scrollHeight/);
+});

@@ -190,6 +190,40 @@
     return Array.from(grid.querySelectorAll?.("a[href]") || [], (anchor) => anchor.href);
   }
 
+  function findPageFooter(root) {
+    const semanticFooter = root?.querySelector?.("footer, [role='contentinfo'], #footer, .footer, [data-testid='footer']");
+    if (semanticFooter) return semanticFooter;
+
+    const labels = Array.from(root?.querySelectorAll?.("h1, h2, h3, h4, div, span") || []);
+    const aboutShopee = labels.find((element) => /^about shopee$/i.test(String(element.textContent || "").trim()));
+    if (!aboutShopee) return null;
+
+    let candidate = aboutShopee;
+    for (let depth = 0; candidate && depth < 8; depth += 1, candidate = candidate.parentElement) {
+      const text = String(candidate.textContent || "");
+      const markerCount = ["ABOUT SHOPEE", "PAYMENT", "FOLLOW US", "SHOPEE APP DOWNLOAD"]
+        .filter((marker) => text.toUpperCase().includes(marker)).length;
+      if (markerCount >= 2) return candidate;
+    }
+    return aboutShopee.parentElement || aboutShopee;
+  }
+
+  function productBoundaryScrollTop(root, view) {
+    const currentY = Math.max(0, Number(view?.scrollY) || 0);
+    const viewportHeight = Math.max(0, Number(view?.innerHeight) || 0);
+    const footer = findPageFooter(root);
+    if (footer?.getBoundingClientRect) {
+      const footerTop = Number(footer.getBoundingClientRect().top);
+      if (Number.isFinite(footerTop)) return Math.max(0, Math.floor(currentY + footerTop - viewportHeight));
+    }
+    const documentHeight = Math.max(Number(root?.body?.scrollHeight) || 0, Number(root?.documentElement?.scrollHeight) || 0);
+    return Math.max(0, Math.floor(documentHeight - viewportHeight));
+  }
+
+  function scrollToProductBoundary(root, view) {
+    view?.scrollTo?.({ top: productBoundaryScrollTop(root, view), behavior: "smooth" });
+  }
+
   function parseCompactCount(value) {
     const match = String(value || "").match(/(\d+(?:\.\d+)?)\s*([km])?\+?/i);
     if (!match) return null;
@@ -227,7 +261,7 @@
     return [...regular, ...soldOut];
   }
 
-  const api = { productIdentityFromUrl, dedupeProductLinks, dedupeProductCandidates, shouldStopScan, findNextPageControl, isPageControlDisabled, readPageProgress, isFinalStorePage, findSoldOutSection, findSoldOutSeeMoreControl, pageFingerprint, nextPageStableRounds, hasPageTransitioned, beginScan, endScan, currentPageMarker, isConfirmedEmptyStore, storeProductLinks, parseCompactCount, productCandidateFromAnchor, storeProductCandidates };
+  const api = { productIdentityFromUrl, dedupeProductLinks, dedupeProductCandidates, shouldStopScan, findNextPageControl, isPageControlDisabled, readPageProgress, isFinalStorePage, findSoldOutSection, findSoldOutSeeMoreControl, pageFingerprint, nextPageStableRounds, hasPageTransitioned, beginScan, endScan, currentPageMarker, isConfirmedEmptyStore, storeProductLinks, findPageFooter, productBoundaryScrollTop, scrollToProductBoundary, parseCompactCount, productCandidateFromAnchor, storeProductCandidates };
   globalThis.PriceTrackStoreScanner = api;
 
   if (typeof chrome === "undefined" || !chrome.runtime?.onMessage || typeof document === "undefined") return;
@@ -241,6 +275,8 @@
 
   async function expandSoldOutSection() {
     while (true) {
+      scrollToProductBoundary(document, window);
+      await sleep(500);
       const control = findSoldOutSeeMoreControl(document);
       if (!control) return;
       const before = dedupeProductCandidates(storeProductCandidates(document)).length;
@@ -315,7 +351,7 @@
             return;
           }
           if (stableRounds < STABLE_ROUNDS) {
-            window.scrollTo({ top: Math.max(document.body.scrollHeight, document.documentElement.scrollHeight), behavior: "smooth" });
+            scrollToProductBoundary(document, window);
             await sleep(1_200);
           }
         }
