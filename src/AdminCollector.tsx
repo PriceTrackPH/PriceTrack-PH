@@ -70,12 +70,21 @@ const manilaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
 }).format(date);
 
+const collectorStatusCardStyle = {
+  background: "linear-gradient(135deg, #e6e6fa 0%, #c9c9f2 100%)",
+  border: "1px solid #b5b5dc",
+  borderRadius: "8px",
+  color: "#1d194b",
+  padding: "12px 14px",
+  minHeight: "72px",
+};
+
 function stopStatusLabel(status: CollectorStopStatus) {
   if (status === "stopped_safely") return "Stopped safely";
   if (status === "interrupted") return "Interrupted";
   if (status === "login_expired") return "Stopped — Login expired";
   if (status === "api_failure") return "Stopped — API failure";
-  if (status === "confirmation_timeout") return "Stopped — Confirmation timeout";
+  if (status === "confirmation_timeout") return "Stopped";
   return "Stopped";
 }
 
@@ -137,6 +146,7 @@ export default function AdminCollector() {
   const nonPriorityCadence = useRef(0);
   const currentPageOutcome = useRef<ProductPageOutcome | null>(null);
   const verificationAlertedFor = useRef(new Set<string>());
+  const collectorSessionId = useRef(crypto.randomUUID());
   const publishHistory = useRef<(event: { kind: "collector" | "store" | "collector-progress"; status: string; id: string }) => unknown>(() => undefined);
   const remoteNoticeTimer = useRef<number | null>(null);
   const runManilaDate = useRef(manilaDate());
@@ -235,7 +245,7 @@ export default function AdminCollector() {
       stoppedAt,
       durationSeconds: Math.max(0, Math.round((Date.parse(stoppedAt) - Date.parse(checkpoint.startedAt)) / 1000)),
       stopStatus,
-    } });
+    }, originSessionId: collectorSessionId.current });
     clearCollectorRunCheckpoint(localStorage);
   }
 
@@ -280,6 +290,7 @@ export default function AdminCollector() {
       }
       if (event.kind !== "collector") return;
       void api<{ ok: boolean; history: CollectorRun[]; hasMore: boolean }>("history").then((result) => { setHistory(result.history); setHistoryHasMore(result.hasMore); });
+      if (event.originSessionId === collectorSessionId.current) return;
       setRemoteNotice(`Another Collector run ${event.status.replace(/_/g, " ")}`);
       if (remoteNoticeTimer.current !== null) window.clearTimeout(remoteNoticeTimer.current);
       remoteNoticeTimer.current = window.setTimeout(() => setRemoteNotice(""), 5_000);
@@ -382,14 +393,13 @@ export default function AdminCollector() {
       ? status as CollectorRunCheckpoint["failureReason"]
       : undefined;
     checkpointRun("pending_finalization", status, failureReason);
-    const { saved } = await api<{ saved: CollectorRun }>("finish", { run });
+    const { saved } = await api<{ saved: CollectorRun }>("finish", { run, originSessionId: collectorSessionId.current });
     runId.current = null;
     clearCollectorRunCheckpoint(localStorage);
     setHistory((items) => [
       { ...run, remaining: saved.remaining },
       ...items.filter((item) => item.runId !== run.runId),
     ].slice(0, 20));
-    void publishHistory.current({ kind: "collector", status, id: run.runId });
   }
 
   async function runCollection() {
@@ -668,20 +678,33 @@ export default function AdminCollector() {
           }} />
           <span>Include store-imported products</span>
         </label>
-        <div className="admin-collector-status" aria-live="polite">
-          <span>Total products: {summary?.totalTracked ?? "—"}</span>
-          <span>Available and due: {summary?.totalDue ?? "—"}</span>
-          <span>Sold out excluded: {summary?.soldOutDeferred ?? "—"}</span>
-          <span>Same price excluded: {summary?.samePriceDeferred ?? "—"}</span>
-          <span>Priority queue pending: {summary?.priorityPending ?? "—"}</span>
-          <span>Store queue pending: {summary?.storeQueuePending ?? "—"}</span>
-          <span>Currently processing: {currentProduct ? 1 : 0}</span>
-          <span>Remaining in this run: {summary ? remaining : "—"}</span>
-          <span>Succeeded this run: {succeeded}</span>
-          <span>Failed this run: {failed}</span>
-          <strong>Status: {cooldownSeconds > 0
-            ? `Next collection available in ${Math.floor(cooldownSeconds / 3600)}h ${Math.floor((cooldownSeconds % 3600) / 60)}m ${cooldownSeconds % 60}s`
-            : message}</strong>
+        <div className="admin-collector-status admin-collector-status-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }} aria-live="polite">
+          {[
+            ["Total products", summary?.totalTracked ?? "—"],
+            ["Total available", summary?.totalDue ?? "—"],
+            ["Total Sold out", summary?.soldOutDeferred ?? "—"],
+            ["total Same price", summary?.samePriceDeferred ?? "—"],
+            ["total Priority queue", summary?.priorityPending ?? "—"],
+            ["total Store queue", summary?.storeQueuePending ?? "—"],
+            ["Remaining", summary ? remaining : "—"],
+            ["Processing", currentProduct ? 1 : 0],
+            ["Succeeded", succeeded],
+            ["Failed", failed],
+          ].map(([label, value]) => (
+            <div className="admin-collector-status-card" style={collectorStatusCardStyle} key={label}>
+              <small>{label}</small>
+              <strong>{value}</strong>
+            </div>
+          ))}
+          <div className="admin-collector-status-card admin-collector-status-message" style={{ ...collectorStatusCardStyle, gridColumn: "1 / -1" }}>
+            <small>Status</small>
+            <strong>{cooldownSeconds > 0
+              ? `Next collection available in ${Math.floor(cooldownSeconds / 3600)}h ${Math.floor((cooldownSeconds % 3600) / 60)}m ${cooldownSeconds % 60}s`
+              : message}</strong>
+          </div>
+          <p className="admin-collector-unavailable-schedule" style={{ gridColumn: "1 / -1" }}>
+            Doesn&apos;t exist: 30 days → 30 days → 30 days · Unlisted: 30 days → 30 days → 30 days
+          </p>
         </div>
         <p className="admin-collector-note">Keep this page and the dedicated Shopee tab open. Complete Shopee verification manually if it appears.</p>
         {remoteNotice && <p className="admin-collector-remote-notice" role="status">{remoteNotice}</p>}
