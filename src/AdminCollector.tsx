@@ -686,12 +686,12 @@ export default function AdminCollector() {
         </label>
         <div className="admin-collector-status admin-collector-status-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }} aria-live="polite">
           {[
-            ["Total products", summary?.totalTracked ?? "—"],
-            ["Total available", summary?.totalDue ?? "—"],
-            ["Total Sold out", summary?.soldOutDeferred ?? "—"],
-            ["total Same price", summary?.samePriceDeferred ?? "—"],
-            ["total Priority queue", summary?.priorityPending ?? "—"],
-            ["total Store queue", summary?.storeQueuePending ?? "—"],
+            ["TOTAL PRODUCTSs", summary?.totalTracked ?? "—"],
+            ["TOTAL AVAILABLE", summary?.totalDue ?? "—"],
+            ["TOTAL SOLD OUT", summary?.soldOutDeferred ?? "—"],
+            ["TOTAL SAME PRICE", summary?.samePriceDeferred ?? "—"],
+            ["TOTAL PRIORITY QUEUE", summary?.priorityPending ?? "—"],
+            ["TOTAL STORE QUEUE", summary?.storeQueuePending ?? "—"],
           ].map(([label, value]) => (
             <div className="admin-collector-status-card" style={collectorStatusCardStyle} key={label}>
               <small>{label}</small>
