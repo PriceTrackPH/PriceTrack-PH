@@ -11,7 +11,13 @@ test("Collector status uses the requested lavender metric cards", () => {
   }
 });
 
-test("Collector status documents the 30-day unavailable schedule", () => {
-  assert.match(source, /Doesn(?:.?t|&apos;t) exist[\s\S]*30 days[\s\S]*30 days[\s\S]*30 days/i);
-  assert.match(source, /Unlisted[\s\S]*30 days[\s\S]*30 days[\s\S]*30 days/i);
+test("Collector status uses the approved two-row card layout", () => {
+  assert.match(source, /gridTemplateColumns:\s*"repeat\(6, minmax\(0, 1fr\)\)"/);
+  assert.match(source, /admin-collector-status-message[\s\S]*gridColumn:\s*"3 \/ span 2"/);
+  assert.match(source, /linear-gradient\(to bottom, rgba\(230, 230, 250, 0\.5\) 0%, #e6e6fa 100%\)/i);
+});
+
+test("Collector status omits the unavailable scheduling note", () => {
+  assert.doesNotMatch(source, /admin-collector-unavailable-schedule/);
+  assert.doesNotMatch(source, /Doesn(?:.?t|&apos;t) exist[\s\S]*30 days/i);
 });

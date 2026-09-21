@@ -71,12 +71,18 @@ const manilaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {
 }).format(date);
 
 const collectorStatusCardStyle = {
-  background: "linear-gradient(135deg, #e6e6fa 0%, #c9c9f2 100%)",
+  background: "linear-gradient(to bottom, rgba(230, 230, 250, 0.5) 0%, #e6e6fa 100%)",
   border: "1px solid #b5b5dc",
   borderRadius: "8px",
   color: "#1d194b",
   padding: "12px 14px",
   minHeight: "72px",
+  display: "flex",
+  flexDirection: "column" as const,
+  alignItems: "center",
+  justifyContent: "center",
+  textAlign: "center" as const,
+  gap: "6px",
 };
 
 function stopStatusLabel(status: CollectorStopStatus) {
@@ -686,8 +692,28 @@ export default function AdminCollector() {
             ["total Same price", summary?.samePriceDeferred ?? "—"],
             ["total Priority queue", summary?.priorityPending ?? "—"],
             ["total Store queue", summary?.storeQueuePending ?? "—"],
+          ].map(([label, value]) => (
+            <div className="admin-collector-status-card" style={collectorStatusCardStyle} key={label}>
+              <small>{label}</small>
+              <strong>{value}</strong>
+            </div>
+          ))}
+          {[
             ["Remaining", summary ? remaining : "—"],
             ["Processing", currentProduct ? 1 : 0],
+          ].map(([label, value]) => (
+            <div className="admin-collector-status-card" style={collectorStatusCardStyle} key={label}>
+              <small>{label}</small>
+              <strong>{value}</strong>
+            </div>
+          ))}
+          <div className="admin-collector-status-card admin-collector-status-message" style={{ ...collectorStatusCardStyle, gridColumn: "3 / span 2" }}>
+            <small>Status</small>
+            <strong>{cooldownSeconds > 0
+              ? `Next collection available in ${Math.floor(cooldownSeconds / 3600)}h ${Math.floor((cooldownSeconds % 3600) / 60)}m ${cooldownSeconds % 60}s`
+              : message}</strong>
+          </div>
+          {[
             ["Succeeded", succeeded],
             ["Failed", failed],
           ].map(([label, value]) => (
@@ -696,15 +722,6 @@ export default function AdminCollector() {
               <strong>{value}</strong>
             </div>
           ))}
-          <div className="admin-collector-status-card admin-collector-status-message" style={{ ...collectorStatusCardStyle, gridColumn: "1 / -1" }}>
-            <small>Status</small>
-            <strong>{cooldownSeconds > 0
-              ? `Next collection available in ${Math.floor(cooldownSeconds / 3600)}h ${Math.floor((cooldownSeconds % 3600) / 60)}m ${cooldownSeconds % 60}s`
-              : message}</strong>
-          </div>
-          <p className="admin-collector-unavailable-schedule" style={{ gridColumn: "1 / -1" }}>
-            Doesn&apos;t exist: 30 days → 30 days → 30 days · Unlisted: 30 days → 30 days → 30 days
-          </p>
         </div>
         <p className="admin-collector-note">Keep this page and the dedicated Shopee tab open. Complete Shopee verification manually if it appears.</p>
         {remoteNotice && <p className="admin-collector-remote-notice" role="status">{remoteNotice}</p>}
