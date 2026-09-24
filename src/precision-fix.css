@@ -492,6 +492,19 @@ html:not([data-theme="dark"]) .health-page {
   background-repeat: no-repeat;
   color: #17201d;
 }
+html[data-theme="dark"] .health-page {
+  background-color: #101513;
+  background-image:
+    radial-gradient(
+      ellipse 34% 150% at 82% 50%,
+      rgba(0, 123, 98, .62) 0%,
+      rgba(0, 100, 80, .34) 34%,
+      rgba(0, 100, 80, 0) 100%
+    ),
+    linear-gradient(90deg, #171a1a 0%, #171a1a 57%, #14342f 72%, #0a5144 100%);
+  background-size: 100% 520px;
+  background-repeat: no-repeat;
+}
 html:not([data-theme="dark"]) .health-heading p,
 html:not([data-theme="dark"]) .health-events-heading span,
 html:not([data-theme="dark"]) .health-status span,
