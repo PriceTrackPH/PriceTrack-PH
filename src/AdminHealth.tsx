@@ -49,6 +49,8 @@ type AffiliateImportResult = {
 type AdSettings = {
   adsEnabled: boolean;
   requestedEnabled: boolean;
+  shopeeLinkEnabled: boolean;
+  affiliateLinkEnabled: boolean;
   configured: boolean;
   updatedAt: string | null;
 };
@@ -70,7 +72,7 @@ function dateLabel(value: string | null) {
   }).format(new Date(value));
 }
 type AdminHealthProps = {
-  view?: "login" | "health" | "affiliate" | "ads";
+  view?: "login" | "health" | "affiliate" | "settings";
 };
 
 export default function AdminHealth({ view = "health" }: AdminHealthProps) {
@@ -86,6 +88,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [driveArchiveMessage, setDriveArchiveMessage] = useState("");
   const [adSettings, setAdSettings] = useState<AdSettings | null>(null);
   const [adsBusy, setAdsBusy] = useState(false);
+  const [linkBusy, setLinkBusy] = useState<"shopeeLinkEnabled" | "affiliateLinkEnabled" | null>(null);
   const [adsMessage, setAdsMessage] = useState("");
   const isLogin = view === "login";
 
@@ -99,11 +102,11 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     if (links.length < 2) return;
 
     const [healthLink, affiliateLink] = links;
-    const adsLink = document.createElement("a");
+    const settingsLink = document.createElement("a");
     const collectorLink = document.createElement("a");
     const scannerLink = document.createElement("a");
-    affiliateLink.after(adsLink, collectorLink, scannerLink);
-    const adminLinks = [healthLink, affiliateLink, adsLink, collectorLink, scannerLink];
+    affiliateLink.after(settingsLink, collectorLink, scannerLink);
+    const adminLinks = [healthLink, affiliateLink, settingsLink, collectorLink, scannerLink];
     const original = [healthLink, affiliateLink].map((link) => ({
       text: link.textContent || "",
       href: link.getAttribute("href"),
@@ -123,16 +126,16 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     affiliateLink.removeAttribute("data-scroll-target");
     healthLink.removeAttribute("aria-current");
     affiliateLink.removeAttribute("aria-current");
-    adsLink.textContent = "Ads";
-    adsLink.href = "/admin/ads";
+    settingsLink.textContent = "Settings";
+    settingsLink.href = "/admin/settings";
     collectorLink.textContent = "Collector";
     collectorLink.href = "/admin/collector";
     scannerLink.textContent = "Store Scanner";
     scannerLink.href = "/admin/store-scanner";
-    if (!isLogin) (view === "affiliate" ? affiliateLink : view === "ads" ? adsLink : healthLink).setAttribute("aria-current", "page");
+    if (!isLogin) (view === "affiliate" ? affiliateLink : view === "settings" ? settingsLink : healthLink).setAttribute("aria-current", "page");
 
     return () => {
-      adsLink.remove();
+      settingsLink.remove();
       collectorLink.remove();
       scannerLink.remove();
       adminLinks.slice(0, 2).forEach((link, index) => {
@@ -152,14 +155,14 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     };
   }, [isLogin, view]);
 
-  async function loadAdSettings(nextToken = token) {
+  async function loadSiteSettings(nextToken = token) {
     if (!nextToken) return;
     const response = await fetch("/api/site-settings", {
       headers: { Authorization: `Bearer ${nextToken}` },
       cache: "no-store",
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || "Unable to load ad settings.");
+    if (!response.ok) throw new Error(payload.error || "Unable to load site settings.");
     setAdSettings(payload as AdSettings);
   }
 
@@ -206,7 +209,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
       }
       setData(payload as HealthData);
       if (view === "affiliate") void loadAffiliateSummary(nextToken);
-      if (view === "ads") void loadAdSettings(nextToken).catch((cause) => setAdsMessage(cause instanceof Error ? cause.message : "Unable to load ad settings."));
+      if (view === "settings") void loadSiteSettings(nextToken).catch((cause) => setAdsMessage(cause instanceof Error ? cause.message : "Unable to load ad settings."));
     } catch (cause) {
       setData(null);
       setError(cause instanceof Error ? cause.message : "Unable to load diagnostics.");
@@ -337,9 +340,29 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     }
   }
 
+  async function updateLink(field: "shopeeLinkEnabled" | "affiliateLinkEnabled", enabled: boolean) {
+    setLinkBusy(field);
+    setAdsMessage("");
+    try {
+      const response = await fetch("/api/site-settings", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: enabled }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Unable to update link visibility.");
+      setAdSettings(payload as AdSettings);
+      setAdsMessage(`${field === "shopeeLinkEnabled" ? "Shopee" : "Affiliate"} link is now ${enabled ? "shown" : "hidden"}.`);
+    } catch (cause) {
+      setAdsMessage(cause instanceof Error ? cause.message : "Unable to update link visibility.");
+    } finally {
+      setLinkBusy(null);
+    }
+  }
+
   const isHealthy = Boolean(data && data.summary.failures === 0 && data.summary.partial === 0);
   const isAffiliate = view === "affiliate";
-  const isAds = view === "ads";
+  const isSettings = view === "settings";
 
   return (
     <main className="health-page">
@@ -347,8 +370,8 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
         <div className="health-heading">
           <div>
             <span className="health-kicker">PRIVATE ADMIN</span>
-            <h1>PriceTrack PH {isLogin ? "admin" : isAffiliate ? "affiliate" : isAds ? "ads" : "health"}</h1>
-            <p>{isLogin ? "Enter your admin access token to continue." : isAffiliate ? "Shopee affiliate-link batch tools." : isAds ? "Global advertising control for every visitor." : "Recording-system status and sanitized events retained for 30 days."}</p>
+            <h1>PriceTrack PH {isLogin ? "admin" : isAffiliate ? "affiliate" : isSettings ? "settings" : "health"}</h1>
+            <p>{isLogin ? "Enter your admin access token to continue." : isAffiliate ? "Shopee affiliate-link batch tools." : isSettings ? "Control public product links and advertising." : "Recording-system status and sanitized events retained for 30 days."}</p>
           </div>
         </div>
 
@@ -407,9 +430,30 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
               )}
             </section>}
 
-            {isAds && <section className="health-ads" aria-labelledby="ads-heading">
+            {isSettings && <section className="health-ads" aria-labelledby="link-settings-heading">
               <div>
-                <span className="health-kicker">GLOBAL AD CONTROL</span>
+                <span className="health-kicker">PUBLIC PRODUCT LINKS</span>
+                <h2 id="link-settings-heading">Link visibility</h2>
+                <p>Choose which buttons appear on public product reports.</p>
+              </div>
+              <div className="admin-settings-links">
+                {([
+                  ["shopeeLinkEnabled", "Shopee link"],
+                  ["affiliateLinkEnabled", "Affiliate link"],
+                ] as const).map(([field, label]) => (
+                  <div className="admin-settings-link" key={field}>
+                    <span>{label}</span>
+                    <button type="button" disabled={!adSettings || linkBusy !== null} aria-pressed={adSettings?.[field] ?? true} onClick={() => void updateLink(field, !adSettings?.[field])}>
+                      {linkBusy === field ? "Saving…" : adSettings?.[field] === false ? "Off · Hidden" : "On · Shown"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>}
+
+            {isSettings && <section className="health-ads" aria-labelledby="ads-heading">
+              <div>
+                <span className="health-kicker">ADVERTISING</span>
                 <h2 id="ads-heading">Report advertisement</h2>
                 <p>One responsive ad below a successfully loaded Database Product Report. It is hidden on errors and untracked products.</p>
               </div>
@@ -427,13 +471,13 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
               {adsMessage && <p className="health-ads-message" role="status">{adsMessage}</p>}
             </section>}
 
-            {!isAffiliate && !isAds && <section className={`health-status ${isHealthy ? "healthy" : "attention"}`}>
+            {!isAffiliate && !isSettings && <section className={`health-status ${isHealthy ? "healthy" : "attention"}`}>
               <strong>{isHealthy ? "Recording looks healthy" : "Review recent recording issues"}</strong>
               <span>Last successful recording: {dateLabel(data.summary.lastSuccess)}</span>
               <button type="button" onClick={() => void load()} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</button>
             </section>}
 
-            {!isAffiliate && !isAds && <section className="health-stats" aria-label="30-day diagnostic summary">
+            {!isAffiliate && !isSettings && <section className="health-stats" aria-label="30-day diagnostic summary">
               <div><span>Events</span><strong>{data.summary.total}</strong></div>
               <div><span>Failures</span><strong>{data.summary.failures}</strong></div>
               <div><span>Partial</span><strong>{data.summary.partial}</strong></div>
@@ -441,7 +485,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
               <div><span>Variation changes</span><strong>{data.summary.variationChanges}</strong></div>
             </section>}
 
-            {!isAffiliate && !isAds && <section className="health-events">
+            {!isAffiliate && !isSettings && <section className="health-events">
               <div className="health-events-heading">
                 <h2>Recent events</h2>
                 <span>Last 30 days · no personal data or full URLs</span>
