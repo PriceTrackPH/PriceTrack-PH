@@ -664,8 +664,8 @@ export default function AdminCollector() {
       <section className="admin-collector-panel">
         <div className="admin-collector-actions">
           <button type="button" onClick={() => void startCollection("normal")} disabled={running || cooldownSeconds > 0 || !summary}>Start collection</button>
-          <button type="button" onClick={() => void startCollection("unlimited")} disabled={running || !summary}>Start unlimited collection</button>
           <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
+          <button type="button" onClick={() => void startCollection("unlimited")} disabled={running || !summary}>Start unlimited collection</button>
         </div>
         <div className="admin-collector-queue-options" role="group" aria-label="Collection options">
           {[
