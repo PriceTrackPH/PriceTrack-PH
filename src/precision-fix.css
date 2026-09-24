@@ -440,7 +440,6 @@ html[data-theme="dark"] .admin-collector-status-card strong { color: #f7faf9; }
 .admin-collector-history table { table-layout: fixed; min-width: 850px; }
 .admin-collector-history th,
 .admin-collector-history td { padding: 11px 5px; }
-.admin-collector-history td { font-size: 14px; }
 .admin-collector-history th:nth-child(1) { width: 20%; }
 .admin-collector-history th:nth-child(2) { width: 12%; }
 .admin-collector-history th:nth-child(3) { width: 9%; }
