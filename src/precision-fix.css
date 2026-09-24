@@ -427,6 +427,13 @@ html[data-theme="dark"] .support-section {
 .admin-collector-option input { width: 18px; height: 18px; margin: 0; accent-color: #00dfae; }
 .admin-collector-option:has(input:disabled) { opacity: .6; cursor: not-allowed; }
 .admin-collector-status { display: grid; gap: 6px; padding: 18px; border-radius: 12px; background: #0c1210; line-height: 1.5; }
+.admin-collector-status-card {
+  background: linear-gradient(180deg, #242630 0%, #20212d 100%);
+  border-color: #555774 !important;
+  color: #f0efff;
+}
+.admin-collector-status-card small { color: #c8c8e0; }
+.admin-collector-status-card strong { color: #fff; }
 .admin-collector-status strong { margin-top: 5px; }
 .admin-collector-note { margin: 16px 0 0; color: #f3d486; line-height: 1.5; }
 .admin-collector-history { margin-top: 24px; }
@@ -489,6 +496,13 @@ html:not([data-theme="dark"]) .health-login input { border-color: #cbd5d1; backg
 html:not([data-theme="dark"]) .admin-collector-panel { border-color: #d9e0dd; background: #fff; color: #17201d; }
 html:not([data-theme="dark"]) .admin-collector-option { color: #17201d; }
 html:not([data-theme="dark"]) .admin-collector-status { background: #f3f6f5; color: #17201d; }
+html:not([data-theme="dark"]) .admin-collector-status-card {
+  background: linear-gradient(to bottom, rgba(230, 230, 250, 0.5) 0%, #e6e6fa 100%);
+  border-color: #b5b5dc !important;
+  color: #1d194b;
+}
+html:not([data-theme="dark"]) .admin-collector-status-card small,
+html:not([data-theme="dark"]) .admin-collector-status-card strong { color: inherit; }
 html:not([data-theme="dark"]) .admin-store-import-form input { border-color: #cbd5d1; background: #fff; color: #17201d; }
 html:not([data-theme="dark"]) .store-scan-summary span { border-color: #d9e0dd; color: #65706c; }
 html:not([data-theme="dark"]) .admin-history-scroll thead,
