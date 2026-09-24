@@ -218,12 +218,12 @@ async function advancePersonalProduct(supabaseUrl, secret, productId, days = 2) 
   if (!response.ok) throw new Error(`personal_advance_${response.status}`);
 }
 
-export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false) {
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true) {
   if (includePersonalQueue) {
     const personal = await claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut);
     if (personal) return personal;
   }
-  const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
+  const priority = includePriorityQueue ? await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil) : null;
   if (priority) return priority;
   if (includeStoreImports && preferredSource === "store") {
     const store = await claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
@@ -633,6 +633,7 @@ export default async function handler(req, res) {
         req.body?.preferredSource === "normal" ? "normal" : "store",
         req.body?.includeNormalQueue !== false,
         req.body?.includePersonalQueue === true,
+        req.body?.includePriorityQueue !== false,
       );
       return send(res, 200, { ok: true, product });
     }
