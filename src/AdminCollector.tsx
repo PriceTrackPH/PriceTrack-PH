@@ -749,7 +749,6 @@ export default function AdminCollector() {
             <strong>{favoriteSaving ? "Saving favorite…" : favoriteNotice || (cooldownSeconds > 0
               ? `Next collection available in ${Math.floor(cooldownSeconds / 3600)}h ${Math.floor((cooldownSeconds % 3600) / 60)}m ${cooldownSeconds % 60}s`
               : message)}</strong>
-            {currentProduct && <small>Click to save current product to Favorite Queue</small>}
           </button>
           {[
             ["Succeeded", succeeded],
