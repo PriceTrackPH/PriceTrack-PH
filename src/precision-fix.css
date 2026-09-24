@@ -577,3 +577,39 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
   .health-affiliate-count { padding: 18px 0 0; border-left: 0; border-top: 1px solid #303936; }
   .health-affiliate-actions { grid-column: 1; display: grid; }
 }
+
+
+.admin-collector-queue-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 20px;
+}
+.admin-collector-queue-option {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #38413d;
+  border-radius: 11px;
+  background: #1a211e;
+  cursor: pointer;
+}
+.admin-collector-queue-option-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.admin-collector-queue-option strong { font-size: 14px; line-height: 1.3; }
+.admin-collector-queue-option small { color: #aeb6b2; line-height: 1.45; font-size: 12px; }
+.admin-collector-queue-switch { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; position: relative; }
+.admin-collector-queue-switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.admin-collector-queue-switch-track { width: 34px; height: 20px; border-radius: 99px; background: #68716d; transition: background .15s; }
+.admin-collector-queue-switch-track::after { content: ""; display: block; width: 14px; height: 14px; margin: 3px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.admin-collector-queue-switch input:checked + .admin-collector-queue-switch-track { background: #00be99; }
+.admin-collector-queue-switch input:checked + .admin-collector-queue-switch-track::after { transform: translateX(14px); }
+.admin-collector-queue-switch input:focus-visible + .admin-collector-queue-switch-track { outline: 2px solid #00dfae; outline-offset: 2px; }
+.admin-collector-queue-switch input:disabled { cursor: not-allowed; }
+.admin-collector-queue-option:has(input:disabled) { opacity: .65; cursor: not-allowed; }
+.admin-collector-queue-switch-state { font-size: 12px; font-weight: 700; min-width: 20px; }
+html:not([data-theme="dark"]) .admin-collector-queue-option { background: #f8faf9; border-color: #d9e0dd; }
+html:not([data-theme="dark"]) .admin-collector-queue-option small { color: #65706c; }
+@media (max-width: 950px) { .admin-collector-queue-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 540px) { .admin-collector-queue-options { grid-template-columns: 1fr; } .admin-collector-actions { flex-wrap: wrap; } }
