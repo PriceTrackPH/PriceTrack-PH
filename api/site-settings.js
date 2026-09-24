@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
     if (req.method === "PATCH") {
       const expectedToken = process.env.ADMIN_HEALTH_TOKEN || "";
-      const suppliedToken = String(req.headers.authorization || "").replace(/^Bearer\\s+/i, "");
+      const suppliedToken = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
       if (!secretsMatch(suppliedToken, expectedToken)) return send(res, 401, { error: "Unauthorized" });
 
       const changes = Object.entries(settingKeys).filter(([field]) => Object.prototype.hasOwnProperty.call(req.body || {}, field));
