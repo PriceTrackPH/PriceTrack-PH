@@ -699,10 +699,9 @@ export default function AdminCollector() {
               checked: includeNormalQueue,
               change: (next: boolean) => { setIncludeNormalQueue(next); localStorage.setItem(includeNormalQueueStorageKey, String(next)); },
             },
-          ].map((option) => <div className="admin-collector-queue-option" key={option.label}>
-            <button type="button" className="admin-collector-option-button" aria-pressed={option.checked} disabled={running}
-              onClick={() => option.change(!option.checked)}>{option.label}</button>
-          </div>)}
+          ].map((option) => <button type="button" className="admin-collector-option-button" key={option.label}
+            aria-pressed={option.checked} disabled={running}
+            onClick={() => option.change(!option.checked)}>{option.label}</button>)}
         </div>
         <div className="admin-collector-status admin-collector-status-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }} aria-live="polite">
           {[
