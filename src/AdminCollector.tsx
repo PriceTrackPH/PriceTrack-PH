@@ -121,6 +121,8 @@ export default function AdminCollector() {
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState("Opening collector…");
   const [currentProduct, setCurrentProduct] = useState<CollectorProduct | null>(null);
+  const [favoriteSaving, setFavoriteSaving] = useState(false);
+  const [favoriteNotice, setFavoriteNotice] = useState("");
   const [succeeded, setSucceeded] = useState(0);
   const [failed, setFailed] = useState(0);
   const [history, setHistory] = useState<CollectorRun[]>([]);
@@ -452,6 +454,7 @@ export default function AdminCollector() {
       if (product.queueRequestId !== null && product.claimSource === "store") attemptedStoreRequestIds.current.add(product.queueRequestId);
       activeProduct.current = product;
       currentPageOutcome.current = null;
+      setFavoriteNotice("");
       setCurrentProduct(product);
       setMessage(`Opening ${product.shopId}.${product.externalProductId}`);
       if (!productTab.current || productTab.current.closed) throw new Error("The dedicated Shopee tab was closed.");
@@ -656,6 +659,21 @@ export default function AdminCollector() {
     await finishRun("stopped_safely");
   }
 
+  async function saveCurrentFavorite() {
+    const product = currentProduct;
+    if (!product || favoriteSaving) return;
+    setFavoriteSaving(true);
+    setFavoriteNotice("");
+    try {
+      await api("personal-add-current", { shopId: product.shopId, externalProductId: product.externalProductId });
+      setFavoriteNotice(`${product.shopId}.${product.externalProductId} saved to Favorite Queue`);
+    } catch (cause) {
+      setFavoriteNotice(cause instanceof Error ? cause.message : "Unable to save favorite.");
+    } finally {
+      setFavoriteSaving(false);
+    }
+  }
+
   const remaining = Math.max(0, summary?.totalDue || 0);
 
   return <main className="health-page">
@@ -726,12 +744,13 @@ export default function AdminCollector() {
               <strong>{formatCollectorCount(value)}</strong>
             </div>
           ))}
-          <div className="admin-collector-status-card admin-collector-status-message" style={{ ...collectorStatusCardStyle, gridColumn: "3 / span 2" }}>
+          <button type="button" className="admin-collector-status-card admin-collector-status-message" style={{ ...collectorStatusCardStyle, gridColumn: "3 / span 2", width: "100%", font: "inherit", color: "inherit", background: "transparent", cursor: currentProduct ? "pointer" : "default" }} disabled={!currentProduct || favoriteSaving} onClick={() => void saveCurrentFavorite()} title={currentProduct ? "Save current product to Favorite Queue" : "No product is currently being collected"}>
             <small>Status</small>
-            <strong>{cooldownSeconds > 0
+            <strong>{favoriteSaving ? "Saving favorite…" : favoriteNotice || (cooldownSeconds > 0
               ? `Next collection available in ${Math.floor(cooldownSeconds / 3600)}h ${Math.floor((cooldownSeconds % 3600) / 60)}m ${cooldownSeconds % 60}s`
-              : message}</strong>
-          </div>
+              : message)}</strong>
+            {currentProduct && <small>Click to save current product to Favorite Queue</small>}
+          </button>
           {[
             ["Succeeded", succeeded],
             ["Failed", failed],
