@@ -6,6 +6,7 @@ import {
   getPublicRequestDeviceId,
   isMobileUserAgent,
   requestUntrackedProduct,
+  requestTrackedProductRecheck,
 } from "../src/public-collection-request.ts";
 
 test("detects mobile visitors while keeping desktop Chrome Edge and Brave out", () => {
@@ -62,6 +63,12 @@ test("returns the queue message and propagates the daily-limit message", async (
       return { ok: true, status: 200, json: async () => ({ status: "queued", message: "queued message" }) };
     };
     assert.equal(await requestUntrackedProduct({ shopId: "448087759", productId: "49650774952" }), "queued message");
+
+    global.fetch = async (_url, options) => {
+      assert.equal(JSON.parse(options.body).recheckTracked, true);
+      return { ok: true, status: 200, json: async () => ({ status: "queued", message: "Added to Priority Queue for another price check." }) };
+    };
+    assert.equal(await requestTrackedProductRecheck({ shopId: "448087759", productId: "49650774952" }), "Added to Priority Queue for another price check.");
 
     global.fetch = async () => ({ ok: false, status: 429, json: async () => ({ status: "limit_reached", error: "limit message" }) });
     await assert.rejects(
