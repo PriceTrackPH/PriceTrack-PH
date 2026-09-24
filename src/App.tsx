@@ -488,6 +488,21 @@ function ReportApp() {
   const [featuredLoading, setFeaturedLoading] = useState(true);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [linkVisibility, setLinkVisibility] = useState({ shopeeLinkEnabled: true, affiliateLinkEnabled: true });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/site-settings", { cache: "no-store", signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((settings) => {
+        if (settings) setLinkVisibility({
+          shopeeLinkEnabled: settings.shopeeLinkEnabled !== false,
+          affiliateLinkEnabled: settings.affiliateLinkEnabled !== false,
+        });
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
 
   async function loadProduct(
     shopId: string,
@@ -737,8 +752,8 @@ function ReportApp() {
     };
   }, [variations, latestByVariationId]);
 
-  const affiliateLink = resolveAffiliateLink(product);
-  const directShopeeLink = safeHttpsUrl(product?.product_url);
+  const affiliateLink = linkVisibility.affiliateLinkEnabled ? resolveAffiliateLink(product) : null;
+  const directShopeeLink = linkVisibility.shopeeLinkEnabled ? safeHttpsUrl(product?.product_url) : null;
   const priceChanges = countPriceChanges(allVariationPoints);
   const lastCheckedLabel = formatLastChecked(product?.last_seen_at);
   const axis = useMemo(() => roundedAxis(chartData), [chartData]);
@@ -1076,7 +1091,7 @@ function ReportApp() {
                   <div className="empty-state">No observations for this variation in the selected range yet.</div>
                 )}
 
-                <div className="report-actions-wrap">
+                {(affiliateLink || directShopeeLink) && <div className="report-actions-wrap">
                   <div className="report-actions">
                     {affiliateLink && (
                       <a
@@ -1101,10 +1116,12 @@ function ReportApp() {
                   </div>
                   <p className={affiliateLink ? "outbound-disclosure affiliate" : "outbound-disclosure"}>
                     {affiliateLink
-                      ? "Affiliate purchases may support PriceTrack PH at no extra cost to you. You can also use the direct Shopee link."
+                      ? directShopeeLink
+                         ? "Affiliate purchases may support PriceTrack PH at no extra cost to you. You can also use the direct Shopee link."
+                         : "Affiliate purchases may support PriceTrack PH at no extra cost to you."
                       : "This opens the original Shopee product page directly."}
                   </p>
-                </div>
+                </div>}
               </div>
             </div>
           ) : error ? null : (
