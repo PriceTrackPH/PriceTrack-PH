@@ -20,6 +20,7 @@ let retryRequested = false;
 let statusPollTimer = null;
 let activeShortcutKey = "";
 let latestRecord = null;
+let activeProductKey = "";
 
 function shortcutFromEvent(event) {
   const ignoredKeys = new Set(["Control", "Alt", "Shift", "Meta", "Tab", "Escape"]);
@@ -81,18 +82,20 @@ function scheduleStatusPolling() {
 function requestRecording() {
   if (retryRequested || activeTabId == null) return;
   retryRequested = true;
+  const requestedTabId = activeTabId;
+  const requestedProductKey = activeProductKey;
 
-  chrome.tabs.sendMessage(activeTabId, { type: "recordPriceNow" }, async () => {
+  chrome.tabs.sendMessage(requestedTabId, { type: "recordPriceNow" }, async () => {
     const hadError = Boolean(chrome.runtime.lastError);
 
-    if (!hadError) {
+    if (!hadError && requestedProductKey === activeProductKey && requestedTabId === activeTabId) {
       // The content script replies only after the recording promise settles.
       // Re-read storage here so the popup always renders the final state even if
       // chrome.storage.onChanged was missed while the popup was opening/closing.
       await readStoredStatus();
     }
 
-    retryRequested = false;
+    if (requestedProductKey === activeProductKey && requestedTabId === activeTabId) retryRequested = false;
   });
 }
 
@@ -181,10 +184,13 @@ function renderRecord(record) {
 
 function readStoredStatus() {
   if (!primaryKey || !legacyKey) return Promise.resolve(null);
+  const requestedKey = primaryKey;
+  const fallbackKey = legacyKey;
   return new Promise(resolve => {
-    chrome.storage.local.get([primaryKey, legacyKey], result => {
-      const primaryRecord = result[primaryKey] || null;
-      const legacyRecord = result[legacyKey] || null;
+    chrome.storage.local.get([requestedKey, fallbackKey], result => {
+      if (requestedKey !== primaryKey) return resolve(null);
+      const primaryRecord = result[requestedKey] || null;
+      const legacyRecord = result[fallbackKey] || null;
 
       // Prefer the newest record if both keys exist. This prevents a slightly
       // older legacy write from making the popup look stuck on "Saving...".
@@ -288,13 +294,21 @@ function openPriceHistory() {
   });
 }
 
-async function initialize() {
-  initializePopupToggle();
-  initializeShortcutSettings();
+function syncActiveTab(activeTab) {
+  const nextIds = parseIds(activeTab?.url || "");
+  const nextKey = nextIds ? `${nextIds.shopId}:${nextIds.productId}` : "";
+  if (activeTabId === activeTab?.id && activeProductKey === nextKey) return;
 
-  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  stopStatusPolling();
   activeTabId = activeTab?.id;
-  ids = parseIds(activeTab?.url || "");
+  activeProductKey = nextKey;
+  retryRequested = false;
+  ids = nextIds;
+  latestRecord = null;
+  primaryKey = null;
+  legacyKey = null;
+  status.classList.remove("error");
+  button.disabled = !ids;
   if (!ids) {
     title.textContent = "Open a Shopee product page";
     detail.textContent = "Automatic tracking works on supported products.";
@@ -310,12 +324,28 @@ async function initialize() {
 
   primaryKey = `productStatus:${ids.shopId}:${ids.productId}`;
   legacyKey = `productStatus:${ids.productId}`;
-  const existing = await readStoredStatus();
+  void readStoredStatus().then(existing => {
+    if (activeProductKey !== nextKey) return;
+    const staleProgress = existing && ["checking", "detected"].includes(existing.state) && recordAgeMs(existing) > STALE_PROGRESS_MS;
+    if (activeTabId != null && (!existing || existing.state === "error" || existing.saveError || staleProgress)) requestRecording();
+  });
+}
 
-  const staleProgress = existing && ["checking", "detected"].includes(existing.state) && recordAgeMs(existing) > STALE_PROGRESS_MS;
-  if (activeTabId != null && (!existing || existing.state === "error" || existing.saveError || staleProgress)) {
-    requestRecording();
-  }
+async function refreshActiveTab() {
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  syncActiveTab(activeTab);
+}
+
+function initialize() {
+  initializePopupToggle();
+  initializeShortcutSettings();
+  void refreshActiveTab();
+  // Shopee uses client-side navigation, which may not fire a full tab load.
+  setInterval(() => void refreshActiveTab(), STATUS_POLL_MS);
+  chrome.tabs.onActivated.addListener(() => void refreshActiveTab());
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (tabId === activeTabId && changeInfo.url) void refreshActiveTab();
+  });
 }
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
