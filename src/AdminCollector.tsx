@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   cooldownEndAfterLimit,
   cooldownSecondsRemaining,
@@ -35,7 +35,7 @@ type CollectorSummary = {
 };
 
 type CollectorProduct = {
-  claimSource: "priority" | "store" | "random";
+  claimSource: "priority" | "store" | "random" | "personal";
   queueRequestId: string | null;
   productId: number | null;
   shopId: string;
@@ -67,6 +67,7 @@ const skipUnchangedStorageKey = "pricetrack-admin-collector-skip-unchanged-day";
 const skipSoldOutStorageKey = "pricetrack-admin-collector-skip-sold-out";
 const includeStoreImportsStorageKey = "pricetrack-admin-collector-include-store-imports";
 const includeNormalQueueStorageKey = "pricetrack-admin-collector-include-normal-queue";
+const includePersonalQueueStorageKey = "pricetrack-admin-collector-include-personal-queue";
 const manilaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
 }).format(date);
@@ -133,6 +134,11 @@ export default function AdminCollector() {
     includeStoreImportsDefault(localStorage.getItem(includeStoreImportsStorageKey))
   );
   const [includeNormalQueue, setIncludeNormalQueue] = useState(() => localStorage.getItem(includeNormalQueueStorageKey) !== "false");
+  const [includePersonalQueue, setIncludePersonalQueue] = useState(() => localStorage.getItem(includePersonalQueueStorageKey) === "true");
+  const [personalUrl, setPersonalUrl] = useState("");
+  const [personalMessage, setPersonalMessage] = useState("");
+  const [personalBusy, setPersonalBusy] = useState(false);
+  const [favorites, setFavorites] = useState<Array<{ product_id: number; next_check_at: string; products: { product_url: string } }>>([]);
   const [cooldownUntil, setCooldownUntil] = useState(() => Number(localStorage.getItem(cooldownStorageKey)) || 0);
   const [cooldownSeconds, setCooldownSeconds] = useState(() => cooldownSecondsRemaining(Number(localStorage.getItem(cooldownStorageKey)) || 0, Date.now()));
   const stopped = useRef(true);
@@ -221,7 +227,7 @@ export default function AdminCollector() {
         status = await api<{
           completed: boolean; soldOut: boolean; recheckAt: string | null;
           samePrice: boolean; samePriceRecheckAt: string | null;
-        }>("status", { ...identity, checkedDate: manilaDate(new Date(checkpoint.startedAt)) });
+        }>("status", { ...identity, claimSource: checkpoint.activeProduct.claimSource, checkedDate: manilaDate(new Date(checkpoint.startedAt)) });
         if (status.completed) break;
         await wait(1_000);
       }
@@ -268,6 +274,7 @@ export default function AdminCollector() {
     }
     const interrupted = readCollectorRunCheckpoint(localStorage);
     const recover = interrupted ? recoverCollectorCheckpoint(interrupted) : Promise.resolve();
+    void recover.then(() => loadFavorites()).catch(() => setPersonalMessage("Unable to load saved products."));
     void recover.then(() => api<CollectorSummary & { ok: boolean; history: CollectorRun[]; hasMore: boolean }>("bootstrap"))
       .then((next) => { setSummary(next); setHistory(next.history); setHistoryHasMore(next.hasMore); setMessage("Ready"); })
       .catch((cause) => setMessage(cause instanceof Error ? cause.message : "Unable to open collector."));
@@ -321,6 +328,36 @@ export default function AdminCollector() {
       status: "updated",
       id: `${product.shopId}.${product.externalProductId}`,
     });
+  }
+
+  async function loadFavorites() {
+    const result = await api<{ favorites: typeof favorites }>("personal-list");
+    setFavorites(result.favorites);
+  }
+
+  async function addFavorite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPersonalBusy(true);
+    setPersonalMessage("");
+    try {
+      await api("personal-add", { productUrl: personalUrl.trim() });
+      setPersonalUrl("");
+      await loadFavorites();
+      setPersonalMessage("Product added to your personal queue.");
+    } catch (error) {
+      setPersonalMessage(error instanceof Error ? error.message : "Unable to add product.");
+    } finally { setPersonalBusy(false); }
+  }
+
+  async function removeFavorite(productId: number) {
+    setPersonalBusy(true);
+    try {
+      await api("personal-remove", { productId });
+      await loadFavorites();
+      setPersonalMessage("Product removed.");
+    } catch (error) {
+      setPersonalMessage(error instanceof Error ? error.message : "Unable to remove product.");
+    } finally { setPersonalBusy(false); }
   }
 
   async function loadMoreHistory() {
@@ -428,6 +465,7 @@ export default function AdminCollector() {
         attemptedStoreRequestIds: [...attemptedStoreRequestIds.current],
         includeStoreImports: includeStoreImports,
         includeNormalQueue,
+        includePersonalQueue,
         skipSoldOut,
         preferredSource: nextNonPrioritySource(nonPriorityCadence.current),
       });
@@ -466,6 +504,7 @@ export default function AdminCollector() {
             externalProductId: product.externalProductId,
             outcome: pageOutcome,
           });
+          if (product.claimSource === "personal") void loadFavorites();
           if (pageOutcome === "page_error" && outcomeResult.result?.retryAfterCurrentRun) {
             pageErrorRetries.current.push(product);
           }
@@ -484,11 +523,12 @@ export default function AdminCollector() {
           break;
         }
         const status = await api<{ completed: boolean; soldOut: boolean; recheckAt: string | null; samePrice: boolean; samePriceRecheckAt: string | null }>("status",
-          { ...(product.productId === null
+          { claimSource: product.claimSource, ...(product.productId === null
             ? { shopId: product.shopId, externalProductId: product.externalProductId }
             : { productId: product.productId }), skipUnchangedDay: skipUnchangedDay, skipSoldOut: skipSoldOut },
         );
         if (status.completed) {
+          if (product.claimSource === "personal") void loadFavorites();
           if (status.soldOut) {
             soldOutCount.current += 1;
             recheckAt.current = status.recheckAt;
@@ -669,6 +709,11 @@ export default function AdminCollector() {
               change: (next: boolean) => { setSkipUnchangedDay(next); localStorage.setItem(skipUnchangedStorageKey, String(next)); },
             },
             {
+              label: "Personal Queueing",
+              checked: includePersonalQueue,
+              change: (next: boolean) => { setIncludePersonalQueue(next); localStorage.setItem(includePersonalQueueStorageKey, String(next)); },
+            },
+            {
               label: "Sold Out Products",
               checked: skipSoldOut,
               change: (next: boolean) => { setSkipSoldOut(next); localStorage.setItem(skipSoldOutStorageKey, String(next)); },
@@ -689,6 +734,20 @@ export default function AdminCollector() {
               <span aria-hidden="true" className="admin-collector-queue-switch-track" />
             </span></span>
           </label>)}
+        </div>
+        <div className="admin-collector-personal">
+          <form onSubmit={(event) => void addFavorite(event)}>
+            <label htmlFor="personal-collector-url">Personal queue</label>
+            <input id="personal-collector-url" type="url" placeholder="Paste a tracked Shopee product link" value={personalUrl} onChange={(event) => setPersonalUrl(event.target.value)} required />
+            <button type="submit" disabled={personalBusy || running}>Add product</button>
+          </form>
+          {personalMessage && <p role="status">{personalMessage}</p>}
+          {favorites.length > 0 && <div className="admin-collector-personal-list">
+            {favorites.map((favorite) => <div key={favorite.product_id}>
+              <a href={favorite.products.product_url} target="_blank" rel="noreferrer">{favorite.products.product_url}</a>
+              <button type="button" onClick={() => void removeFavorite(favorite.product_id)} disabled={personalBusy || running}>Remove</button>
+            </div>)}
+          </div>}
         </div>
         <div className="admin-collector-status admin-collector-status-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }} aria-live="polite">
           {[
