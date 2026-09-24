@@ -123,6 +123,7 @@ export default function AdminCollector() {
   const [currentProduct, setCurrentProduct] = useState<CollectorProduct | null>(null);
   const [favoriteSaving, setFavoriteSaving] = useState(false);
   const [favoriteNotice, setFavoriteNotice] = useState("");
+  const favoriteNoticeTimer = useRef<number | null>(null);
   const [succeeded, setSucceeded] = useState(0);
   const [failed, setFailed] = useState(0);
   const [history, setHistory] = useState<CollectorRun[]>([]);
@@ -454,7 +455,6 @@ export default function AdminCollector() {
       if (product.queueRequestId !== null && product.claimSource === "store") attemptedStoreRequestIds.current.add(product.queueRequestId);
       activeProduct.current = product;
       currentPageOutcome.current = null;
-      setFavoriteNotice("");
       setCurrentProduct(product);
       setMessage(`Opening ${product.shopId}.${product.externalProductId}`);
       if (!productTab.current || productTab.current.closed) throw new Error("The dedicated Shopee tab was closed.");
@@ -659,16 +659,42 @@ export default function AdminCollector() {
     await finishRun("stopped_safely");
   }
 
+  function showFavoriteNotice(notice: string) {
+    if (favoriteNoticeTimer.current !== null) window.clearTimeout(favoriteNoticeTimer.current);
+    setFavoriteNotice(notice);
+    favoriteNoticeTimer.current = window.setTimeout(() => setFavoriteNotice(""), 4000);
+  }
+
   async function saveCurrentFavorite() {
-    const product = currentProduct;
+    const product = activeProduct.current;
     if (!product || favoriteSaving) return;
+    const identity = `${product.shopId}.${product.externalProductId}`;
     setFavoriteSaving(true);
-    setFavoriteNotice("");
     try {
       await api("personal-add-current", { shopId: product.shopId, externalProductId: product.externalProductId });
-      setFavoriteNotice(`${product.shopId}.${product.externalProductId} saved to Favorite Queue`);
+      showFavoriteNotice(`${identity} saved to Favorite Queue`);
     } catch (cause) {
-      setFavoriteNotice(cause instanceof Error ? cause.message : "Unable to save favorite.");
+      if (cause instanceof Error && cause.message.includes("not tracked yet")) {
+        showFavoriteNotice("Will save to Favorite Queue after this product is recorded.");
+        void (async () => {
+          for (let attempt = 0; attempt < 60; attempt += 1) {
+            await wait(3000);
+            try {
+              await api("personal-add-current", { shopId: product.shopId, externalProductId: product.externalProductId });
+              showFavoriteNotice(`${identity} saved to Favorite Queue`);
+              return;
+            } catch (retryCause) {
+              if (!(retryCause instanceof Error && retryCause.message.includes("not tracked yet"))) {
+                showFavoriteNotice(retryCause instanceof Error ? retryCause.message : "Unable to save favorite.");
+                return;
+              }
+            }
+          }
+          showFavoriteNotice(`Could not save ${identity}. The product was not recorded.`);
+        })();
+      } else {
+        showFavoriteNotice(cause instanceof Error ? cause.message : "Unable to save favorite.");
+      }
     } finally {
       setFavoriteSaving(false);
     }
@@ -746,9 +772,9 @@ export default function AdminCollector() {
           ))}
           <button type="button" className="admin-collector-status-card admin-collector-status-message" style={{ ...collectorStatusCardStyle, gridColumn: "3 / span 2", width: "100%", font: "inherit", cursor: currentProduct ? "pointer" : "default" }} disabled={!currentProduct || favoriteSaving} onClick={() => void saveCurrentFavorite()} title={currentProduct ? "Save current product to Favorite Queue" : "No product is currently being collected"}>
             <small>Status</small>
-            <strong>{favoriteSaving ? "Saving favorite…" : favoriteNotice || (cooldownSeconds > 0
+            <strong>{cooldownSeconds > 0
               ? `Next collection available in ${Math.floor(cooldownSeconds / 3600)}h ${Math.floor((cooldownSeconds % 3600) / 60)}m ${cooldownSeconds % 60}s`
-              : message)}</strong>
+              : message}</strong>
           </button>
           {[
             ["Succeeded", succeeded],
@@ -760,6 +786,7 @@ export default function AdminCollector() {
             </div>
           ))}
         </div>
+        {favoriteNotice && <p className="admin-collector-remote-notice" role="status">{favoriteNotice}</p>}
         <p className="admin-collector-note">Keep this page and the dedicated Shopee tab open. Complete Shopee verification manually if it appears.</p>
         {remoteNotice && <p className="admin-collector-remote-notice" role="status">{remoteNotice}</p>}
       </section>
