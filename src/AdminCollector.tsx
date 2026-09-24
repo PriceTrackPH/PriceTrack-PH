@@ -70,6 +70,9 @@ const manilaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
 }).format(date);
 
+const formatCollectorCount = (value: number | string) =>
+  typeof value === "number" ? value.toLocaleString("en-US") : value;
+
 const collectorStatusCardStyle = {
   border: "1px solid",
   borderRadius: "8px",
@@ -695,7 +698,7 @@ export default function AdminCollector() {
           ].map(([label, value]) => (
             <div className="admin-collector-status-card" style={collectorStatusCardStyle} key={label}>
               <small>{label}</small>
-              <strong>{value}</strong>
+              <strong>{formatCollectorCount(value)}</strong>
             </div>
           ))}
           {[
@@ -704,7 +707,7 @@ export default function AdminCollector() {
           ].map(([label, value]) => (
             <div className="admin-collector-status-card" style={collectorStatusCardStyle} key={label}>
               <small>{label}</small>
-              <strong>{value}</strong>
+              <strong>{formatCollectorCount(value)}</strong>
             </div>
           ))}
           <div className="admin-collector-status-card admin-collector-status-message" style={{ ...collectorStatusCardStyle, gridColumn: "3 / span 2" }}>
@@ -719,7 +722,7 @@ export default function AdminCollector() {
           ].map(([label, value]) => (
             <div className="admin-collector-status-card" style={collectorStatusCardStyle} key={label}>
               <small>{label}</small>
-              <strong>{value}</strong>
+              <strong>{formatCollectorCount(value)}</strong>
             </div>
           ))}
         </div>
