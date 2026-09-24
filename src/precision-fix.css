@@ -425,7 +425,7 @@ html[data-theme="dark"] .support-section {
 .health-events th { color: #aeb6b2; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
 .health-product-link { color: inherit; text-decoration: none; }
 .admin-collector-panel { border: 1px solid #303936; border-radius: 18px; padding: 24px; background: #151d1a; }
-.admin-collector-actions { display: flex; gap: 10px; margin-bottom: 20px; }
+.admin-collector-actions { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
 .admin-collector-actions button { border: 0; border-radius: 10px; padding: 13px 20px; color: #fff; background: #281b6b; font-weight: 700; cursor: pointer; }
 .admin-collector-actions button:disabled { opacity: .5; cursor: not-allowed; }
 .admin-collector-option { display: flex; align-items: center; gap: 10px; width: fit-content; margin: -4px 0 18px; color: #f7faf9; font-weight: 650; cursor: pointer; }
@@ -580,15 +580,16 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
 
 
 .admin-collector-queue-options {
-  display: flex;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
   margin: 0 0 20px;
   overflow-x: auto;
   padding-bottom: 2px;
 }
-.admin-collector-option-button { flex: 0 0 auto; white-space: nowrap; border: 0; border-radius: 10px; padding: 13px 20px; background: #281b6b; color: #fff; font: inherit; font-size: 14px; font-weight: 700; line-height: 1.3; cursor: pointer; }
+.admin-collector-option-button { min-width: 0; white-space: nowrap; border: 0; border-radius: 10px; padding: 13px 8px; background: #281b6b; color: #fff; font: inherit; font-size: 13px; font-weight: 700; line-height: 1.3; cursor: pointer; }
 .admin-collector-option-button[aria-pressed="false"] { background: #231e40; color: #aeb2be; }
 .admin-collector-option-button:focus-visible { outline: 2px solid #00dfae; outline-offset: 3px; }
 .admin-collector-option-button:disabled { cursor: not-allowed; opacity: .65; }
+@media (max-width: 900px) { .admin-collector-queue-options { grid-template-columns: repeat(6, minmax(155px, 1fr)); } }
 @media (max-width: 540px) { .admin-collector-actions { flex-wrap: wrap; } }
