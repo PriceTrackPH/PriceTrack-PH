@@ -360,7 +360,7 @@ export default function AdminCollector() {
     const settingsLink = document.createElement("a");
     const collectorLink = document.createElement("a");
     const scannerLink = document.createElement("a");
-    affiliateLink.after(settingsLink, collectorLink, scannerLink);
+    affiliateLink.after(collectorLink, scannerLink, settingsLink);
     healthLink.textContent = "Health"; healthLink.href = "/admin/health"; healthLink.removeAttribute("data-scroll-target");
     affiliateLink.textContent = "Affiliate"; affiliateLink.href = "/admin/affiliate"; affiliateLink.removeAttribute("data-scroll-target");
     settingsLink.textContent = "Settings"; settingsLink.href = "/admin/settings";
