@@ -56,6 +56,30 @@ test("rejects desktop requests before contacting Supabase", async () => {
   assert.equal(calls, 0);
 });
 
+test("lets a desktop visitor recheck a tracked product without creating a duplicate product", async () => {
+  const calls = [];
+  global.fetch = async (url) => {
+    calls.push(url);
+    if (url.includes("/rest/v1/products?")) return { ok: true, json: async () => [{ id: 42 }] };
+    if (url.includes("/rpc/enqueue_public_collection_request")) return { ok: true, json: async () => ({ status: "queued" }) };
+    throw new Error("Unexpected endpoint");
+  };
+  const res = responseRecorder();
+  await handler(request({ "user-agent": "Chrome desktop" }, { ...validBody, recheckTracked: true }), res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.message, "Added to Priority Queue for another price check.");
+  assert.equal(calls.length, 2);
+});
+
+test("does not let a desktop visitor enqueue an untracked product as a recheck", async () => {
+  let calls = 0;
+  global.fetch = async () => { calls += 1; return { ok: true, json: async () => [] }; };
+  const res = responseRecorder();
+  await handler(request({ "user-agent": "Chrome desktop" }, { ...validBody, recheckTracked: true }), res);
+  assert.equal(res.statusCode, 403);
+  assert.equal(calls, 1);
+});
+
 test("queues a validated mobile request with only a hashed device id", async () => {
   global.fetch = async (url, options) => {
     assert.equal(url, "https://example.supabase.co/rest/v1/rpc/enqueue_public_collection_request");
