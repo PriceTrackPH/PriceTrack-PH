@@ -406,6 +406,20 @@ html[data-theme="dark"] .support-section {
 .health-ads-details { grid-column: 1 / -1; display: grid; gap: 5px; padding: 16px; border: 1px solid #303936; border-radius: 12px; }
 .health-ads-details span, .health-ads-details small { color: #aeb6b2; }
 .health-ads-message { grid-column: 1 / -1; padding: 11px 13px; border-radius: 10px; background: rgba(17,212,170,.1); color: #73e7c9 !important; }
+.admin-favorites-form { grid-column: 1 / -1; display: grid; gap: 8px; font-weight: 700; }
+.admin-favorites-form > div { display: flex; gap: 10px; }
+.admin-favorites-form input { flex: 1; min-width: 0; padding: 11px 12px; border: 1px solid #38413d; border-radius: 9px; background: #111916; color: inherit; font: inherit; }
+.admin-favorites button { border: 0; border-radius: 9px; padding: 11px 14px; background: #11d4aa; color: #07100d; font: inherit; font-weight: 800; cursor: pointer; }
+.admin-favorites button:disabled { opacity: .55; cursor: not-allowed; }
+.admin-favorites-list { grid-column: 1 / -1; display: grid; gap: 8px; max-height: 240px; overflow-y: auto; }
+.admin-favorites-list > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid #38413d; border-radius: 9px; }
+.admin-favorites-list a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #73e7c9; }
+.admin-favorites-list button { flex-shrink: 0; background: #231e40; color: #fff; }
+.admin-favorites-message { grid-column: 1 / -1; }
+html:not([data-theme="dark"]) .admin-favorites-form input { background: #fff; border-color: #cbd5d1; color: #17201d; }
+html:not([data-theme="dark"]) .admin-favorites-list > div { border-color: #d9e0dd; }
+html:not([data-theme="dark"]) .admin-favorites-list a { color: #087e68; }
+@media (max-width: 540px) { .admin-favorites-form > div { flex-direction: column; } }
 .health-events-heading { display: flex; justify-content: space-between; gap: 20px; align-items: baseline; }
 .health-events-heading h2 { margin-top: 0; }
 .health-table-wrap { overflow-x: auto; }
