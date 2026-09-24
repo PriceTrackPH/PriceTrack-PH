@@ -189,7 +189,40 @@ export async function claimStoreProduct(supabaseUrl, secret, excludedRequestIds 
   };
 }
 
-export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true) {
+async function claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut) {
+  const rows = await rpc(supabaseUrl, secret, "claim_personal_collection_product", {
+    p_excluded_product_ids: excludedProductIds,
+    p_lease_until: leaseUntil,
+    p_skip_sold_out: skipSoldOut,
+  });
+  const product = rows?.[0];
+  if (!product) return null;
+  return {
+    claimSource: "personal", queueRequestId: null,
+    productId: Number(product.product_id),
+    shopId: String(product.shop_id), externalProductId: String(product.external_product_id),
+    productUrl: product.product_url, leaseUntil: product.lease_until,
+  };
+}
+
+async function advancePersonalProduct(supabaseUrl, secret, productId, days = 2) {
+  const manila = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+  const next = new Date(Date.parse(`${manila}T00:00:00+08:00`) + days * 86400_000).toISOString();
+  const response = await fetch(`${supabaseUrl}/rest/v1/personal_collection_products?product_id=eq.${productId}`, {
+    method: "PATCH",
+    headers: adminHeaders(secret, { "Content-Type": "application/json", Prefer: "return=minimal" }),
+    body: JSON.stringify({ next_check_at: next, lease_until: null }),
+  });
+  if (!response.ok) throw new Error(`personal_advance_${response.status}`);
+}
+
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false) {
+  if (includePersonalQueue) {
+    const personal = await claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut);
+    if (personal) return personal;
+  }
   const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
   if (priority) return priority;
   if (includeStoreImports && preferredSource === "store") {
@@ -544,6 +577,45 @@ export default async function handler(req, res) {
       return send(res, 200, { ok: true, saved: finishedRun });
     }
 
+    if (action === "personal-list") {
+      const response = await fetch(`${supabaseUrl}/rest/v1/personal_collection_products?select=product_id,added_at,next_check_at,products(product_url,external_shop_id,external_product_id)&order=added_at.desc`, {
+        headers: adminHeaders(secret),
+      });
+      if (!response.ok) throw new Error(`personal_list_${response.status}`);
+      return send(res, 200, { ok: true, favorites: await response.json() });
+    }
+
+    if (action === "personal-add") {
+      let parsed;
+      try { parsed = new URL(String(req.body?.productUrl || "")); } catch { return send(res, 400, { error: "Enter a valid Shopee product link." }); }
+      const identity = parsed.pathname.match(/^\/product\/(\d+)\/(\d+)\/?$/) || parsed.pathname.match(/-i\.(\d+)\.(\d+)\/?$/);
+      if (parsed.protocol !== "https:" || parsed.hostname !== "shopee.ph" || !identity) {
+        return send(res, 400, { error: "Enter a Shopee product link with a shop and product ID." });
+      }
+      const params = new URLSearchParams({ select: "id", platform: "eq.shopee", external_shop_id: `eq.${identity[1]}`, external_product_id: `eq.${identity[2]}`, limit: "1" });
+      const matchResponse = await fetch(`${supabaseUrl}/rest/v1/products?${params}`, { headers: adminHeaders(secret) });
+      if (!matchResponse.ok) throw new Error(`personal_product_${matchResponse.status}`);
+      const [product] = await matchResponse.json();
+      if (!product) return send(res, 404, { error: "This product is not tracked yet. Record it first, then add it here." });
+      const response = await fetch(`${supabaseUrl}/rest/v1/personal_collection_products?on_conflict=product_id`, {
+        method: "POST",
+        headers: adminHeaders(secret, { "Content-Type": "application/json", Prefer: "resolution=ignore-duplicates,return=minimal" }),
+        body: JSON.stringify({ product_id: product.id }),
+      });
+      if (!response.ok) throw new Error(`personal_add_${response.status}`);
+      return send(res, 200, { ok: true });
+    }
+
+    if (action === "personal-remove") {
+      const productId = safeInteger(req.body?.productId);
+      if (!productId) return send(res, 400, { error: "A valid saved product is required" });
+      const response = await fetch(`${supabaseUrl}/rest/v1/personal_collection_products?product_id=eq.${productId}`, {
+        method: "DELETE", headers: adminHeaders(secret, { Prefer: "return=minimal" }),
+      });
+      if (!response.ok) throw new Error(`personal_remove_${response.status}`);
+      return send(res, 200, { ok: true });
+    }
+
     if (action === "claim") {
       const attemptedProductIds = Array.isArray(req.body?.attemptedProductIds)
         ? req.body.attemptedProductIds.map((value) => safeInteger(value)).filter(Boolean).slice(0, 5000)
@@ -560,6 +632,7 @@ export default async function handler(req, res) {
         attemptedStoreRequestIds, req.body?.includeStoreImports === true, req.body?.skipSoldOut !== false,
         req.body?.preferredSource === "normal" ? "normal" : "store",
         req.body?.includeNormalQueue !== false,
+        req.body?.includePersonalQueue === true,
       );
       return send(res, 200, { ok: true, product });
     }
@@ -583,6 +656,17 @@ export default async function handler(req, res) {
     }
 
     if (action === "release") {
+      if (req.body?.claimSource === "personal") {
+        const productId = safeInteger(req.body?.productId);
+        if (!productId) return send(res, 400, { error: "A valid saved product is required" });
+        const response = await fetch(`${supabaseUrl}/rest/v1/personal_collection_products?product_id=eq.${productId}`, {
+          method: "PATCH", headers: adminHeaders(secret, { "Content-Type": "application/json", Prefer: "return=minimal" }),
+          body: JSON.stringify({ lease_until: null }),
+        });
+        if (!response.ok) throw new Error(`personal_release_${response.status}`);
+        await releaseProduct(supabaseUrl, secret, productId);
+        return send(res, 200, { ok: true });
+      }
       if (req.body?.claimSource === "store") {
         const queueRequestId = String(req.body?.queueRequestId || "");
         const leaseUntil = String(req.body?.leaseUntil || "");
@@ -610,7 +694,11 @@ export default async function handler(req, res) {
       const checkedDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedCheckDate) ? requestedCheckDate : null;
       const productId = safeInteger(req.body?.productId);
       if (productId) {
-        return send(res, 200, { ok: true, ...(await productCheckStatus(supabaseUrl, secret, productId, skipUnchangedDay, skipSoldOut, checkedDate)) });
+        const status = await productCheckStatus(supabaseUrl, secret, productId, skipUnchangedDay, skipSoldOut, checkedDate);
+        if (status.completed && req.body?.claimSource === "personal") {
+          await advancePersonalProduct(supabaseUrl, secret, productId);
+        }
+        return send(res, 200, { ok: true, ...status });
       }
       const shopId = String(req.body?.shopId || "");
       const externalProductId = String(req.body?.externalProductId || "");
@@ -630,18 +718,19 @@ export default async function handler(req, res) {
       const shopId = String(req.body?.shopId || "");
       const externalProductId = String(req.body?.externalProductId || "");
       const outcome = String(req.body?.outcome || "");
-      if (!["priority", "store", "random"].includes(claimSource)
+      if (!["priority", "store", "random", "personal"].includes(claimSource)
         || !["sold_out", "does_not_exist", "unlisted", "page_error"].includes(outcome)
         || !/^\d+$/.test(shopId) || !/^\d+$/.test(externalProductId)
-        || (claimSource === "random" && !productId)
-        || (claimSource !== "random" && !UUID_V4.test(queueRequestId))) {
+        || (["random", "personal"].includes(claimSource) && !productId)
+        || (!["random", "personal"].includes(claimSource) && !UUID_V4.test(queueRequestId))) {
         return send(res, 400, { error: "A valid collector product outcome is required" });
       }
       const result = await markCollectorProductOutcome(supabaseUrl, secret, {
-        claimSource, queueRequestId: queueRequestId || null, productId: productId || null,
+        claimSource: claimSource === "personal" ? "random" : claimSource, queueRequestId: queueRequestId || null, productId: productId || null,
         shopId, externalProductId, outcome,
       });
-      return send(res, 200, { ok: true, result });
+      if (claimSource === "personal") await advancePersonalProduct(supabaseUrl, secret, productId, outcome === "page_error" ? 1 : 2);
+      return send(res, 200, { ok: true, result: claimSource === "personal" ? { ...result, retryAfterCurrentRun: false } : result });
     }
 
     if (action === "record") {
