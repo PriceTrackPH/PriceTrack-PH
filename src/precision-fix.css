@@ -581,7 +581,7 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
 
 .admin-collector-queue-options {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin: 0 0 20px;
 }

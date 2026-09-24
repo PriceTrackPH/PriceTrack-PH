@@ -86,6 +86,22 @@ test("falls back to the existing random claim only when the priority queue is em
   assert.equal(claim.productId, 42);
 });
 
+test("skips priority claims when its collector switch is off", async () => {
+  const calls = [];
+  const originalFetch = global.fetch;
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    return { ok: true, json: async () => [{ product_id: 42, shop_id: "1", external_product_id: "2", product_url: "https://shopee.ph/product/1/2", lease_until: "2026-09-08T02:00:00.000Z" }] };
+  };
+  try {
+    const claim = await claimNextProduct("https://example.supabase.co", "secret", [], [], "2026-09-08T02:00:00.000Z", [], false, true, "store", true, false, false);
+    assert.equal(claim.claimSource, "random");
+    assert.equal(calls.some((url) => url.includes("claim_oldest_public_collection_request")), false);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
 test("claims store imports after priority and before random when enabled", async () => {
   const calls = [];
   global.fetch = async (url) => {
