@@ -1134,8 +1134,8 @@ function App() {
   if (pathname === "/admin/affiliate" || pathname === "/admin/affiliate/") {
     return admin(<AdminHealth view="affiliate" />);
   }
-  if (pathname === "/admin/ads" || pathname === "/admin/ads/") {
-    return admin(<AdminHealth view="ads" />);
+  if (pathname === "/admin/settings" || pathname === "/admin/settings/" || pathname === "/admin/ads" || pathname === "/admin/ads/") {
+    return admin(<AdminHealth view="settings" />);
   }
   if (pathname === "/admin/collector" || pathname === "/admin/collector/") {
     return admin(<AdminCollector />);
