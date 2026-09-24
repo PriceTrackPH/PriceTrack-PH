@@ -14,7 +14,7 @@ import type { Tables } from "./database.types";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import shopeeLogo from "./assets/shopee-logo.png";
 import ReportAd from "./ReportAd";
-import { isMobileVisitor, requestUntrackedProduct } from "./public-collection-request";
+import { isMobileVisitor, requestTrackedProductRecheck, requestUntrackedProduct } from "./public-collection-request";
 
 const AdminHealth = lazy(() => import("./AdminHealth"));
 const AdminCollector = lazy(() => import("./AdminCollector"));
@@ -488,6 +488,7 @@ function ReportApp() {
   const [featuredLoading, setFeaturedLoading] = useState(true);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [queueNotice, setQueueNotice] = useState<string | null>(null);
   const [linkVisibility, setLinkVisibility] = useState({ shopeeLinkEnabled: true, affiliateLinkEnabled: true });
 
   useEffect(() => {
@@ -646,6 +647,7 @@ function ReportApp() {
     event.preventDefault();
     setLoading(true);
     setError(null);
+    setQueueNotice(null);
     try {
       const submittedLink = /^https?:\/\//i.test(query.trim());
       const ids = await resolveProductQuery(query);
@@ -653,6 +655,13 @@ function ReportApp() {
         const found = await loadProduct(ids.shopId, ids.productId);
         showPermanentProductUrl(found, "push");
         setHasSearched(true);
+        if (submittedLink) {
+          try {
+            setQueueNotice(await requestTrackedProductRecheck(ids));
+          } catch (cause) {
+            setQueueNotice(cause instanceof Error ? cause.message : "Unable to request another price check.");
+          }
+        }
       } catch (cause) {
         if (!(cause instanceof UntrackedProductError) || !submittedLink || !isMobileVisitor()) throw cause;
         setHasSearched(true);
@@ -847,6 +856,7 @@ function ReportApp() {
                 Found {priceChanges} price change{priceChanges === 1 ? "" : "s"}.
               </div>
             )}
+            {queueNotice && <div className="found-status" role="status">{queueNotice}</div>}
 
             <div className="trust-row" aria-label="PriceTrack promises">
               <span>✓ No sign-up needed</span>

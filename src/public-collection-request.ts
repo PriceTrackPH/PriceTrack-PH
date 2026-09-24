@@ -30,6 +30,14 @@ export function canonicalShopeeUrl(shopId: string, productId: string) {
 }
 
 export async function requestUntrackedProduct(ids: { shopId: string; productId: string }) {
+  return requestProductCheck(ids, false);
+}
+
+export async function requestTrackedProductRecheck(ids: { shopId: string; productId: string }) {
+  return requestProductCheck(ids, true);
+}
+
+async function requestProductCheck(ids: { shopId: string; productId: string }, recheckTracked: boolean) {
   let response: Response;
   try {
     response = await fetch("/api/public-collection-request", {
@@ -39,6 +47,7 @@ export async function requestUntrackedProduct(ids: { shopId: string; productId: 
         ...ids,
         productUrl: canonicalShopeeUrl(ids.shopId, ids.productId),
         deviceId: getPublicRequestDeviceId(),
+        ...(recheckTracked ? { recheckTracked: true } : {}),
       }),
     });
   } catch {
