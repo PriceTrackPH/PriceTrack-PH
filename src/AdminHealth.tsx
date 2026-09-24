@@ -101,6 +101,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favoriteMessage, setFavoriteMessage] = useState("");
   const isLogin = view === "login";
+  const isSettings = view === "settings";
 
   useEffect(() => {
     document.body.classList.add("admin-page-active");
@@ -192,6 +193,15 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     return payload as T;
   }
 
+  useEffect(() => {
+    if (!isSettings || !token) return;
+    const onFavoriteChange = (event: StorageEvent) => {
+      if (event.key === "pricetrack-favorite-queue-updated") void loadFavorites();
+    };
+    window.addEventListener("storage", onFavoriteChange);
+    return () => window.removeEventListener("storage", onFavoriteChange);
+  }, [isSettings, token]);
+
   async function loadFavorites(nextToken = token) {
     setFavoriteLoading(true);
     try {
@@ -203,12 +213,17 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     } finally { setFavoriteLoading(false); }
   }
 
+  function publishFavoriteChange() {
+    localStorage.setItem("pricetrack-favorite-queue-updated", `${Date.now()}:${crypto.randomUUID()}`);
+  }
+
   async function addFavorite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFavoriteBusy(true);
     setFavoriteMessage("");
     try {
       await favoriteRequest("personal-add", { productUrl: favoriteUrl.trim() });
+      publishFavoriteChange();
       setFavoriteUrl("");
       await loadFavorites();
       setFavoriteMessage("Product saved to Favorite Queue.");
@@ -222,6 +237,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     setFavoriteMessage("");
     try {
       await favoriteRequest("personal-remove", { productId });
+      publishFavoriteChange();
       await loadFavorites();
       setFavoriteMessage("Product removed from Favorite Queue.");
     } catch (cause) {
@@ -428,7 +444,6 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
 
   const isHealthy = Boolean(data && data.summary.failures === 0 && data.summary.partial === 0);
   const isAffiliate = view === "affiliate";
-  const isSettings = view === "settings";
 
   return (
     <main className="health-page">
