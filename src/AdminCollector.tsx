@@ -66,6 +66,7 @@ const cooldownStorageKey = "pricetrack-admin-collector-cooldown-until";
 const skipUnchangedStorageKey = "pricetrack-admin-collector-skip-unchanged-day";
 const skipSoldOutStorageKey = "pricetrack-admin-collector-skip-sold-out";
 const includeStoreImportsStorageKey = "pricetrack-admin-collector-include-store-imports";
+const includeNormalQueueStorageKey = "pricetrack-admin-collector-include-normal-queue";
 const manilaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
 }).format(date);
@@ -131,6 +132,7 @@ export default function AdminCollector() {
   const [includeStoreImports, setIncludeStoreImports] = useState(() =>
     includeStoreImportsDefault(localStorage.getItem(includeStoreImportsStorageKey))
   );
+  const [includeNormalQueue, setIncludeNormalQueue] = useState(() => localStorage.getItem(includeNormalQueueStorageKey) !== "false");
   const [cooldownUntil, setCooldownUntil] = useState(() => Number(localStorage.getItem(cooldownStorageKey)) || 0);
   const [cooldownSeconds, setCooldownSeconds] = useState(() => cooldownSecondsRemaining(Number(localStorage.getItem(cooldownStorageKey)) || 0, Date.now()));
   const stopped = useRef(true);
@@ -425,6 +427,7 @@ export default function AdminCollector() {
         attemptedQueueRequestIds: [...attemptedQueueRequestIds.current],
         attemptedStoreRequestIds: [...attemptedStoreRequestIds.current],
         includeStoreImports: includeStoreImports,
+        includeNormalQueue,
         skipSoldOut,
         preferredSource: nextNonPrioritySource(nonPriorityCadence.current),
       });
@@ -658,35 +661,41 @@ export default function AdminCollector() {
           <button type="button" onClick={() => void startCollection("unlimited")} disabled={running || !summary}>Start unlimited collection</button>
           <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
         </div>
-        <label className="admin-collector-option">
-          <input
-            type="checkbox"
-            checked={skipUnchangedDay}
-            disabled={running}
-            onChange={(event) => {
-              const nextValue = event.target.checked;
-              setSkipUnchangedDay(nextValue);
-              localStorage.setItem(skipUnchangedStorageKey, String(nextValue));
-            }}
-          />
-          <span>Skip next day when price is unchanged</span>
-        </label>
-        <label className="admin-collector-option">
-          <input type="checkbox" checked={skipSoldOut} disabled={running} onChange={(event) => {
-            const nextValue = event.target.checked;
-            setSkipSoldOut(nextValue);
-            localStorage.setItem(skipSoldOutStorageKey, String(nextValue));
-          }} />
-          <span>Skip sold-out products</span>
-        </label>
-        <label className="admin-collector-option">
-          <input type="checkbox" checked={includeStoreImports} disabled={running} onChange={(event) => {
-            const nextValue = event.target.checked;
-            setIncludeStoreImports(nextValue);
-            localStorage.setItem(includeStoreImportsStorageKey, String(nextValue));
-          }} />
-          <span>Include store-imported products</span>
-        </label>
+        <div className="admin-collector-queue-options" role="group" aria-label="Collection options">
+          {[
+            {
+              label: "Same Price Products",
+              description: "On: skip the next day when today's price is unchanged. Off: check again tomorrow and record the price.",
+              checked: skipUnchangedDay,
+              change: (next: boolean) => { setSkipUnchangedDay(next); localStorage.setItem(skipUnchangedStorageKey, String(next)); },
+            },
+            {
+              label: "Sold Out Products",
+              description: "On: defer sold-out checks for 15 days, then 30 days. Off: check again on the next day.",
+              checked: skipSoldOut,
+              change: (next: boolean) => { setSkipSoldOut(next); localStorage.setItem(skipSoldOutStorageKey, String(next)); },
+            },
+            {
+              label: "Store Queueing",
+              description: "On: include store products in the existing 1 store to 2 normal rotation. Off: exclude store products.",
+              checked: includeStoreImports,
+              change: (next: boolean) => { setIncludeStoreImports(next); localStorage.setItem(includeStoreImportsStorageKey, String(next)); },
+            },
+            {
+              label: "Normal Queueing",
+              description: "On: include random products. Off: collect only from other enabled queues.",
+              checked: includeNormalQueue,
+              change: (next: boolean) => { setIncludeNormalQueue(next); localStorage.setItem(includeNormalQueueStorageKey, String(next)); },
+            },
+          ].map((option) => <label className="admin-collector-queue-option" key={option.label}>
+            <span className="admin-collector-queue-option-top"><strong>{option.label}</strong><span className="admin-collector-queue-switch">
+              <input type="checkbox" checked={option.checked} disabled={running} onChange={(event) => option.change(event.target.checked)} aria-label={option.label} />
+              <span aria-hidden="true" className="admin-collector-queue-switch-track" />
+              <span className="admin-collector-queue-switch-state">{option.checked ? "On" : "Off"}</span>
+            </span></span>
+            <small>{option.description}</small>
+          </label>)}
+        </div>
         <div className="admin-collector-status admin-collector-status-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }} aria-live="polite">
           {[
             ["Total Products", summary?.totalTracked ?? "—"],
