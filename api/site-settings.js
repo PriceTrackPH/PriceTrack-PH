@@ -34,33 +34,46 @@ export default async function handler(req, res) {
   const headers = adminHeaders(secret, { "Content-Type": "application/json" });
 
   try {
+    const settingKeys = {
+      adsEnabled: "ads_enabled",
+      shopeeLinkEnabled: "shopee_link_enabled",
+      affiliateLinkEnabled: "affiliate_link_enabled",
+    };
+
     if (req.method === "PATCH") {
       const expectedToken = process.env.ADMIN_HEALTH_TOKEN || "";
-      const suppliedToken = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+      const suppliedToken = String(req.headers.authorization || "").replace(/^Bearer\\s+/i, "");
       if (!secretsMatch(suppliedToken, expectedToken)) return send(res, 401, { error: "Unauthorized" });
-      if (typeof req.body?.adsEnabled !== "boolean") return send(res, 400, { error: "adsEnabled must be true or false" });
 
-      const updateResponse = await fetch(`${supabaseUrl}/rest/v1/site_settings?key=eq.ads_enabled`, {
-        method: "PATCH",
-        headers: { ...headers, Prefer: "return=representation" },
-        body: JSON.stringify({ boolean_value: req.body.adsEnabled, updated_at: new Date().toISOString() }),
+      const changes = Object.entries(settingKeys).filter(([field]) => Object.prototype.hasOwnProperty.call(req.body || {}, field));
+      if (changes.length !== 1 || typeof req.body[changes[0][0]] !== "boolean") {
+        return send(res, 400, { error: "Supply one boolean setting" });
+      }
+      const [field, key] = changes[0];
+      const updateResponse = await fetch(`${supabaseUrl}/rest/v1/site_settings?on_conflict=key`, {
+        method: "POST",
+        headers: { ...headers, Prefer: "resolution=merge-duplicates,return=representation" },
+        body: JSON.stringify({ key, boolean_value: req.body[field], updated_at: new Date().toISOString() }),
       });
       if (!updateResponse.ok) throw new Error(`settings_update_${updateResponse.status}`);
     }
 
-    const response = await fetch(`${supabaseUrl}/rest/v1/site_settings?key=eq.ads_enabled&select=boolean_value,updated_at`, { headers });
+    const response = await fetch(`${supabaseUrl}/rest/v1/site_settings?key=in.(ads_enabled,shopee_link_enabled,affiliate_link_enabled)&select=key,boolean_value,updated_at`, { headers });
     if (!response.ok) throw new Error(`settings_read_${response.status}`);
-    const [row] = await response.json();
-    const requestedEnabled = row?.boolean_value === true;
+    const rows = await response.json();
+    const byKey = Object.fromEntries(rows.map((row) => [row.key, row]));
+    const requestedEnabled = byKey.ads_enabled?.boolean_value === true;
 
     return send(res, 200, {
       adsEnabled: requestedEnabled && configured,
       requestedEnabled,
+      shopeeLinkEnabled: byKey.shopee_link_enabled?.boolean_value !== false,
+      affiliateLinkEnabled: byKey.affiliate_link_enabled?.boolean_value !== false,
       configured,
       publisherId: configured ? publisherId : null,
       reportSlotId: configured ? reportSlotId : null,
       topSlotId: topSlotConfigured ? topSlotId : null,
-      updatedAt: row?.updated_at || null,
+      updatedAt: byKey.ads_enabled?.updated_at || null,
     });
   } catch (error) {
     console.error("Site settings request failed", error);
