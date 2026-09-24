@@ -55,6 +55,11 @@ type AdSettings = {
   updatedAt: string | null;
 };
 
+type FavoriteProduct = {
+  product_id: number;
+  products: { product_url: string };
+};
+
 const eventLabels: Record<string, string> = {
   record_success: "Recorded",
   record_partial: "Partial failure",
@@ -90,6 +95,11 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [adsBusy, setAdsBusy] = useState(false);
   const [linkBusy, setLinkBusy] = useState<"shopeeLinkEnabled" | "affiliateLinkEnabled" | null>(null);
   const [adsMessage, setAdsMessage] = useState("");
+  const [favoriteUrl, setFavoriteUrl] = useState("");
+  const [favorites, setFavorites] = useState<FavoriteProduct[]>([]);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [favoriteMessage, setFavoriteMessage] = useState("");
   const isLogin = view === "login";
 
   useEffect(() => {
@@ -166,6 +176,59 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     setAdSettings(payload as AdSettings);
   }
 
+  async function favoriteRequest<T>(action: string, body: Record<string, unknown> = {}, nextToken = token): Promise<T> {
+    const response = await fetch(`/api/admin-pc-collector?action=${action}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${nextToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      sessionStorage.removeItem("pricetrack-admin-health-token");
+      window.location.replace("/admin");
+      throw new Error("Admin login expired.");
+    }
+    if (!response.ok) throw new Error(payload.error || "Unable to update Favorite Queue.");
+    return payload as T;
+  }
+
+  async function loadFavorites(nextToken = token) {
+    setFavoriteLoading(true);
+    try {
+      const result = await favoriteRequest<{ favorites: FavoriteProduct[] }>("personal-list", {}, nextToken);
+      setFavorites(result.favorites);
+      setFavoriteMessage("");
+    } catch (cause) {
+      setFavoriteMessage(cause instanceof Error ? cause.message : "Unable to load Favorite Queue.");
+    } finally { setFavoriteLoading(false); }
+  }
+
+  async function addFavorite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFavoriteBusy(true);
+    setFavoriteMessage("");
+    try {
+      await favoriteRequest("personal-add", { productUrl: favoriteUrl.trim() });
+      setFavoriteUrl("");
+      await loadFavorites();
+      setFavoriteMessage("Product saved to Favorite Queue.");
+    } catch (cause) {
+      setFavoriteMessage(cause instanceof Error ? cause.message : "Unable to save product.");
+    } finally { setFavoriteBusy(false); }
+  }
+
+  async function removeFavorite(productId: number) {
+    setFavoriteBusy(true);
+    setFavoriteMessage("");
+    try {
+      await favoriteRequest("personal-remove", { productId });
+      await loadFavorites();
+      setFavoriteMessage("Product removed from Favorite Queue.");
+    } catch (cause) {
+      setFavoriteMessage(cause instanceof Error ? cause.message : "Unable to remove product.");
+    } finally { setFavoriteBusy(false); }
+  }
+
   async function loadAffiliateSummary(nextToken = token) {
     if (!nextToken) return;
     try {
@@ -209,7 +272,10 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
       }
       setData(payload as HealthData);
       if (view === "affiliate") void loadAffiliateSummary(nextToken);
-      if (view === "settings") void loadSiteSettings(nextToken).catch((cause) => setAdsMessage(cause instanceof Error ? cause.message : "Unable to load ad settings."));
+      if (view === "settings") {
+        void loadSiteSettings(nextToken).catch((cause) => setAdsMessage(cause instanceof Error ? cause.message : "Unable to load ad settings."));
+        void loadFavorites(nextToken);
+      }
     } catch (cause) {
       setData(null);
       setError(cause instanceof Error ? cause.message : "Unable to load diagnostics.");
@@ -469,6 +535,28 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                 <small>The switch affects every website visitor immediately.</small>
               </div>
               {adsMessage && <p className="health-ads-message" role="status">{adsMessage}</p>}
+            </section>}
+
+            {isSettings && <section className="health-ads admin-favorites" aria-labelledby="favorites-heading">
+              <div>
+                <span className="health-kicker">COLLECTOR</span>
+                <h2 id="favorites-heading">Favorite Queue</h2>
+                <p>Save tracked Shopee products for repeat checks in the collector.</p>
+              </div>
+              <form onSubmit={(event) => void addFavorite(event)} className="admin-favorites-form">
+                <label htmlFor="favorite-product-url">Shopee product link</label>
+                <div><input id="favorite-product-url" type="url" placeholder="https://shopee.ph/product/123/456" value={favoriteUrl}
+                  onChange={(event) => setFavoriteUrl(event.target.value)} required />
+                  <button type="submit" disabled={favoriteBusy || favoriteLoading}>Save product</button></div>
+              </form>
+              <div className="admin-favorites-list">
+                {favoriteLoading ? <p>Loading saved products…</p> : favorites.length === 0 ? <p>No saved products yet.</p> :
+                  favorites.map((favorite) => <div key={favorite.product_id}>
+                    <a href={favorite.products.product_url} target="_blank" rel="noreferrer">{favorite.products.product_url}</a>
+                    <button type="button" disabled={favoriteBusy} onClick={() => void removeFavorite(favorite.product_id)}>Remove</button>
+                  </div>)}
+              </div>
+              {favoriteMessage && <p className="admin-favorites-message" role="status">{favoriteMessage}</p>}
             </section>}
 
             {!isAffiliate && !isSettings && <section className={`health-status ${isHealthy ? "healthy" : "attention"}`}>
