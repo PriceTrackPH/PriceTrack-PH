@@ -676,22 +676,42 @@ function runAutomaticRecording() {
   }
 
   recordingProductKey = key;
-  recordingPromise = automaticallyRecordPrice()
+  const currentRun = automaticallyRecordPrice()
     .then(result => {
-      lastCompletedRun = { key, at: Date.now(), result };
+      if (recordingPromise === currentRun) lastCompletedRun = { key, at: Date.now(), result };
       return result;
     })
     .finally(() => {
-      recordingPromise = null;
-      recordingProductKey = null;
+      if (recordingPromise === currentRun) {
+        recordingPromise = null;
+        recordingProductKey = null;
+      }
     });
-
-  return recordingPromise;
+  recordingPromise = currentRun;
+  return currentRun;
 }
 
 // Start at document_start. Shopee's full DOMContentLoaded event can take 10–20+
 // seconds on media-heavy product pages, but model data is available much earlier.
 runAutomaticRecording();
+
+// Shopee can change product routes without reloading this content script.
+let observedProductKey = (() => {
+  const ids = parseShopeeIds(location.href);
+  return ids ? `${ids.shopId}:${ids.productId}` : "";
+})();
+setInterval(() => {
+  const ids = parseShopeeIds(location.href);
+  const nextKey = ids ? `${ids.shopId}:${ids.productId}` : "";
+  if (nextKey === observedProductKey) return;
+  observedProductKey = nextKey;
+  capturedShopeePayload = null;
+  lastCompletedRun = null;
+  if (nextKey) {
+    window.postMessage({ source: REQUEST_SOURCE, type: "request-product-data" }, "*");
+    void runAutomaticRecording();
+  }
+}, 500);
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "getSelectedVariation") {
