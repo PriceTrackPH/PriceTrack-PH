@@ -69,6 +69,7 @@ const includeStoreImportsStorageKey = "pricetrack-admin-collector-include-store-
 const includeNormalQueueStorageKey = "pricetrack-admin-collector-include-normal-queue";
 const includePriorityQueueStorageKey = "pricetrack-admin-collector-include-priority-queue";
 const includePersonalQueueStorageKey = "pricetrack-admin-collector-include-personal-queue";
+const favoriteQueueEventKey = "pricetrack-favorite-queue-updated";
 const manilaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
 }).format(date);
@@ -273,7 +274,7 @@ export default function AdminCollector() {
 
   useEffect(() => {
     if (!token) return;
-    void api<{ favorites: Array<{ products: { external_shop_id: string; external_product_id: string } | null }> }>("personal-list")
+    const refreshFavorites = () => void api<{ favorites: Array<{ products: { external_shop_id: string; external_product_id: string } | null }> }>("personal-list")
       .then(({ favorites }) => {
         setFavoriteIds(new Set(favorites.flatMap(({ products }) =>
           products ? [`${products.external_shop_id}.${products.external_product_id}`] : [],
@@ -281,6 +282,10 @@ export default function AdminCollector() {
       })
       .catch((cause) => showFavoriteNotice(cause instanceof Error ? cause.message : "Unable to load Favorite Queue."))
       .finally(() => setFavoritesLoaded(true));
+    const onFavoriteChange = (event: StorageEvent) => { if (event.key === favoriteQueueEventKey) refreshFavorites(); };
+    window.addEventListener("storage", onFavoriteChange);
+    refreshFavorites();
+    return () => window.removeEventListener("storage", onFavoriteChange);
   }, [token]);
 
   useEffect(() => {
@@ -681,6 +686,10 @@ export default function AdminCollector() {
     favoriteNoticeTimer.current = window.setTimeout(() => setFavoriteNotice(""), 4000);
   }
 
+  function publishFavoriteChange() {
+    localStorage.setItem(favoriteQueueEventKey, `${Date.now()}:${crypto.randomUUID()}`);
+  }
+
   function markFavorite(identity: string, saved: boolean) {
     setFavoriteIds((previous) => {
       const next = new Set(previous);
@@ -704,6 +713,7 @@ export default function AdminCollector() {
       setFavoriteSaving(true);
       try {
         await api("personal-remove-current", body);
+        publishFavoriteChange();
       } catch (cause) {
         markFavorite(identity, true);
         showFavoriteNotice(cause instanceof Error ? cause.message : "Unable to remove favorite.");
@@ -719,6 +729,7 @@ export default function AdminCollector() {
       await api("personal-add-current", body);
       if (!pendingFavorites.current.has(identity)) await api("personal-remove-current", body);
       pendingFavorites.current.delete(identity);
+      publishFavoriteChange();
     } catch (cause) {
       if (cause instanceof Error && cause.message.includes("not tracked yet")) {
         void (async () => {
@@ -729,6 +740,7 @@ export default function AdminCollector() {
               await api("personal-add-current", body);
               if (!pendingFavorites.current.has(identity)) await api("personal-remove-current", body);
               pendingFavorites.current.delete(identity);
+              publishFavoriteChange();
               return;
             } catch (retryCause) {
               if (!(retryCause instanceof Error && retryCause.message.includes("not tracked yet"))) {
