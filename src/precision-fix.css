@@ -580,31 +580,15 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
 
 
 .admin-collector-queue-options {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
   gap: 10px;
   margin: 0 0 20px;
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
-.admin-collector-queue-option {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  min-height: 56px;
-  padding: 12px 14px;
-  border: 1px solid #38413d;
-  border-radius: 11px;
-  background: #1a211e;
-}
-.admin-collector-option-button { border: 0; border-radius: 10px; padding: 13px 20px; background: #281b6b; color: #fff; font: inherit; font-size: 14px; font-weight: 700; line-height: 1.3; cursor: pointer; }
+.admin-collector-option-button { flex: 0 0 auto; white-space: nowrap; border: 0; border-radius: 10px; padding: 13px 20px; background: #281b6b; color: #fff; font: inherit; font-size: 14px; font-weight: 700; line-height: 1.3; cursor: pointer; }
 .admin-collector-option-button[aria-pressed="false"] { background: #231e40; color: #aeb2be; }
 .admin-collector-option-button:focus-visible { outline: 2px solid #00dfae; outline-offset: 3px; }
-.admin-collector-option-button:disabled { cursor: not-allowed; }
-.admin-collector-queue-option:has(button:disabled) { opacity: .65; }
-html:not([data-theme="dark"]) .admin-collector-queue-option { background: #f8faf9; border-color: #d9e0dd; }
-@media (max-width: 950px) { .admin-collector-queue-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 540px) { .admin-collector-queue-options { grid-template-columns: 1fr; } .admin-collector-actions { flex-wrap: wrap; } }
-
-@media (max-width: 1150px) { .admin-collector-queue-options { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 760px) { .admin-collector-queue-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 540px) { .admin-collector-queue-options { grid-template-columns: 1fr; } }
+.admin-collector-option-button:disabled { cursor: not-allowed; opacity: .65; }
+@media (max-width: 540px) { .admin-collector-actions { flex-wrap: wrap; } }
