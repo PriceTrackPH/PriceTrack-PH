@@ -478,7 +478,20 @@ html[data-theme="dark"] .admin-collector-status-card strong { color: #f7faf9; }
 .health-empty { color: #aeb6b2; padding: 28px 0 8px; }
 
 /* Follow the site's Light setting instead of forcing the admin page dark. */
-html:not([data-theme="dark"]) .health-page { background: #f7f8f7; color: #17201d; }
+html:not([data-theme="dark"]) .health-page {
+  background-color: #fff;
+  background-image:
+    radial-gradient(
+      ellipse 24% 145% at 82.5% 50%,
+      rgba(111, 255, 225, .46) 0%,
+      rgba(111, 255, 225, .46) 12%,
+      rgba(111, 255, 225, 0) 100%
+    ),
+    linear-gradient(90deg, #f2f2ff 0%, #fbfbff 58%, #fff 68%, #fff 100%);
+  background-size: 100% 520px;
+  background-repeat: no-repeat;
+  color: #17201d;
+}
 html:not([data-theme="dark"]) .health-heading p,
 html:not([data-theme="dark"]) .health-events-heading span,
 html:not([data-theme="dark"]) .health-status span,
