@@ -122,6 +122,7 @@ export default function AdminCollector() {
   const [message, setMessage] = useState("Opening collector…");
   const [currentProduct, setCurrentProduct] = useState<CollectorProduct | null>(null);
   const [favoriteSaving, setFavoriteSaving] = useState(false);
+  const [favoriteIdentity, setFavoriteIdentity] = useState<string | null>(null);
   const [favoriteNotice, setFavoriteNotice] = useState("");
   const favoriteNoticeTimer = useRef<number | null>(null);
   const [succeeded, setSucceeded] = useState(0);
@@ -456,6 +457,7 @@ export default function AdminCollector() {
       activeProduct.current = product;
       currentPageOutcome.current = null;
       setCurrentProduct(product);
+      setFavoriteIdentity(null);
       setMessage(`Opening ${product.shopId}.${product.externalProductId}`);
       if (!productTab.current || productTab.current.closed) throw new Error("The dedicated Shopee tab was closed.");
       productTab.current.location.href = productUrlWithCollectorOptions(product.productUrl, skipUnchangedDay, skipSoldOut);
@@ -670,29 +672,33 @@ export default function AdminCollector() {
     if (!product || favoriteSaving) return;
     const identity = `${product.shopId}.${product.externalProductId}`;
     setFavoriteSaving(true);
+    setFavoriteIdentity(identity);
     try {
       await api("personal-add-current", { shopId: product.shopId, externalProductId: product.externalProductId });
-      showFavoriteNotice(`${identity} saved to Favorite Queue`);
+
     } catch (cause) {
       if (cause instanceof Error && cause.message.includes("not tracked yet")) {
-        showFavoriteNotice("Will save to Favorite Queue after this product is recorded.");
+
         void (async () => {
           for (let attempt = 0; attempt < 60; attempt += 1) {
             await wait(3000);
             try {
               await api("personal-add-current", { shopId: product.shopId, externalProductId: product.externalProductId });
-              showFavoriteNotice(`${identity} saved to Favorite Queue`);
+
               return;
             } catch (retryCause) {
               if (!(retryCause instanceof Error && retryCause.message.includes("not tracked yet"))) {
+                if (activeProduct.current?.shopId === product.shopId && activeProduct.current?.externalProductId === product.externalProductId) setFavoriteIdentity(null);
                 showFavoriteNotice(retryCause instanceof Error ? retryCause.message : "Unable to save favorite.");
                 return;
               }
             }
           }
+          if (activeProduct.current?.shopId === product.shopId && activeProduct.current?.externalProductId === product.externalProductId) setFavoriteIdentity(null);
           showFavoriteNotice(`Could not save ${identity}. The product was not recorded.`);
         })();
       } else {
+        setFavoriteIdentity(null);
         showFavoriteNotice(cause instanceof Error ? cause.message : "Unable to save favorite.");
       }
     } finally {
@@ -774,7 +780,9 @@ export default function AdminCollector() {
             <small>Status</small>
             <strong>{cooldownSeconds > 0
               ? `Next collection available in ${Math.floor(cooldownSeconds / 3600)}h ${Math.floor((cooldownSeconds % 3600) / 60)}m ${cooldownSeconds % 60}s`
-              : message}</strong>
+              : currentProduct && favoriteIdentity === `${currentProduct.shopId}.${currentProduct.externalProductId}` && message === `Opening ${favoriteIdentity}`
+                ? `Opening ⭐ ${favoriteIdentity}`
+                : message}</strong>
           </button>
           {[
             ["Succeeded", succeeded],
