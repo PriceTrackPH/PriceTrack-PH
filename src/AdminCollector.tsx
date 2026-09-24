@@ -357,16 +357,16 @@ export default function AdminCollector() {
     const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a"));
     if (links.length < 2) return;
     const [healthLink, affiliateLink] = links;
-    const adsLink = document.createElement("a");
+    const settingsLink = document.createElement("a");
     const collectorLink = document.createElement("a");
     const scannerLink = document.createElement("a");
-    affiliateLink.after(adsLink, collectorLink, scannerLink);
+    affiliateLink.after(settingsLink, collectorLink, scannerLink);
     healthLink.textContent = "Health"; healthLink.href = "/admin/health"; healthLink.removeAttribute("data-scroll-target");
     affiliateLink.textContent = "Affiliate"; affiliateLink.href = "/admin/affiliate"; affiliateLink.removeAttribute("data-scroll-target");
-    adsLink.textContent = "Ads"; adsLink.href = "/admin/ads";
+    settingsLink.textContent = "Settings"; settingsLink.href = "/admin/settings";
     collectorLink.textContent = "Collector"; collectorLink.href = "/admin/collector"; collectorLink.setAttribute("aria-current", "page");
     scannerLink.textContent = "Store Scanner"; scannerLink.href = "/admin/store-scanner";
-    return () => { adsLink.remove(); collectorLink.remove(); scannerLink.remove(); };
+    return () => { settingsLink.remove(); collectorLink.remove(); scannerLink.remove(); };
   }, []);
 
   async function releaseCurrent() {
