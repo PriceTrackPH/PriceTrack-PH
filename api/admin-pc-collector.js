@@ -189,14 +189,16 @@ export async function claimStoreProduct(supabaseUrl, secret, excludedRequestIds 
   };
 }
 
-export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store") {
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true) {
   const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
   if (priority) return priority;
   if (includeStoreImports && preferredSource === "store") {
     const store = await claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
     if (store) return store;
   }
-  const normal = await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut);
+  const normal = includeNormalQueue
+    ? await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut)
+    : null;
   if (normal || !includeStoreImports || preferredSource === "store") return normal;
   return claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
 }
@@ -557,6 +559,7 @@ export default async function handler(req, res) {
         supabaseUrl, secret, attemptedProductIds, attemptedQueueRequestIds, leaseUntil,
         attemptedStoreRequestIds, req.body?.includeStoreImports === true, req.body?.skipSoldOut !== false,
         req.body?.preferredSource === "normal" ? "normal" : "store",
+        req.body?.includeNormalQueue !== false,
       );
       return send(res, 200, { ok: true, product });
     }
