@@ -665,25 +665,21 @@ export default function AdminCollector() {
           {[
             {
               label: "Same Price Products",
-              description: "On: skip the next day when today's price is unchanged. Off: check again tomorrow and record the price.",
               checked: skipUnchangedDay,
               change: (next: boolean) => { setSkipUnchangedDay(next); localStorage.setItem(skipUnchangedStorageKey, String(next)); },
             },
             {
               label: "Sold Out Products",
-              description: "On: defer sold-out checks for 15 days, then 30 days. Off: check again on the next day.",
               checked: skipSoldOut,
               change: (next: boolean) => { setSkipSoldOut(next); localStorage.setItem(skipSoldOutStorageKey, String(next)); },
             },
             {
               label: "Store Queueing",
-              description: "On: include store products in the existing 1 store to 2 normal rotation. Off: exclude store products.",
               checked: includeStoreImports,
               change: (next: boolean) => { setIncludeStoreImports(next); localStorage.setItem(includeStoreImportsStorageKey, String(next)); },
             },
             {
               label: "Normal Queueing",
-              description: "On: include random products. Off: collect only from other enabled queues.",
               checked: includeNormalQueue,
               change: (next: boolean) => { setIncludeNormalQueue(next); localStorage.setItem(includeNormalQueueStorageKey, String(next)); },
             },
@@ -691,9 +687,7 @@ export default function AdminCollector() {
             <span className="admin-collector-queue-option-top"><strong>{option.label}</strong><span className="admin-collector-queue-switch">
               <input type="checkbox" checked={option.checked} disabled={running} onChange={(event) => option.change(event.target.checked)} aria-label={option.label} />
               <span aria-hidden="true" className="admin-collector-queue-switch-track" />
-              <span className="admin-collector-queue-switch-state">{option.checked ? "On" : "Off"}</span>
             </span></span>
-            <small>{option.description}</small>
           </label>)}
         </div>
         <div className="admin-collector-status admin-collector-status-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }} aria-live="polite">
