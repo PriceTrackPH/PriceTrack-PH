@@ -122,7 +122,9 @@ export default function AdminCollector() {
   const [message, setMessage] = useState("Opening collector…");
   const [currentProduct, setCurrentProduct] = useState<CollectorProduct | null>(null);
   const [favoriteSaving, setFavoriteSaving] = useState(false);
-  const [favoriteIdentity, setFavoriteIdentity] = useState<string | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set());
+  const [favoritesLoaded, setFavoritesLoaded] = useState(false);
+  const pendingFavorites = useRef(new Set<string>());
   const [favoriteNotice, setFavoriteNotice] = useState("");
   const favoriteNoticeTimer = useRef<number | null>(null);
   const [succeeded, setSucceeded] = useState(0);
@@ -267,6 +269,18 @@ export default function AdminCollector() {
     setHistory((items) => [saved, ...items.filter((item) => item.runId !== saved.runId)].slice(0, 20));
     void publishHistory.current({ kind: "collector", status: stopStatus, id: saved.runId });
   }
+
+  useEffect(() => {
+    if (!token) return;
+    void api<{ favorites: Array<{ products: { external_shop_id: string; external_product_id: string } | null }> }>("personal-list")
+      .then(({ favorites }) => {
+        setFavoriteIds(new Set(favorites.flatMap(({ products }) =>
+          products ? [`${products.external_shop_id}.${products.external_product_id}`] : [],
+        )));
+      })
+      .catch((cause) => showFavoriteNotice(cause instanceof Error ? cause.message : "Unable to load Favorite Queue."))
+      .finally(() => setFavoritesLoaded(true));
+  }, [token]);
 
   useEffect(() => {
     document.body.classList.add("admin-page-active");
@@ -457,7 +471,6 @@ export default function AdminCollector() {
       activeProduct.current = product;
       currentPageOutcome.current = null;
       setCurrentProduct(product);
-      setFavoriteIdentity(null);
       setMessage(`Opening ${product.shopId}.${product.externalProductId}`);
       if (!productTab.current || productTab.current.closed) throw new Error("The dedicated Shopee tab was closed.");
       productTab.current.location.href = productUrlWithCollectorOptions(product.productUrl, skipUnchangedDay, skipSoldOut);
@@ -667,38 +680,70 @@ export default function AdminCollector() {
     favoriteNoticeTimer.current = window.setTimeout(() => setFavoriteNotice(""), 4000);
   }
 
+  function markFavorite(identity: string, saved: boolean) {
+    setFavoriteIds((previous) => {
+      const next = new Set(previous);
+      if (saved) next.add(identity);
+      else next.delete(identity);
+      return next;
+    });
+  }
+
   async function saveCurrentFavorite() {
     const product = activeProduct.current;
-    if (!product || favoriteSaving) return;
+    if (!product || favoriteSaving || !favoritesLoaded) return;
     const identity = `${product.shopId}.${product.externalProductId}`;
+    const body = { shopId: product.shopId, externalProductId: product.externalProductId };
+    if (favoriteIds.has(identity)) {
+      pendingFavorites.current.delete(identity);
+      markFavorite(identity, false);
+      setFavoriteSaving(true);
+      try {
+        await api("personal-remove-current", body);
+      } catch (cause) {
+        markFavorite(identity, true);
+        showFavoriteNotice(cause instanceof Error ? cause.message : "Unable to remove favorite.");
+      } finally {
+        setFavoriteSaving(false);
+      }
+      return;
+    }
+    pendingFavorites.current.add(identity);
+    markFavorite(identity, true);
     setFavoriteSaving(true);
-    setFavoriteIdentity(identity);
     try {
-      await api("personal-add-current", { shopId: product.shopId, externalProductId: product.externalProductId });
-
+      await api("personal-add-current", body);
+      if (!pendingFavorites.current.has(identity)) await api("personal-remove-current", body);
+      pendingFavorites.current.delete(identity);
     } catch (cause) {
       if (cause instanceof Error && cause.message.includes("not tracked yet")) {
-
         void (async () => {
-          for (let attempt = 0; attempt < 60; attempt += 1) {
+          for (let attempt = 0; attempt < 60 && pendingFavorites.current.has(identity); attempt += 1) {
             await wait(3000);
+            if (!pendingFavorites.current.has(identity)) return;
             try {
-              await api("personal-add-current", { shopId: product.shopId, externalProductId: product.externalProductId });
-
+              await api("personal-add-current", body);
+              if (!pendingFavorites.current.has(identity)) await api("personal-remove-current", body);
+              pendingFavorites.current.delete(identity);
               return;
             } catch (retryCause) {
               if (!(retryCause instanceof Error && retryCause.message.includes("not tracked yet"))) {
-                if (activeProduct.current?.shopId === product.shopId && activeProduct.current?.externalProductId === product.externalProductId) setFavoriteIdentity(null);
+                pendingFavorites.current.delete(identity);
+                markFavorite(identity, false);
                 showFavoriteNotice(retryCause instanceof Error ? retryCause.message : "Unable to save favorite.");
                 return;
               }
             }
           }
-          if (activeProduct.current?.shopId === product.shopId && activeProduct.current?.externalProductId === product.externalProductId) setFavoriteIdentity(null);
-          showFavoriteNotice(`Could not save ${identity}. The product was not recorded.`);
+          if (pendingFavorites.current.has(identity)) {
+            pendingFavorites.current.delete(identity);
+            markFavorite(identity, false);
+            showFavoriteNotice(`Could not save ${identity}. The product was not recorded.`);
+          }
         })();
       } else {
-        setFavoriteIdentity(null);
+        pendingFavorites.current.delete(identity);
+        markFavorite(identity, false);
         showFavoriteNotice(cause instanceof Error ? cause.message : "Unable to save favorite.");
       }
     } finally {
@@ -776,12 +821,12 @@ export default function AdminCollector() {
               <strong>{formatCollectorCount(value)}</strong>
             </div>
           ))}
-          <button type="button" className="admin-collector-status-card admin-collector-status-message" style={{ ...collectorStatusCardStyle, gridColumn: "3 / span 2", width: "100%", font: "inherit", cursor: currentProduct ? "pointer" : "default" }} disabled={!currentProduct || favoriteSaving} onClick={() => void saveCurrentFavorite()} title={currentProduct ? "Save current product to Favorite Queue" : "No product is currently being collected"}>
+          <button type="button" className="admin-collector-status-card admin-collector-status-message" style={{ ...collectorStatusCardStyle, gridColumn: "3 / span 2", width: "100%", font: "inherit", cursor: currentProduct ? "pointer" : "default" }} disabled={!currentProduct || favoriteSaving || !favoritesLoaded} onClick={() => void saveCurrentFavorite()} title={currentProduct ? "Save current product to Favorite Queue" : "No product is currently being collected"}>
             <small>Status</small>
             <strong>{cooldownSeconds > 0
               ? `Next collection available in ${Math.floor(cooldownSeconds / 3600)}h ${Math.floor((cooldownSeconds % 3600) / 60)}m ${cooldownSeconds % 60}s`
-              : currentProduct && favoriteIdentity === `${currentProduct.shopId}.${currentProduct.externalProductId}` && message === `Opening ${favoriteIdentity}`
-                ? `Opening ⭐ ${favoriteIdentity}`
+              : currentProduct && favoriteIds.has(`${currentProduct.shopId}.${currentProduct.externalProductId}`) && message === `Opening ${currentProduct.shopId}.${currentProduct.externalProductId}`
+                ? `Opening ⭐ ${currentProduct.shopId}.${currentProduct.externalProductId}`
                 : message}</strong>
           </button>
           {[
