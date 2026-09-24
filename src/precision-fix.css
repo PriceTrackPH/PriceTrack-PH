@@ -430,20 +430,10 @@ html[data-theme="dark"] .support-section {
 html[data-theme="dark"] .admin-collector-status-card {
   background: #1a211e;
   border-color: #38413d !important;
-  border-radius: 12px !important;
   color: #f7faf9;
-  align-items: flex-start !important;
-  text-align: left !important;
-  gap: 7px !important;
 }
-html[data-theme="dark"] .admin-collector-status-card small {
-  color: #aeb6b2;
-  font-size: 16px;
-}
-html[data-theme="dark"] .admin-collector-status-card strong {
-  color: #f7faf9;
-  font-size: 20px;
-}
+html[data-theme="dark"] .admin-collector-status-card small { color: #aeb6b2; }
+html[data-theme="dark"] .admin-collector-status-card strong { color: #f7faf9; }
 .admin-collector-status strong { margin-top: 5px; }
 .admin-collector-note { margin: 16px 0 0; color: #f3d486; line-height: 1.5; }
 .admin-collector-history { margin-top: 24px; }
