@@ -71,10 +71,8 @@ const manilaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {
 }).format(date);
 
 const collectorStatusCardStyle = {
-  background: "linear-gradient(to bottom, rgba(230, 230, 250, 0.5) 0%, #e6e6fa 100%)",
-  border: "1px solid #b5b5dc",
+  border: "1px solid",
   borderRadius: "8px",
-  color: "#1d194b",
   padding: "12px 14px",
   minHeight: "72px",
   display: "flex",
