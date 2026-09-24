@@ -626,6 +626,25 @@ export default async function handler(req, res) {
       return send(res, 200, { ok: true });
     }
 
+    if (action === "personal-remove-current") {
+      const shopId = String(req.body?.shopId || "");
+      const externalProductId = String(req.body?.externalProductId || "");
+      if (!/^\\d+$/.test(shopId) || !/^\\d+$/.test(externalProductId)) {
+        return send(res, 400, { error: "A valid current product is required." });
+      }
+      const params = new URLSearchParams({ select: "id", platform: "eq.shopee", external_shop_id: `eq.${shopId}`, external_product_id: `eq.${externalProductId}`, limit: "1" });
+      const matchResponse = await fetch(`${supabaseUrl}/rest/v1/products?${params}`, { headers: adminHeaders(secret) });
+      if (!matchResponse.ok) throw new Error(`personal_product_${matchResponse.status}`);
+      const [product] = await matchResponse.json();
+      if (product) {
+        const response = await fetch(`${supabaseUrl}/rest/v1/personal_collection_products?product_id=eq.${product.id}`, {
+          method: "DELETE", headers: adminHeaders(secret, { Prefer: "return=minimal" }),
+        });
+        if (!response.ok) throw new Error(`personal_remove_${response.status}`);
+      }
+      return send(res, 200, { ok: true });
+    }
+
     if (action === "personal-remove") {
       const productId = safeInteger(req.body?.productId);
       if (!productId) return send(res, 400, { error: "A valid saved product is required" });
