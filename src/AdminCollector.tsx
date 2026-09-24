@@ -67,6 +67,7 @@ const skipUnchangedStorageKey = "pricetrack-admin-collector-skip-unchanged-day";
 const skipSoldOutStorageKey = "pricetrack-admin-collector-skip-sold-out";
 const includeStoreImportsStorageKey = "pricetrack-admin-collector-include-store-imports";
 const includeNormalQueueStorageKey = "pricetrack-admin-collector-include-normal-queue";
+const includePriorityQueueStorageKey = "pricetrack-admin-collector-include-priority-queue";
 const includePersonalQueueStorageKey = "pricetrack-admin-collector-include-personal-queue";
 const manilaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
@@ -134,6 +135,7 @@ export default function AdminCollector() {
     includeStoreImportsDefault(localStorage.getItem(includeStoreImportsStorageKey))
   );
   const [includeNormalQueue, setIncludeNormalQueue] = useState(() => localStorage.getItem(includeNormalQueueStorageKey) !== "false");
+  const [includePriorityQueue, setIncludePriorityQueue] = useState(() => localStorage.getItem(includePriorityQueueStorageKey) !== "false");
   const [includePersonalQueue, setIncludePersonalQueue] = useState(() => localStorage.getItem(includePersonalQueueStorageKey) === "true");
   const [personalUrl, setPersonalUrl] = useState("");
   const [personalMessage, setPersonalMessage] = useState("");
@@ -465,6 +467,7 @@ export default function AdminCollector() {
         attemptedStoreRequestIds: [...attemptedStoreRequestIds.current],
         includeStoreImports: includeStoreImports,
         includeNormalQueue,
+        includePriorityQueue,
         includePersonalQueue,
         skipSoldOut,
         preferredSource: nextNonPrioritySource(nonPriorityCadence.current),
@@ -709,22 +712,27 @@ export default function AdminCollector() {
               change: (next: boolean) => { setSkipUnchangedDay(next); localStorage.setItem(skipUnchangedStorageKey, String(next)); },
             },
             {
-              label: "Personal Queueing",
-              checked: includePersonalQueue,
-              change: (next: boolean) => { setIncludePersonalQueue(next); localStorage.setItem(includePersonalQueueStorageKey, String(next)); },
-            },
-            {
               label: "Sold Out Products",
               checked: skipSoldOut,
               change: (next: boolean) => { setSkipSoldOut(next); localStorage.setItem(skipSoldOutStorageKey, String(next)); },
             },
             {
-              label: "Store Queueing",
+              label: "Priority Queue",
+              checked: includePriorityQueue,
+              change: (next: boolean) => { setIncludePriorityQueue(next); localStorage.setItem(includePriorityQueueStorageKey, String(next)); },
+            },
+            {
+              label: "Favorite Queue",
+              checked: includePersonalQueue,
+              change: (next: boolean) => { setIncludePersonalQueue(next); localStorage.setItem(includePersonalQueueStorageKey, String(next)); },
+            },
+            {
+              label: "Store Queue",
               checked: includeStoreImports,
               change: (next: boolean) => { setIncludeStoreImports(next); localStorage.setItem(includeStoreImportsStorageKey, String(next)); },
             },
             {
-              label: "Normal Queueing",
+              label: "Normal Queue",
               checked: includeNormalQueue,
               change: (next: boolean) => { setIncludeNormalQueue(next); localStorage.setItem(includeNormalQueueStorageKey, String(next)); },
             },
