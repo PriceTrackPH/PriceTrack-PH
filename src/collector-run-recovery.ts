@@ -7,7 +7,7 @@ export type CollectorStopStatus =
   | "confirmation_timeout";
 
 export type CheckpointedCollectorProduct = {
-  claimSource: "priority" | "store" | "random";
+  claimSource: "priority" | "store" | "random" | "personal";
   queueRequestId: string | null;
   productId: number | null;
   shopId: string;
@@ -41,7 +41,7 @@ export function readCollectorRunCheckpoint(storage: Pick<Storage, "getItem">): C
     if (value.failureReason && !["login_expired", "api_failure", "confirmation_timeout"].includes(value.failureReason)) return null;
     if (value.activeProduct) {
       const product = value.activeProduct;
-      if (!["priority", "store", "random"].includes(product.claimSource)
+      if (!["priority", "store", "random", "personal"].includes(product.claimSource)
         || (product.productId !== null && !Number.isInteger(product.productId))
         || typeof product.shopId !== "string"
         || typeof product.externalProductId !== "string"
