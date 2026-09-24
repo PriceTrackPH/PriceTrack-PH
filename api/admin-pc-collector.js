@@ -609,7 +609,7 @@ export default async function handler(req, res) {
     if (action === "personal-add-current") {
       const shopId = String(req.body?.shopId || "");
       const externalProductId = String(req.body?.externalProductId || "");
-      if (!/^\\d+$/.test(shopId) || !/^\\d+$/.test(externalProductId)) {
+      if (!/^\d+$/.test(shopId) || !/^\d+$/.test(externalProductId)) {
         return send(res, 400, { error: "A valid current product is required." });
       }
       const params = new URLSearchParams({ select: "id", platform: "eq.shopee", external_shop_id: `eq.${shopId}`, external_product_id: `eq.${externalProductId}`, limit: "1" });
