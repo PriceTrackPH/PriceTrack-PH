@@ -454,6 +454,8 @@ html[data-theme="dark"] .admin-collector-status-card {
 html[data-theme="dark"] .admin-collector-status-card small { color: #aeb6b2; }
 html[data-theme="dark"] .admin-collector-status-card strong { color: #f7faf9; }
 .admin-collector-status strong { margin-top: 5px; }
+.admin-collector-status-message { padding-inline: 4px !important; }
+.admin-collector-status-message strong { font-size: clamp(10px, 1.1vw, 14px); letter-spacing: -0.025em; white-space: nowrap; }
 .admin-collector-note { margin: 16px 0 0; color: #f3d486; line-height: 1.5; }
 .admin-collector-history { margin-top: 24px; }
 .admin-collector-history table { table-layout: fixed; min-width: 850px; }
