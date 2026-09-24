@@ -125,6 +125,7 @@ export default function AdminCollector() {
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set());
   const [favoritesLoaded, setFavoritesLoaded] = useState(false);
   const pendingFavorites = useRef(new Set<string>());
+  const lastFavoriteClick = useRef<{ identity: string; at: number } | null>(null);
   const [favoriteNotice, setFavoriteNotice] = useState("");
   const favoriteNoticeTimer = useRef<number | null>(null);
   const [succeeded, setSucceeded] = useState(0);
@@ -693,6 +694,9 @@ export default function AdminCollector() {
     const product = activeProduct.current;
     if (!product || favoriteSaving || !favoritesLoaded) return;
     const identity = `${product.shopId}.${product.externalProductId}`;
+    const clickedAt = Date.now();
+    if (lastFavoriteClick.current?.identity === identity && clickedAt - lastFavoriteClick.current.at < 1500) return;
+    lastFavoriteClick.current = { identity, at: clickedAt };
     const body = { shopId: product.shopId, externalProductId: product.externalProductId };
     if (favoriteIds.has(identity)) {
       pendingFavorites.current.delete(identity);
