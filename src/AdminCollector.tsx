@@ -744,7 +744,7 @@ export default function AdminCollector() {
               <strong>{formatCollectorCount(value)}</strong>
             </div>
           ))}
-          <button type="button" className="admin-collector-status-card admin-collector-status-message" style={{ ...collectorStatusCardStyle, gridColumn: "3 / span 2", width: "100%", font: "inherit", color: "inherit", background: "transparent", cursor: currentProduct ? "pointer" : "default" }} disabled={!currentProduct || favoriteSaving} onClick={() => void saveCurrentFavorite()} title={currentProduct ? "Save current product to Favorite Queue" : "No product is currently being collected"}>
+          <button type="button" className="admin-collector-status-card admin-collector-status-message" style={{ ...collectorStatusCardStyle, gridColumn: "3 / span 2", width: "100%", font: "inherit", cursor: currentProduct ? "pointer" : "default" }} disabled={!currentProduct || favoriteSaving} onClick={() => void saveCurrentFavorite()} title={currentProduct ? "Save current product to Favorite Queue" : "No product is currently being collected"}>
             <small>Status</small>
             <strong>{favoriteSaving ? "Saving favorite…" : favoriteNotice || (cooldownSeconds > 0
               ? `Next collection available in ${Math.floor(cooldownSeconds / 3600)}h ${Math.floor((cooldownSeconds % 3600) / 60)}m ${cooldownSeconds % 60}s`
