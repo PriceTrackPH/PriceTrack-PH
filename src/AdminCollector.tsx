@@ -246,13 +246,15 @@ export default function AdminCollector() {
     const stoppedAt = new Date().toISOString();
     const stopStatus: CollectorStopStatus = checkpoint.failureReason
       || (checkpoint.phase === "pending_finalization" ? checkpoint.intendedStopStatus || "stopped" : "interrupted");
-    await api("finish", { run: {
+    const { saved } = await api<{ saved: CollectorRun }>("finish", { run: {
       ...recovered,
       stoppedAt,
       durationSeconds: Math.max(0, Math.round((Date.parse(stoppedAt) - Date.parse(checkpoint.startedAt)) / 1000)),
       stopStatus,
     }, originSessionId: collectorSessionId.current });
     clearCollectorRunCheckpoint(localStorage);
+    setHistory((items) => [saved, ...items.filter((item) => item.runId !== saved.runId)].slice(0, 20));
+    void publishHistory.current({ kind: "collector", status: stopStatus, id: saved.runId });
   }
 
   useEffect(() => {
