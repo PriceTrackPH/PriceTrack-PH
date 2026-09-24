@@ -105,7 +105,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     const settingsLink = document.createElement("a");
     const collectorLink = document.createElement("a");
     const scannerLink = document.createElement("a");
-    affiliateLink.after(settingsLink, collectorLink, scannerLink);
+    affiliateLink.after(collectorLink, scannerLink, settingsLink);
     const adminLinks = [healthLink, affiliateLink, settingsLink, collectorLink, scannerLink];
     const original = [healthLink, affiliateLink].map((link) => ({
       text: link.textContent || "",
