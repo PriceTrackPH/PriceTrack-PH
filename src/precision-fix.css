@@ -581,7 +581,7 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
 
 .admin-collector-queue-options {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
   margin: 0 0 20px;
 }
@@ -613,3 +613,20 @@ html:not([data-theme="dark"]) .admin-collector-queue-option { background: #f8faf
 html:not([data-theme="dark"]) .admin-collector-queue-option small { color: #65706c; }
 @media (max-width: 950px) { .admin-collector-queue-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 540px) { .admin-collector-queue-options { grid-template-columns: 1fr; } .admin-collector-actions { flex-wrap: wrap; } }
+
+.admin-collector-personal { margin: 0 0 20px; }
+.admin-collector-personal form { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.admin-collector-personal form label { font-size: 14px; font-weight: 700; }
+.admin-collector-personal form input { flex: 1 1 250px; min-width: 0; padding: 11px 12px; border: 1px solid #38413d; border-radius: 9px; background: #111916; color: inherit; font: inherit; }
+.admin-collector-personal button { border: 0; border-radius: 9px; padding: 11px 14px; background: #281b6b; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.admin-collector-personal button:disabled { opacity: .55; cursor: not-allowed; }
+.admin-collector-personal p { font-size: 13px; margin: 10px 0 0; }
+.admin-collector-personal-list { display: grid; gap: 8px; max-height: 170px; overflow-y: auto; margin-top: 12px; }
+.admin-collector-personal-list > div { display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid #38413d; border-radius: 8px; padding: 7px 9px; }
+.admin-collector-personal-list a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #16d8b1; }
+html:not([data-theme="dark"]) .admin-collector-personal form input { background: #fff; border-color: #cbd5d1; color: #17201d; }
+html:not([data-theme="dark"]) .admin-collector-personal-list > div { border-color: #d9e0dd; }
+html:not([data-theme="dark"]) .admin-collector-personal-list a { color: #087e68; }
+@media (max-width: 1150px) { .admin-collector-queue-options { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .admin-collector-queue-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 540px) { .admin-collector-queue-options { grid-template-columns: 1fr; } }
