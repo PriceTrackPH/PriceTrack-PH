@@ -587,10 +587,10 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
 }
 .admin-collector-queue-option {
   display: flex;
-  flex-direction: column;
-  gap: 9px;
+  justify-content: center;
   min-width: 0;
-  padding: 14px;
+  min-height: 56px;
+  padding: 12px 14px;
   border: 1px solid #38413d;
   border-radius: 11px;
   background: #1a211e;
