@@ -101,6 +101,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favoriteMessage, setFavoriteMessage] = useState("");
   const isLogin = view === "login";
+  const isSettings = view === "settings";
 
   useEffect(() => {
     document.body.classList.add("admin-page-active");
@@ -443,7 +444,6 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
 
   const isHealthy = Boolean(data && data.summary.failures === 0 && data.summary.partial === 0);
   const isAffiliate = view === "affiliate";
-  const isSettings = view === "settings";
 
   return (
     <main className="health-page">
