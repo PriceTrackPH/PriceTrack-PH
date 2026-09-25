@@ -16,6 +16,27 @@ test("Shopee activity extraction preserves exact API totals", async () => {
   });
 });
 
+test("product header counts fill missing fields without confusing store ratings or exact API counts", async () => {
+  const source = await readFile(new URL("../extension/product-activity.js", import.meta.url), "utf8");
+  const context = vm.createContext({ globalThis: {} });
+  vm.runInContext(source, context);
+  const reader = context.globalThis.PriceTrackProductActivity;
+  const visible = reader.extractVisibleProductActivity({ body: { innerText:
+    "OMNI Socket\n4.9\n10K+ Ratings\n10K+ Sold\n₱59\nFavorite (4.9K)\nView Shop\nRatings 148.6K\n" } }, "OMNI Socket");
+  assert.deepEqual(JSON.parse(JSON.stringify(visible)), {
+    totalSold: 10000, favoriteCount: 4900, ratingCount: 10000,
+  });
+  const merged = reader.mergeProductActivity(reader.extractProductActivity({
+    historical_sold: 12345, item_rating: { rating_star: 4.927 },
+  }), visible);
+  assert.equal(merged.totalSold, 12345);
+  assert.equal(merged.rating, 4.927);
+  assert.equal(merged.favoriteCount, 4900);
+  assert.equal(merged.reviewCount, null);
+  assert.equal(merged.approximateTotalSold, false);
+  assert.equal(reader.mergeProductActivity(null, visible).approximateTotalSold, true);
+});
+
 test("daily visits exclude the admin collector and random claims use activity ranking", async () => {
   const content = await readFile(new URL("../extension/content.js", import.meta.url), "utf8");
   const edge = await readFile(new URL("../supabase/functions/record-price/index.ts", import.meta.url), "utf8");

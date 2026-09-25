@@ -569,6 +569,11 @@ async function automaticallyRecordPrice() {
   product.title = product.title || visibleProduct.title;
   product.imageUrl = product.imageUrl || visibleProduct.imageUrl;
   product.storeName = product.storeName || visibleProduct.storeName;
+  const activityReader = globalThis.PriceTrackProductActivity;
+  product.activity = activityReader?.mergeProductActivity(
+    product.activity,
+    activityReader.extractVisibleProductActivity(document, product.title)
+  ) || product.activity;
 
   const validVariations = product.variations.filter(item => Number.isFinite(Number(item.price)) && Number(item.price) > 0);
   if (!validVariations.length) {

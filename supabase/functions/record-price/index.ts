@@ -55,6 +55,9 @@ type Observation = {
     viewCount?: number | null;
     reviewCount?: number | null;
     favoriteCount?: number | null;
+    ratingCount?: number | null;
+    approximateTotalSold?: boolean;
+    approximateFavoriteCount?: boolean;
     rating?: number | null;
     discountPercent?: number | null;
   };
@@ -300,6 +303,12 @@ Deno.serve(async (request: Request) => {
           ...existingProductMetadata,
           submitted_variation_count: variations.length,
           collector_format: Array.isArray(body.variations) ? "bulk_models_v1" : "legacy_single_v1",
+          ...(body.activity?.ratingCount != null && Number.isSafeInteger(Number(body.activity.ratingCount))
+            ? { rating_count: Number(body.activity.ratingCount), rating_count_approximate: true } : {}),
+          ...(body.activity?.totalSold != null
+            ? { sold_count_approximate: body.activity.approximateTotalSold === true } : {}),
+          ...(body.activity?.favoriteCount != null
+            ? { favorite_count_approximate: body.activity.approximateFavoriteCount === true } : {}),
         },
       }),
     });
