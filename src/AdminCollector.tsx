@@ -160,6 +160,7 @@ export default function AdminCollector() {
   const attemptedProductIds = useRef(new Set<number>());
   const attemptedQueueRequestIds = useRef(new Set<string>());
   const attemptedStoreRequestIds = useRef(new Set<string>());
+  const lastClaimedShopId = useRef<string | null>(null);
   const startedAt = useRef<string | null>(null);
   const runId = useRef<string | null>(null);
   const succeededCount = useRef(0);
@@ -482,6 +483,7 @@ export default function AdminCollector() {
         attemptedProductIds: [...attemptedProductIds.current],
         attemptedQueueRequestIds: [...attemptedQueueRequestIds.current],
         attemptedStoreRequestIds: [...attemptedStoreRequestIds.current],
+        lastShopId: lastClaimedShopId.current,
         includeStoreImports: includeStoreImports,
         includeNormalQueue,
         includePriorityQueue,
@@ -499,6 +501,7 @@ export default function AdminCollector() {
         await finishRun("stopped_safely");
         break;
       }
+      lastClaimedShopId.current = product.shopId;
       if (product.productId !== null) attemptedProductIds.current.add(product.productId);
       if (product.queueRequestId !== null && product.claimSource === "priority") attemptedQueueRequestIds.current.add(product.queueRequestId);
       if (product.queueRequestId !== null && product.claimSource === "store") attemptedStoreRequestIds.current.add(product.queueRequestId);
@@ -652,6 +655,7 @@ export default function AdminCollector() {
     attemptedProductIds.current.clear();
     attemptedQueueRequestIds.current.clear();
     attemptedStoreRequestIds.current.clear();
+    lastClaimedShopId.current = null;
     verificationAlertedFor.current.clear();
     pageErrorRetries.current = [];
     succeededCount.current = 0; failedCount.current = 0;
