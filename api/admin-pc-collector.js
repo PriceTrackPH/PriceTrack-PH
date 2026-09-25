@@ -95,7 +95,7 @@ export async function collectorSummary(supabaseUrl, secret) {
     body: "{}",
   };
   const [response, priorityResponse, storeResponse] = await Promise.all([
-    fetch(`${supabaseUrl}/rest/v1/rpc/collector_available_summary_v2`, options),
+    fetch(`${supabaseUrl}/rest/v1/rpc/collector_available_summary_v3`, options),
     fetch(`${supabaseUrl}/rest/v1/rpc/public_collection_queue_pending_count`, options),
     fetch(`${supabaseUrl}/rest/v1/rpc/store_collection_queue_pending_count`, options),
   ]);
@@ -110,6 +110,9 @@ export async function collectorSummary(supabaseUrl, secret) {
     totalDue: safeInteger(summary?.total_due),
     soldOutDeferred: safeInteger(summary?.sold_out_deferred),
     samePriceDeferred: safeInteger(summary?.same_price_deferred),
+    doesNotExistCount: safeInteger(summary?.does_not_exist_count),
+    unlistedCount: safeInteger(summary?.unlisted_count),
+    pageErrorCount: safeInteger(summary?.page_error_count),
     priorityPending: safeInteger(Array.isArray(priorityPending) ? priorityPending[0] : priorityPending),
     storeQueuePending: safeInteger(Array.isArray(storePending) ? storePending[0] : storePending),
   };
