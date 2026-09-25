@@ -30,6 +30,9 @@ type CollectorSummary = {
   totalDue: number;
   soldOutDeferred: number;
   samePriceDeferred: number;
+  doesNotExistCount: number;
+  unlistedCount: number;
+  pageErrorCount: number;
   priorityPending: number;
   storeQueuePending: number;
 };
@@ -850,6 +853,16 @@ export default function AdminCollector() {
             ["Failed", failed],
           ].map(([label, value]) => (
             <div className="admin-collector-status-card" style={collectorStatusCardStyle} key={label}>
+              <small>{label}</small>
+              <strong>{formatCollectorCount(value)}</strong>
+            </div>
+          ))}
+          {[
+            ["Doesn't Exist", summary?.doesNotExistCount ?? "—"],
+            ["Unlisted", summary?.unlistedCount ?? "—"],
+            ["Page Error", summary?.pageErrorCount ?? "—"],
+          ].map(([label, value]) => (
+            <div className="admin-collector-status-card" style={{ ...collectorStatusCardStyle, gridColumn: "span 2" }} key={label}>
               <small>{label}</small>
               <strong>{formatCollectorCount(value)}</strong>
             </div>
