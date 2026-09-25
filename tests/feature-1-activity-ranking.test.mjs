@@ -16,6 +16,28 @@ test("Shopee activity extraction preserves exact API totals", async () => {
   });
 });
 
+test("Shopee rating breakdown saves the exact total and 1-to-5 star counts", async () => {
+  const source = await readFile(new URL("../extension/product-activity.js", import.meta.url), "utf8");
+  const context = vm.createContext({ globalThis: {} });
+  vm.runInContext(source, context);
+  const reader = context.globalThis.PriceTrackProductActivity;
+  const exact = reader.extractProductActivity({
+    product_review: { total_rating_count: 17527, rating_count: [17527, 77, 35, 146, 571, 16698] },
+  });
+  assert.equal(exact.ratingCount, 17527);
+  assert.deepEqual(Array.from(exact.ratingCountsByStar), [17527, 77, 35, 146, 571, 16698]);
+  const merged = reader.mergeProductActivity(exact, { ratingCount: 10000 });
+  assert.equal(merged.ratingCount, 17527);
+  assert.equal(merged.approximateRatingCount, false);
+  assert.equal(reader.mergeProductActivity(null, { ratingCount: 10000 }).approximateRatingCount, true);
+  assert.equal(reader.extractProductActivity({product_review: {
+    total_rating_count: 17528, rating_count: [17527, 77, 35, 146, 571, 16698],
+  }}), null);
+  const edge = await readFile(new URL("../supabase/functions/record-price/index.ts", import.meta.url), "utf8");
+  assert.match(edge, /rating_counts_by_star: countsByStar/);
+  assert.match(edge, /rating_count_approximate: !exactRatingBreakdown/);
+});
+
 test("product header counts fill missing fields without confusing store ratings or exact API counts", async () => {
   const source = await readFile(new URL("../extension/product-activity.js", import.meta.url), "utf8");
   const context = vm.createContext({ globalThis: {} });

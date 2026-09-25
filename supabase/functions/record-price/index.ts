@@ -56,6 +56,8 @@ type Observation = {
     reviewCount?: number | null;
     favoriteCount?: number | null;
     ratingCount?: number | null;
+    ratingCountsByStar?: number[] | null;
+    approximateRatingCount?: boolean;
     approximateTotalSold?: boolean;
     approximateFavoriteCount?: boolean;
     rating?: number | null;
@@ -284,6 +286,16 @@ Deno.serve(async (request: Request) => {
     }
 
     const productCheckMetadata = buildCheckMetadata(variations, Array.isArray(body.variations));
+    const submittedRatingCount = body.activity?.ratingCount;
+    const validRatingCount = submittedRatingCount != null && Number.isSafeInteger(submittedRatingCount) && submittedRatingCount >= 0;
+    const countsByStar = body.activity?.ratingCountsByStar;
+    const exactRatingBreakdown = validRatingCount && body.activity?.approximateRatingCount === false &&
+      Array.isArray(countsByStar) && countsByStar.length === 6 &&
+      countsByStar.every(value => Number.isSafeInteger(value) && value >= 0) &&
+      countsByStar[0] === submittedRatingCount &&
+      countsByStar.slice(1).reduce((sum, value) => sum + value, 0) === submittedRatingCount;
+    // A later rounded page label must never replace a saved exact rating total.
+    const keepExactRatingCount = existingProductMetadata.rating_count_approximate === false && !exactRatingBreakdown;
     const productResponse = await fetch(`${supabaseUrl}/rest/v1/products?on_conflict=platform,external_shop_id,external_product_id`, {
       method: "POST",
       headers: adminHeaders(secret, { "content-type": "application/json", prefer: "resolution=merge-duplicates,return=representation" }),
@@ -303,8 +315,12 @@ Deno.serve(async (request: Request) => {
           ...existingProductMetadata,
           submitted_variation_count: variations.length,
           collector_format: Array.isArray(body.variations) ? "bulk_models_v1" : "legacy_single_v1",
-          ...(body.activity?.ratingCount != null && Number.isSafeInteger(Number(body.activity.ratingCount))
-            ? { rating_count: Number(body.activity.ratingCount), rating_count_approximate: true } : {}),
+          ...(validRatingCount && !keepExactRatingCount
+            ? {
+              rating_count: submittedRatingCount,
+              rating_count_approximate: !exactRatingBreakdown,
+              ...(exactRatingBreakdown ? { rating_counts_by_star: countsByStar } : {}),
+            } : {}),
           ...(body.activity?.totalSold != null
             ? { sold_count_approximate: body.activity.approximateTotalSold === true } : {}),
           ...(body.activity?.favoriteCount != null
