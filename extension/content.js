@@ -84,6 +84,19 @@ function getInstallationId() {
 }
 
 function storageSet(key, value) {
+  const current = parseShopeeIds(location.href);
+  if (current && (key === `productStatus:${current.shopId}:${current.productId}` || key === `productStatus:${current.productId}`)) {
+    const state = value?.state === "recorded"
+      ? "recorded"
+      : value?.state === "detected" && value?.saveError
+        ? "idle"
+        : ["checking", "detected"].includes(value?.state)
+          ? "recording"
+          : ["error", "terminal"].includes(value?.state)
+            ? "error"
+            : "idle";
+    chrome.runtime.sendMessage({ type: "setProductIconState", state });
+  }
   return new Promise(resolve => chrome.storage.local.set({ [key]: value }, resolve));
 }
 
