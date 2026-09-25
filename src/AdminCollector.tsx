@@ -137,6 +137,8 @@ export default function AdminCollector() {
   const [history, setHistory] = useState<CollectorRun[]>([]);
   const [historyHasMore, setHistoryHasMore] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const historyRefreshInFlight = useRef(false);
+  const localHistoryVersion = useRef(0);
   const [remoteNotice, setRemoteNotice] = useState("");
   const [skipUnchangedDay, setSkipUnchangedDay] = useState(() =>
     skipUnchangedDayDefault(localStorage.getItem(skipUnchangedStorageKey))
@@ -271,6 +273,7 @@ export default function AdminCollector() {
       stopStatus,
     }, originSessionId: collectorSessionId.current });
     clearCollectorRunCheckpoint(localStorage);
+    localHistoryVersion.current += 1;
     setHistory((items) => [saved, ...items.filter((item) => item.runId !== saved.runId)].slice(0, 20));
     void publishHistory.current({ kind: "collector", status: stopStatus, id: saved.runId });
   }
@@ -325,20 +328,41 @@ export default function AdminCollector() {
   }, [cooldownUntil]);
 
   useEffect(() => {
+    // Refresh saved run history when a broadcast is missed while this tab sleeps.
+    const refreshHistory = (force = false) => {
+      if ((!force && document.visibilityState === "hidden") || historyRefreshInFlight.current) return;
+      historyRefreshInFlight.current = true;
+      const versionAtRequest = localHistoryVersion.current;
+      void api<{ ok: boolean; history: CollectorRun[]; hasMore: boolean }>("history")
+        .then((result) => {
+          if (localHistoryVersion.current !== versionAtRequest) return;
+          setHistory(result.history);
+          setHistoryHasMore(result.hasMore);
+        })
+        .catch(() => undefined)
+        .finally(() => { historyRefreshInFlight.current = false; });
+    };
     const realtime = subscribeToAdminHistory((event) => {
       if (event.kind === "collector-progress") {
         void api<CollectorSummary & { ok: boolean }>("summary").then(setSummary);
         return;
       }
       if (event.kind !== "collector") return;
-      void api<{ ok: boolean; history: CollectorRun[]; hasMore: boolean }>("history").then((result) => { setHistory(result.history); setHistoryHasMore(result.hasMore); });
+      refreshHistory(true);
       if (event.originSessionId === collectorSessionId.current) return;
       setRemoteNotice(`Another Collector run ${event.status.replace(/_/g, " ")}`);
       if (remoteNoticeTimer.current !== null) window.clearTimeout(remoteNoticeTimer.current);
       remoteNoticeTimer.current = window.setTimeout(() => setRemoteNotice(""), 5_000);
     });
     publishHistory.current = realtime.publish;
+    const refreshWhenVisible = () => { if (document.visibilityState === "visible") refreshHistory(); };
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    const historyTimer = window.setInterval(() => refreshHistory(), 10_000);
     return () => {
+      window.clearInterval(historyTimer);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
       realtime.unsubscribe();
       if (remoteNoticeTimer.current !== null) window.clearTimeout(remoteNoticeTimer.current);
     };
@@ -438,6 +462,7 @@ export default function AdminCollector() {
     const { saved } = await api<{ saved: CollectorRun }>("finish", { run, originSessionId: collectorSessionId.current });
     runId.current = null;
     clearCollectorRunCheckpoint(localStorage);
+    localHistoryVersion.current += 1;
     setHistory((items) => [
       { ...run, remaining: saved.remaining },
       ...items.filter((item) => item.runId !== run.runId),
