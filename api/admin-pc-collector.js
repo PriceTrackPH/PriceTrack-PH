@@ -192,11 +192,12 @@ export async function claimStoreProduct(supabaseUrl, secret, excludedRequestIds 
   };
 }
 
-async function claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut) {
-  const rows = await rpc(supabaseUrl, secret, "claim_personal_collection_product", {
+async function claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut, lastShopId) {
+  const rows = await rpc(supabaseUrl, secret, "claim_personal_collection_product_v2", {
     p_excluded_product_ids: excludedProductIds,
     p_lease_until: leaseUntil,
     p_skip_sold_out: skipSoldOut,
+    p_last_shop_id: lastShopId,
   });
   const product = rows?.[0];
   if (!product) return null;
@@ -221,9 +222,9 @@ async function advancePersonalProduct(supabaseUrl, secret, productId, days = 2) 
   if (!response.ok) throw new Error(`personal_advance_${response.status}`);
 }
 
-export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true) {
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null) {
   if (includePersonalQueue) {
-    const personal = await claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut);
+    const personal = await claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut, lastShopId);
     if (personal) return personal;
   }
   const priority = includePriorityQueue ? await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil) : null;
@@ -676,6 +677,7 @@ export default async function handler(req, res) {
         req.body?.includeNormalQueue !== false,
         req.body?.includePersonalQueue === true,
         req.body?.includePriorityQueue !== false,
+        /^\d+$/.test(String(req.body?.lastShopId || "")) ? String(req.body.lastShopId) : null,
       );
       return send(res, 200, { ok: true, product });
     }
