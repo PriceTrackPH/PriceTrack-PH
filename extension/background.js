@@ -1,6 +1,8 @@
 // System/OS notifications are intentionally disabled.
 // PriceTrack uses the in-page completion toast controlled by the Notifications toggle.
 
+importScripts("icon-state.js");
+
 const SITE = "https://pricetrackph.com";
 const STORE_SCAN_TTL_MS = 30 * 60_000;
 const STORE_SCAN_STORAGE_KEY = "activeStoreScans";
@@ -55,6 +57,12 @@ function productReportUrl(value, variationId) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "setProductIconState" && Number.isInteger(sender.tab?.id)) {
+    globalThis.PriceTrackIconState.apply(sender.tab.id, message.state)
+      .then(() => sendResponse?.({ ok: true }))
+      .catch(() => sendResponse?.({ ok: false }));
+    return true;
+  }
   if (message?.type === "openPriceHistoryShortcut") {
     const reportUrl = productReportUrl(message.url || "", message.variationId || "");
     if (reportUrl) chrome.tabs.create({ url: reportUrl });
@@ -102,6 +110,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === "loading") void globalThis.PriceTrackIconState.apply(tabId, "idle");
   if (changeInfo.status !== "complete") return;
   void storeScansReady.then(() => {
     const session = [...storeScanSessions.values()].find((entry) => entry.storeTabId === tabId && !sessionExpired(entry));

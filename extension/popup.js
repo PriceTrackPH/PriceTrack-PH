@@ -5,6 +5,7 @@ const detail = document.querySelector("#detail");
 const status = document.querySelector("#status");
 const popupToggle = document.querySelector("#popup-toggle");
 const versionSettings = document.querySelector("#version-settings");
+versionSettings.textContent = `v${chrome.runtime.getManifest().version}`;
 const shortcutPanel = document.querySelector("#shortcut-panel");
 const shortcutInput = document.querySelector("#shortcut-input");
 const shortcutState = document.querySelector("#shortcut-state");
