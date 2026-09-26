@@ -38,6 +38,20 @@ test("Shopee rating breakdown saves the exact total and 1-to-5 star counts", asy
   assert.match(edge, /rating_count_approximate: !exactRatingBreakdown/);
 });
 
+test("product review payload supplies exact comment and favorite counts", async () => {
+  const source = await readFile(new URL("../extension/product-activity.js", import.meta.url), "utf8");
+  const context = vm.createContext({ globalThis: {} });
+  vm.runInContext(source, context);
+  const activity = context.globalThis.PriceTrackProductActivity.extractProductActivity({
+    product_review: { cmt_count: 53712, liked_count: 49178 },
+  });
+  assert.equal(activity.reviewCount, 53712);
+  assert.equal(activity.favoriteCount, 49178);
+  const merged = context.globalThis.PriceTrackProductActivity.mergeProductActivity(activity, { favoriteCount: 49000 });
+  assert.equal(merged.favoriteCount, 49178);
+  assert.equal(merged.approximateFavoriteCount, false);
+});
+
 test("product header counts fill missing fields without confusing store ratings or exact API counts", async () => {
   const source = await readFile(new URL("../extension/product-activity.js", import.meta.url), "utf8");
   const context = vm.createContext({ globalThis: {} });

@@ -64,8 +64,8 @@
     const result = {
       totalSold: finiteNumber(item.historical_sold ?? item.sold),
       viewCount: finiteNumber(item.view_count ?? item.views),
-      reviewCount: finiteNumber(item.cmt_count ?? item.review_count),
-      favoriteCount: finiteNumber(item.liked_count ?? item.favorite_count),
+      reviewCount: finiteNumber(item.cmt_count ?? item.product_review?.cmt_count ?? item.review_count),
+      favoriteCount: finiteNumber(item.liked_count ?? item.product_review?.liked_count ?? item.favorite_count),
       rating: finiteNumber(item.item_rating?.rating_star ?? item.rating_star),
       discountPercent: finiteNumber(item.raw_discount ?? item.discount),
       ...(validCounts ? {
