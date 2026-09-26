@@ -51,22 +51,22 @@
     };
   }
 
-  function extractProductActivity(item) {
+  function extractProductActivity(item, productReview = item?.product_review) {
     if (!item || typeof item !== "object") return null;
     // Shopee's rating_count is [total, 1 star, 2 stars, 3 stars, 4 stars, 5 stars].
     // Reject incomplete or inconsistent breakdowns rather than saving guessed totals.
-    const counts = item.product_review?.rating_count;
+    const counts = productReview?.rating_count;
     const validCounts = Array.isArray(counts) && counts.length === 6 &&
       counts.every(count => Number.isSafeInteger(count) && count >= 0) &&
       counts.slice(1).reduce((sum, count) => sum + count, 0) === counts[0] &&
-      (item.product_review.total_rating_count == null ||
-        item.product_review.total_rating_count === counts[0]) ? counts : null;
+      (productReview.total_rating_count == null ||
+        productReview.total_rating_count === counts[0]) ? counts : null;
     const result = {
       totalSold: finiteNumber(item.historical_sold ?? item.sold),
       viewCount: finiteNumber(item.view_count ?? item.views),
-      reviewCount: finiteNumber(item.cmt_count ?? item.product_review?.cmt_count ?? item.review_count),
-      favoriteCount: finiteNumber(item.liked_count ?? item.product_review?.liked_count ?? item.favorite_count),
-      rating: finiteNumber(item.item_rating?.rating_star ?? item.rating_star),
+      reviewCount: finiteNumber(item.cmt_count ?? productReview?.cmt_count ?? item.review_count),
+      favoriteCount: finiteNumber(item.liked_count ?? productReview?.liked_count ?? item.favorite_count),
+      rating: finiteNumber(item.item_rating?.rating_star ?? item.rating_star ?? productReview?.rating_star),
       discountPercent: finiteNumber(item.raw_discount ?? item.discount),
       ...(validCounts ? {
         ratingCount: validCounts[0],

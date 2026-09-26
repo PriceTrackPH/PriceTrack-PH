@@ -256,12 +256,14 @@ function normalizeShopeePayload(payload, ids) {
   if (!variations.length) return null;
 
   const shop = payload?.data?.shop_detailed || payload?.data?.shop || payload?.shop_detailed || payload?.shop || {};
+  const productReview = payload?.data?.product_review || payload?.data?.product?.product_review ||
+    payload?.product_review || item.product_review;
   return {
     title: String(item.title ?? item.name ?? "").trim().slice(0, 500),
     imageUrl: imageFromShopeeKey(item.image || item.images?.[0] || "").slice(0, 2000),
     storeName: String(shop.name ?? shop.shop_name ?? shop.username ?? "Shopee Store").trim().slice(0, 200),
     variations,
-    activity: globalThis.PriceTrackProductActivity?.extractProductActivity(item) || null,
+    activity: globalThis.PriceTrackProductActivity?.extractProductActivity(item, productReview) || null,
     collectionMode: "shopee-models",
   };
 }

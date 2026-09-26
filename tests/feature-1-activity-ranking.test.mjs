@@ -52,6 +52,30 @@ test("product review payload supplies exact comment and favorite counts", async 
   assert.equal(merged.approximateFavoriteCount, false);
 });
 
+test("product page response reads product_review beside the matching item", async () => {
+  const activitySource = await readFile(new URL("../extension/product-activity.js", import.meta.url), "utf8");
+  const content = await readFile(new URL("../extension/content.js", import.meta.url), "utf8");
+  const context = vm.createContext({ globalThis: {} });
+  vm.runInContext(activitySource, context);
+  const helpers = content.slice(content.indexOf("function shopeePrice("), content.indexOf("function normalizedSelectionText("));
+  vm.runInContext(helpers, context);
+  const product = context.normalizeShopeePayload({ data: {
+    item: {
+      item_id: 18391770776, shop_id: 264015657, title: "Orashare OL03",
+      models: [{ model_id: 1, price: 36900000, name: "Default" }],
+    },
+    product_review: {
+      total_rating_count: 54497, rating_count: [54497, 185, 80, 504, 2459, 51269],
+      cmt_count: 53712, liked_count: 49178, rating_star: 4.918394,
+    },
+  } }, { shopId: "264015657", productId: "18391770776" });
+  assert.equal(product.activity.ratingCount, 54497);
+  assert.deepEqual(Array.from(product.activity.ratingCountsByStar), [54497, 185, 80, 504, 2459, 51269]);
+  assert.equal(product.activity.reviewCount, 53712);
+  assert.equal(product.activity.favoriteCount, 49178);
+  assert.equal(product.activity.rating, 4.918394);
+});
+
 test("product header counts fill missing fields without confusing store ratings or exact API counts", async () => {
   const source = await readFile(new URL("../extension/product-activity.js", import.meta.url), "utf8");
   const context = vm.createContext({ globalThis: {} });
