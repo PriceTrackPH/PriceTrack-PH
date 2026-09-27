@@ -224,6 +224,26 @@
     view?.scrollTo?.({ top: productBoundaryScrollTop(root, view), behavior: "smooth" });
   }
 
+  function findSortBar(root) {
+    const targeted = root?.querySelector?.([
+      ".shop-search-result-view__sort-bar",
+      ".shopee-sort-bar",
+      "[class*='sort-bar']",
+    ].join(", "));
+    if (targeted) return targeted;
+    return Array.from(root?.querySelectorAll?.("span, div") || [])
+      .find((element) => /^sort by$/i.test(String(element.textContent || "").trim())) || null;
+  }
+
+  function scrollToSortBar(root, view) {
+    const sortBar = findSortBar(root);
+    if (!sortBar?.getBoundingClientRect) return false;
+    const top = Number(sortBar.getBoundingClientRect().top);
+    if (!Number.isFinite(top)) return false;
+    view?.scrollTo?.({ top: Math.max(0, Math.floor((Number(view?.scrollY) || 0) + top - 16)), behavior: "smooth" });
+    return true;
+  }
+
   function parseCompactCount(value) {
     const match = String(value || "").match(/(\d+(?:\.\d+)?)\s*([km])?\+?/i);
     if (!match) return null;
@@ -261,7 +281,7 @@
     return [...regular, ...soldOut];
   }
 
-  const api = { productIdentityFromUrl, dedupeProductLinks, dedupeProductCandidates, shouldStopScan, findNextPageControl, isPageControlDisabled, readPageProgress, isFinalStorePage, findSoldOutSection, findSoldOutSeeMoreControl, pageFingerprint, nextPageStableRounds, hasPageTransitioned, beginScan, endScan, currentPageMarker, isConfirmedEmptyStore, storeProductLinks, findPageFooter, productBoundaryScrollTop, scrollToProductBoundary, parseCompactCount, productCandidateFromAnchor, storeProductCandidates };
+  const api = { productIdentityFromUrl, dedupeProductLinks, dedupeProductCandidates, shouldStopScan, findNextPageControl, isPageControlDisabled, readPageProgress, isFinalStorePage, findSoldOutSection, findSoldOutSeeMoreControl, pageFingerprint, nextPageStableRounds, hasPageTransitioned, beginScan, endScan, currentPageMarker, isConfirmedEmptyStore, storeProductLinks, findPageFooter, productBoundaryScrollTop, scrollToProductBoundary, findSortBar, scrollToSortBar, parseCompactCount, productCandidateFromAnchor, storeProductCandidates };
   globalThis.PriceTrackStoreScanner = api;
 
   if (typeof chrome === "undefined" || !chrome.runtime?.onMessage || typeof document === "undefined") return;
@@ -382,7 +402,8 @@
           await send({ type: "storeScanFinished", scanId, status: "incomplete", discovered: seen.size, error: "The next Shopee store page did not load." });
           return;
         }
-        window.scrollTo({ top: 0, behavior: "auto" });
+        // Keep the next page at its product controls, without jumping to the store header.
+        scrollToSortBar(document, window);
         await sleep(500);
       }
     } catch (error) {

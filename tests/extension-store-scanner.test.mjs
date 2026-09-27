@@ -231,6 +231,19 @@ test("recalculates the footer boundary after Sold Out products expand", () => {
   assert.equal(scanner.productBoundaryScrollTop(root, view), 1000);
 });
 
+test("positions each new store page at Sort by instead of the store header", () => {
+  const sortBar = { getBoundingClientRect: () => ({ top: 320 }) };
+  const root = { querySelector: (selector) => selector.includes("sort-bar") ? sortBar : null };
+  const calls = [];
+  const view = { scrollY: 100, scrollTo: (options) => calls.push(options) };
+
+  assert.equal(scanner.scrollToSortBar(root, view), true);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].top, 404);
+  assert.equal(calls[0].behavior, "smooth");
+  assert.match(source, /scrollToSortBar\(document, window\);\s*await sleep\(500\)/);
+});
+
 test("uses the product boundary for normal scrolling and each Sold Out expansion", () => {
   assert.match(source, /async function expandSoldOutSection\(\)[\s\S]*scrollToProductBoundary\(document, window\)/);
   assert.doesNotMatch(source, /window\.scrollTo\(\{ top: Math\.max\(document\.body\.scrollHeight/);
