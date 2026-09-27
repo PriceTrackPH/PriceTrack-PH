@@ -553,10 +553,8 @@ export default function AdminCollector() {
             setFailed(failedCount.current);
           }
           await refreshSharedSummary(product);
-          if (backlogId.current && product.claimSource !== "store") {
-            const { backlog: progress } = await api<{ backlog: CollectorBacklog | null }>("backlog-status");
-            setBacklog(progress);
-          }
+          const { backlog: progress } = await api<{ backlog: CollectorBacklog | null }>("backlog-status");
+          setBacklog(progress);
           checkpointRun();
           setMessage(`${String(pageOutcome).replace(/_/g, " ")} skipped`);
           break;
@@ -635,10 +633,8 @@ export default function AdminCollector() {
       if (product.claimSource !== "priority") nonPriorityCadence.current += 1;
       setSucceeded(succeededCount.current);
       await refreshSharedSummary(product);
-      if (backlogId.current && product.claimSource !== "store") {
-        const { backlog: progress } = await api<{ backlog: CollectorBacklog | null }>("backlog-status");
-        setBacklog(progress);
-      }
+      const { backlog: progress } = await api<{ backlog: CollectorBacklog | null }>("backlog-status");
+      setBacklog(progress);
       consecutiveFailures = 0;
       checkpointRun();
       if (stopRequested.current) {
