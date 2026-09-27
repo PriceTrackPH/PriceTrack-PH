@@ -649,7 +649,7 @@ export default async function handler(req, res) {
       const liveSummary = await collectorSummary(supabaseUrl, secret);
       const backlog = req.body?.backlogId && UUID_V4.test(req.body.backlogId)
         ? (await rpc(supabaseUrl, secret, "collector_backlog_status", {}))?.[0] : null;
-      const finishedRun = { ...run, remaining: backlog?.backlog_id === req.body?.backlogId
+      const finishedRun = { ...run, remaining: backlog && backlog.backlog_id === req.body?.backlogId
         ? safeInteger(backlog.remaining) : liveSummary.totalDue };
       await saveCollectorRun(supabaseUrl, secret, finishedRun);
       return send(res, 200, { ok: true, saved: finishedRun });
