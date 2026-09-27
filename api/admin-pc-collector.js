@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { normalizeDiscoveredProducts, normalizeShopeeStoreUrl } from "../server/store-import-contract.js";
+import { skipNextDayForUnchangedPrice } from "../server/shopee-sale-window.js";
 
 const MAX_BODY_BYTES = 512_000;
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -334,12 +335,14 @@ function unchangedPriceRecheckAt(checkedAt) {
   const manilaDate = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date(checkedAt));
-  // A same-price check today skips the entire next Manila calendar day.
+  if (!skipNextDayForUnchangedPrice(manilaDate)) return null;
+  // Outside sale windows, a same-price check skips the next Manila calendar day.
   return new Date(Date.parse(`${manilaDate}T00:00:00+08:00`) + 2 * 24 * 60 * 60_000).toISOString();
 }
 
 async function applyUnchangedPriceSkip(supabaseUrl, secret, productId, check, metadata) {
   const nextCheckAt = unchangedPriceRecheckAt(check.checked_at);
+  if (!nextCheckAt) return null;
   const headers = adminHeaders(secret, { "Content-Type": "application/json", Prefer: "return=minimal" });
   const [checkResponse, productResponse] = await Promise.all([
     fetch(`${supabaseUrl}/rest/v1/product_daily_checks?id=eq.${check.id}`, {
@@ -742,7 +745,11 @@ export default async function handler(req, res) {
       if (productId) {
         const status = await productCheckStatus(supabaseUrl, secret, productId, skipUnchangedDay, skipSoldOut, checkedDate);
         if (status.completed && req.body?.claimSource === "personal") {
-          await advancePersonalProduct(supabaseUrl, secret, productId);
+          const checkedManilaDate = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
+          }).format(new Date(status.checkedAt));
+          await advancePersonalProduct(supabaseUrl, secret, productId,
+            skipNextDayForUnchangedPrice(checkedManilaDate) ? 2 : 1);
         }
         return send(res, 200, { ok: true, ...status });
       }
