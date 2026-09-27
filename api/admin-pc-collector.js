@@ -95,11 +95,16 @@ export async function collectorSummary(supabaseUrl, secret) {
     headers: adminHeaders(secret, { "Content-Type": "application/json" }),
     body: "{}",
   };
-  const [response, priorityResponse, storeResponse] = await Promise.all([
+  let [response, priorityResponse, storeResponse] = await Promise.all([
     fetch(`${supabaseUrl}/rest/v1/rpc/collector_available_summary_v3`, options),
     fetch(`${supabaseUrl}/rest/v1/rpc/public_collection_queue_pending_count`, options),
     fetch(`${supabaseUrl}/rest/v1/rpc/store_collection_queue_pending_count`, options),
   ]);
+  // Retry one transient database error while product updates are being recorded.
+  if (response.status === 500) {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    response = await fetch(`${supabaseUrl}/rest/v1/rpc/collector_available_summary_v3`, options);
+  }
   if (!response.ok) throw new Error(`collector_summary_${response.status}`);
   if (!priorityResponse.ok) throw new Error(`priority_count_${priorityResponse.status}`);
   if (!storeResponse.ok) throw new Error(`store_count_${storeResponse.status}`);
