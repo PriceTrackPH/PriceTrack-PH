@@ -42,6 +42,40 @@ test("summary uses the database availability cross-check", async () => {
   assert.ok(urls.some((url) => url.endsWith("/rest/v1/rpc/collector_available_summary_v3")));
 });
 
+
+test("a completed Normal Queue check counts toward an active backlog while the switch is off", async () => {
+  const originalFetch = global.fetch;
+  const originalEnv = Object.fromEntries(["ADMIN_HEALTH_TOKEN", "SUPABASE_URL", "SUPABASE_SECRET_KEY", "VITE_SUPABASE_PUBLISHABLE_KEY"]
+    .map((key) => [key, process.env[key]]));
+  Object.assign(process.env, {
+    ADMIN_HEALTH_TOKEN: "admin-token", SUPABASE_URL: "https://example.supabase.co",
+    SUPABASE_SECRET_KEY: "secret", VITE_SUPABASE_PUBLISHABLE_KEY: "publishable",
+  });
+  const calls = [];
+  global.fetch = async (url, options = {}) => {
+    calls.push({ url: String(url), body: options.body && JSON.parse(options.body) });
+    if (String(url).includes("product_daily_checks")) return { ok: true, json: async () => [{ checked_at: "2026-09-27T10:00:00Z", metadata: {} }] };
+    if (String(url).includes("select=all_variations_sold_out")) return { ok: true, json: async () => [{ all_variations_sold_out: false, next_check_at: null }] };
+    if (String(url).includes("select=external_shop_id")) return { ok: true, json: async () => [{ external_shop_id: "100", external_product_id: "200" }] };
+    if (String(url).includes("collector_backlog_complete_active")) return { ok: true, json: async () => 5 };
+    throw new Error(`unexpected ${url}`);
+  };
+  try {
+    let result;
+    await handler({ method: "POST", headers: { authorization: "Bearer admin-token" }, query: { action: "status" },
+      body: { productId: 77, claimSource: "random" } },
+    { status() { return this; }, setHeader() { return this; }, json(value) { result = value; return this; } });
+    assert.equal(result.completed, true);
+    assert.deepEqual(calls.find(({ url }) => url.includes("collector_backlog_complete_active")).body,
+      { p_backlog_id: null, p_shop_id: "100", p_external_product_id: "200", p_outcome: "checked" });
+  } finally {
+    global.fetch = originalFetch;
+    for (const [key, value] of Object.entries(originalEnv)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+});
+
 test("claims the oldest priority request before random due products", async () => {
   const calls = [];
   global.fetch = async (url, options) => {
