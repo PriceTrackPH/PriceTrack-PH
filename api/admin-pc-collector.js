@@ -833,12 +833,12 @@ export default async function handler(req, res) {
       const productId = safeInteger(req.body?.productId);
       if (productId) {
         const status = await productCheckStatus(supabaseUrl, secret, productId, skipUnchangedDay, skipSoldOut, checkedDate);
-        if (status.completed && req.body?.claimSource !== "store" && UUID_V4.test(String(req.body?.backlogId || ""))) {
+        if (status.completed) {
           const row = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${productId}&select=external_shop_id,external_product_id&limit=1`, { headers: adminHeaders(secret) });
           if (!row.ok) throw new Error(`backlog_identity_${row.status}`);
           const [product] = await row.json();
-          if (product) await rpc(supabaseUrl, secret, "collector_backlog_complete", {
-            p_backlog_id: req.body.backlogId, p_shop_id: product.external_shop_id,
+          if (product) await rpc(supabaseUrl, secret, "collector_backlog_complete_active", {
+            p_backlog_id: UUID_V4.test(String(req.body?.backlogId || "")) ? req.body.backlogId : null, p_shop_id: product.external_shop_id,
             p_external_product_id: product.external_product_id, p_outcome: "checked",
           });
         }
@@ -857,9 +857,9 @@ export default async function handler(req, res) {
         return send(res, 400, { error: "A valid product identity is required" });
       }
       const status = await productCheckStatusByIdentity(supabaseUrl, secret, shopId, externalProductId, skipUnchangedDay, skipSoldOut, checkedDate);
-      if (status.completed && req.body?.claimSource !== "store" && UUID_V4.test(String(req.body?.backlogId || "")))
-        await rpc(supabaseUrl, secret, "collector_backlog_complete", {
-          p_backlog_id: req.body.backlogId, p_shop_id: shopId, p_external_product_id: externalProductId,
+      if (status.completed)
+        await rpc(supabaseUrl, secret, "collector_backlog_complete_active", {
+          p_backlog_id: UUID_V4.test(String(req.body?.backlogId || "")) ? req.body.backlogId : null, p_shop_id: shopId, p_external_product_id: externalProductId,
           p_outcome: "checked",
         });
       return send(res, 200, { ok: true, ...status });
@@ -883,9 +883,8 @@ export default async function handler(req, res) {
         claimSource: claimSource === "personal" ? "random" : claimSource, queueRequestId: queueRequestId || null, productId: productId || null,
         shopId, externalProductId, outcome,
       });
-      if (claimSource !== "store" && UUID_V4.test(String(req.body?.backlogId || "")))
-        await rpc(supabaseUrl, secret, "collector_backlog_complete", {
-          p_backlog_id: req.body.backlogId, p_shop_id: shopId,
+      await rpc(supabaseUrl, secret, "collector_backlog_complete_active", {
+          p_backlog_id: UUID_V4.test(String(req.body?.backlogId || "")) ? req.body.backlogId : null, p_shop_id: shopId,
           p_external_product_id: externalProductId, p_outcome: outcome,
         });
       if (claimSource === "personal") await advancePersonalProduct(supabaseUrl, secret, productId, outcome === "page_error" ? 1 : 2);
