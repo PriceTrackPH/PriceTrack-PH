@@ -567,12 +567,12 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                 <h2 id="finish-due-heading">Finish remaining products</h2>
                 <p>Save the current due products as a backlog. Resume it across days without repeating completed products. Store Queue stays in the 2:1 normal-to-store order but is outside the backlog.</p>
               </div>
-              <div className="admin-settings-links admin-settings-link-buttons admin-finish-backlog-button"><div className="admin-settings-link">
+              <div className="admin-settings-links admin-finish-backlog-button"><div className="admin-settings-link"><span>Finish saved backlog</span>
                 <button type="button" aria-label={`Finish saved backlog ${finishDueProducts ? "on" : "off"}. Click to toggle.`} aria-pressed={finishDueProducts} onClick={() => {
                   const next = !finishDueProducts;
                   localStorage.setItem("pricetrack-admin-collector-finish-due-products", String(next));
                   setFinishDueProducts(next);
-                }}>Finish saved backlog</button>
+                }}>{finishDueProducts ? "On" : "Off"}</button>
               </div></div>
             </section>}
 
