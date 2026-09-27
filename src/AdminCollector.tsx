@@ -846,13 +846,27 @@ export default function AdminCollector() {
             aria-pressed={option.checked} disabled={running}
             onClick={() => option.change(!option.checked)}>{option.label}</button>)}
         </div>
-        <div className="admin-collector-status admin-collector-status-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }} aria-live="polite">
+        <div className="admin-collector-status" aria-live="polite">
+          <div className="admin-collector-status-row admin-collector-status-row-six">
           {[
             ["Total Products", summary?.totalTracked ?? "—"],
-            ["Total Available", summary?.totalDue ?? "—"],
-            ["Total Sold Out", summary?.soldOutDeferred ?? "—"],
             ["Total Same Price", summary?.samePriceDeferred ?? "—"],
+            ["Total Sold Out", summary?.soldOutDeferred ?? "—"],
+            ["Total Doesn't Exist", summary?.doesNotExistCount ?? "—"],
+            ["Total Unlisted", summary?.unlistedCount ?? "—"],
+            ["Total Page Error", summary?.pageErrorCount ?? "—"],
+          ].map(([label, value]) => (
+            <div className="admin-collector-status-card" style={collectorStatusCardStyle} key={label}>
+              <small>{label}</small>
+              <strong>{formatCollectorCount(value)}</strong>
+            </div>
+          ))}
+          </div>
+          <div className="admin-collector-status-row admin-collector-status-row-four">
+          {[
+            ["Total Available", summary?.totalDue ?? "—"],
             ["Total Priority Queue", summary?.priorityPending ?? "—"],
+            ["Total Favorite Queue", favoritesLoaded ? favoriteIds.size : "—"],
             ["Total Store Queue", summary?.storeQueuePending ?? "—"],
           ].map(([label, value]) => (
             <div className="admin-collector-status-card" style={collectorStatusCardStyle} key={label}>
@@ -860,6 +874,8 @@ export default function AdminCollector() {
               <strong>{formatCollectorCount(value)}</strong>
             </div>
           ))}
+          </div>
+          <div className="admin-collector-status-row admin-collector-status-row-six">
           {[
             ["Remaining", summary ? remaining : "—"],
             ["Processing", currentProduct ? 1 : 0],
@@ -886,16 +902,7 @@ export default function AdminCollector() {
               <strong>{formatCollectorCount(value)}</strong>
             </div>
           ))}
-          {[
-            ["Doesn't Exist", summary?.doesNotExistCount ?? "—"],
-            ["Unlisted", summary?.unlistedCount ?? "—"],
-            ["Page Error", summary?.pageErrorCount ?? "—"],
-          ].map(([label, value]) => (
-            <div className="admin-collector-status-card" style={{ ...collectorStatusCardStyle, gridColumn: "span 2" }} key={label}>
-              <small>{label}</small>
-              <strong>{formatCollectorCount(value)}</strong>
-            </div>
-          ))}
+          </div>
         </div>
         {favoriteNotice && <p className="admin-collector-remote-notice" role="status">{favoriteNotice}</p>}
         <p className="admin-collector-note">Keep this page and the dedicated Shopee tab open. Complete Shopee verification manually if it appears.</p>
