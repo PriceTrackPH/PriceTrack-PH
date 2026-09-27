@@ -547,11 +547,6 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                   </div>
                 </div>
               </div>
-              <div className="health-ads-details">
-                <span>AdSense code</span>
-                <strong>{adSettings?.configured ? "Configured" : "Not configured"}</strong>
-                <small>Ads appear on successfully loaded tracked product reports when configured and turned on.</small>
-              </div>
               {adsMessage && <p className="health-ads-message" role="status">{adsMessage}</p>}
             </section>}
 
