@@ -223,13 +223,17 @@ async function advancePersonalProduct(supabaseUrl, secret, productId, days = 2) 
   if (!response.ok) throw new Error(`personal_advance_${response.status}`);
 }
 
-export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null) {
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null, finishDueProducts = false) {
   if (includePersonalQueue) {
     const personal = await claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut, lastShopId);
     if (personal) return personal;
   }
   const priority = includePriorityQueue ? await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil) : null;
   if (priority) return priority;
+  if (finishDueProducts && includeStoreImports) {
+    const { totalDue } = await collectorSummary(supabaseUrl, secret);
+    if (totalDue === 0) return null;
+  }
   if (includeStoreImports && preferredSource === "store") {
     const store = await claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
     if (store) return store;
@@ -238,7 +242,7 @@ export async function claimNextProduct(supabaseUrl, secret, excludedProductIds =
     ? await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut)
     : null;
   if (normal || !includeStoreImports || preferredSource === "store") return normal;
-  return claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
+  return finishDueProducts ? null : claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
 }
 
 export async function releasePriorityProduct(supabaseUrl, secret, requestId, leaseUntil) {
@@ -694,6 +698,7 @@ export default async function handler(req, res) {
         req.body?.includePersonalQueue === true,
         req.body?.includePriorityQueue !== false,
         /^\d+$/.test(String(req.body?.lastShopId || "")) ? String(req.body.lastShopId) : null,
+        req.body?.finishDueProducts === true,
       );
       return send(res, 200, { ok: true, product });
     }
