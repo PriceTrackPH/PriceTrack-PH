@@ -565,7 +565,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
               <div>
                 <span className="health-kicker">COLLECTOR</span>
                 <h2 id="finish-due-heading">Finish remaining products</h2>
-                <p>Save the current due products as a backlog. Resume it across days without repeating completed products. Store Queue stays in the 2:1 normal-to-store order but is outside the backlog.</p>
+                <p>Save all available tracked products as a backlog. Each completed check counts once per batch, even while this setting is off. A new batch starts after the previous one finishes.</p>
               </div>
               <div className="admin-settings-links admin-finish-backlog-button"><div className="admin-settings-link">
                 <button type="button" aria-label={`Finish saved backlog ${finishDueProducts ? "on" : "off"}. Click to toggle.`} aria-pressed={finishDueProducts} onClick={() => {
