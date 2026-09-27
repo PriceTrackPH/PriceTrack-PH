@@ -549,9 +549,8 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                 <p>One responsive ad below a successfully loaded Database Product Report. It is hidden on errors and untracked products.</p>
               </div>
               <div className="health-ads-control">
-                <span className={`health-ads-status ${adSettings?.adsEnabled ? "on" : "off"}`}>{adSettings?.adsEnabled ? "ADS ON" : "ADS OFF"}</span>
-                <button type="button" disabled={adsBusy || !adSettings} aria-pressed={adSettings?.requestedEnabled ?? false} onClick={() => void updateAds(!adSettings?.requestedEnabled)}>
-                  {adsBusy ? "Saving…" : adSettings?.requestedEnabled ? "Turn ads off" : "Turn ads on"}
+                <button type="button" disabled={adsBusy || !adSettings} aria-label={`AdSense ${adSettings?.requestedEnabled ? "on" : "off"}. Click to toggle.`} aria-pressed={adSettings?.requestedEnabled ?? false} onClick={() => void updateAds(!adSettings?.requestedEnabled)}>
+                  {adsBusy ? "Saving…" : "AdSense"}
                 </button>
               </div>
               <div className="health-ads-details">
