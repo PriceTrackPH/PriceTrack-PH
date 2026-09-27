@@ -334,7 +334,8 @@ function unchangedPriceRecheckAt(checkedAt) {
   const manilaDate = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date(checkedAt));
-  return new Date(Date.parse(`${manilaDate}T00:00:00+08:00`) + 1 * 24 * 60 * 60_000).toISOString();
+  // A same-price check today skips the entire next Manila calendar day.
+  return new Date(Date.parse(`${manilaDate}T00:00:00+08:00`) + 2 * 24 * 60 * 60_000).toISOString();
 }
 
 async function applyUnchangedPriceSkip(supabaseUrl, secret, productId, check, metadata) {
