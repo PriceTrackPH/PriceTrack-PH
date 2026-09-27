@@ -102,6 +102,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favoriteMessage, setFavoriteMessage] = useState("");
+  const [finishDueProducts, setFinishDueProducts] = useState(() => localStorage.getItem("pricetrack-admin-collector-finish-due-products") === "true");
   const isLogin = view === "login";
   const isSettings = view === "settings";
 
@@ -558,6 +559,21 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                 <small>The switch affects every website visitor immediately.</small>
               </div>
               {adsMessage && <p className="health-ads-message" role="status">{adsMessage}</p>}
+            </section>}
+
+            {isSettings && <section className="health-ads" aria-labelledby="finish-due-heading">
+              <div>
+                <span className="health-kicker">COLLECTOR</span>
+                <h2 id="finish-due-heading">Finish remaining products</h2>
+                <p>End a run after its due products are checked, without continuing through Store Queue alone. The 2:1 normal-to-store order still applies while due products remain.</p>
+              </div>
+              <div className="admin-settings-links"><div className="admin-settings-link"><span>Finish when due products are done</span>
+                <button type="button" aria-pressed={finishDueProducts} onClick={() => {
+                  const next = !finishDueProducts;
+                  localStorage.setItem("pricetrack-admin-collector-finish-due-products", String(next));
+                  setFinishDueProducts(next);
+                }}>{finishDueProducts ? "On" : "Off"}</button>
+              </div></div>
             </section>}
 
             {isSettings && <section className="health-ads admin-favorites" aria-labelledby="favorites-heading">
