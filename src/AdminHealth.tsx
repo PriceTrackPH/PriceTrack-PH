@@ -526,15 +526,14 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                 <h2 id="link-settings-heading">Link visibility</h2>
                 <p>Choose which buttons appear on public product reports.</p>
               </div>
-              <div className="admin-settings-links">
+              <div className="admin-settings-links admin-settings-link-buttons">
                 {([
-                  ["shopeeLinkEnabled", "Shopee link"],
-                  ["affiliateLinkEnabled", "Affiliate link"],
+                  ["shopeeLinkEnabled", "Shopee"],
+                  ["affiliateLinkEnabled", "Affiliate"],
                 ] as const).map(([field, label]) => (
                   <div className="admin-settings-link" key={field}>
-                    <span>{label}</span>
-                    <button type="button" disabled={!adSettings || linkBusy !== null} aria-pressed={adSettings?.[field] ?? true} onClick={() => void updateLink(field, !adSettings?.[field])}>
-                      {linkBusy === field ? "Saving…" : adSettings?.[field] === false ? "Off · Hidden" : "On · Shown"}
+                    <button type="button" disabled={!adSettings || linkBusy !== null} aria-label={`${label} link ${adSettings?.[field] === false ? "off" : "on"}. Click to toggle.`} aria-pressed={adSettings?.[field] ?? true} onClick={() => void updateLink(field, !adSettings?.[field])}>
+                      {linkBusy === field ? "Saving…" : label}
                     </button>
                   </div>
                 ))}
