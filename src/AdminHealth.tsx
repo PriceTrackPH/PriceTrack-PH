@@ -57,7 +57,7 @@ type AdSettings = {
 
 type FavoriteProduct = {
   product_id: number;
-  products: { product_url: string };
+  products: { product_url: string; name: string | null; shop_name: string | null } | null;
 };
 
 const eventLabels: Record<string, string> = {
@@ -97,6 +97,8 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [adsMessage, setAdsMessage] = useState("");
   const [favoriteUrl, setFavoriteUrl] = useState("");
   const [favorites, setFavorites] = useState<FavoriteProduct[]>([]);
+  const [favoritePage, setFavoritePage] = useState(1);
+  const [favoriteTotal, setFavoriteTotal] = useState(0);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favoriteMessage, setFavoriteMessage] = useState("");
@@ -200,13 +202,19 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     };
     window.addEventListener("storage", onFavoriteChange);
     return () => window.removeEventListener("storage", onFavoriteChange);
-  }, [isSettings, token]);
+  }, [isSettings, token, favoritePage]);
 
-  async function loadFavorites(nextToken = token) {
+  async function loadFavorites(nextToken = token, page = favoritePage) {
     setFavoriteLoading(true);
     try {
-      const result = await favoriteRequest<{ favorites: FavoriteProduct[] }>("personal-list", {}, nextToken);
+      const result = await favoriteRequest<{ favorites: FavoriteProduct[]; total: number }>("personal-list", { page }, nextToken);
+      if (result.favorites.length === 0 && page > 1 && result.total > 0) {
+        await loadFavorites(nextToken, Math.ceil(result.total / 10));
+        return;
+      }
       setFavorites(result.favorites);
+      setFavoriteTotal(result.total);
+      setFavoritePage(page);
       setFavoriteMessage("");
     } catch (cause) {
       setFavoriteMessage(cause instanceof Error ? cause.message : "Unable to load Favorite Queue.");
@@ -225,7 +233,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
       await favoriteRequest("personal-add", { productUrl: favoriteUrl.trim() });
       publishFavoriteChange();
       setFavoriteUrl("");
-      await loadFavorites();
+      await loadFavorites(token, 1);
       setFavoriteMessage("Product saved to Favorite Queue.");
     } catch (cause) {
       setFavoriteMessage(cause instanceof Error ? cause.message : "Unable to save product.");
@@ -238,7 +246,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     try {
       await favoriteRequest("personal-remove", { productId });
       publishFavoriteChange();
-      await loadFavorites();
+      await loadFavorites(token, favoritePage);
       setFavoriteMessage("Product removed from Favorite Queue.");
     } catch (cause) {
       setFavoriteMessage(cause instanceof Error ? cause.message : "Unable to remove product.");
@@ -566,11 +574,18 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
               </form>
               <div className="admin-favorites-list">
                 {favoriteLoading ? <p>Loading saved products…</p> : favorites.length === 0 ? <p>No saved products yet.</p> :
-                  favorites.map((favorite) => <div key={favorite.product_id}>
-                    <a href={favorite.products.product_url} target="_blank" rel="noreferrer">{favorite.products.product_url}</a>
-                    <button type="button" disabled={favoriteBusy} onClick={() => void removeFavorite(favorite.product_id)}>Remove</button>
+                  favorites.map((favorite) => <div className="admin-favorites-row" key={favorite.product_id}>
+                    <button type="button" disabled={favoriteBusy} onClick={() => void removeFavorite(favorite.product_id)} aria-label={`Delete ${favorite.products?.name || "saved product"}`}>Delete</button>
+                    <span className="admin-favorites-store" title={favorite.products?.shop_name || "Unknown store"}>{favorite.products?.shop_name || "Unknown store"}</span>
+                    <a href={favorite.products?.product_url || "#"} target="_blank" rel="noreferrer" title={favorite.products?.name || favorite.products?.product_url || ""}>{favorite.products?.name || favorite.products?.product_url || "Unknown product"}</a>
                   </div>)}
               </div>
+              {favoriteTotal > 0 && <nav className="admin-favorites-pagination" aria-label="Favorite Queue pages">
+                <span>Showing {Math.min((favoritePage - 1) * 10 + 1, favoriteTotal)}–{Math.min(favoritePage * 10, favoriteTotal)} of {favoriteTotal}</span>
+                <button type="button" disabled={favoriteLoading || favoriteBusy || favoritePage <= 1} onClick={() => void loadFavorites(token, favoritePage - 1)}>Previous</button>
+                <span>Page {favoritePage} of {Math.ceil(favoriteTotal / 10)}</span>
+                <button type="button" disabled={favoriteLoading || favoriteBusy || favoritePage * 10 >= favoriteTotal} onClick={() => void loadFavorites(token, favoritePage + 1)}>Next</button>
+              </nav>}
               {favoriteMessage && <p className="admin-favorites-message" role="status">{favoriteMessage}</p>}
             </section>}
 
