@@ -553,6 +553,10 @@ export default function AdminCollector() {
             setFailed(failedCount.current);
           }
           await refreshSharedSummary(product);
+          if (backlogId.current && product.claimSource !== "store") {
+            const { backlog: progress } = await api<{ backlog: CollectorBacklog | null }>("backlog-status");
+            setBacklog(progress);
+          }
           checkpointRun();
           setMessage(`${String(pageOutcome).replace(/_/g, " ")} skipped`);
           break;
@@ -825,7 +829,7 @@ export default function AdminCollector() {
     }
   }
 
-  const remaining = localStorage.getItem(finishDueProductsStorageKey) === "true" && backlog && !backlog.finished
+  const remaining = localStorage.getItem(finishDueProductsStorageKey) === "true" && backlog
     ? backlog.remaining : Math.max(0, summary?.totalDue || 0);
 
   return <main className="health-page">
@@ -837,8 +841,8 @@ export default function AdminCollector() {
           <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
           <button type="button" onClick={() => void startCollection("unlimited")} disabled={running || !summary}>Start unlimited collection</button>
         </div>
-        {localStorage.getItem(finishDueProductsStorageKey) === "true" && backlog && !backlog.finished &&
-          <p role="status">Saved backlog: {formatCollectorCount(backlog.total - backlog.remaining)} of {formatCollectorCount(backlog.total)} completed across days.</p>}
+        {localStorage.getItem(finishDueProductsStorageKey) === "true" && backlog &&
+          <p role="status">Saved backlog: {formatCollectorCount(backlog.total - backlog.remaining)} of {formatCollectorCount(backlog.total)} completed across days{backlog.finished ? " — finished" : ""}.</p>}
         <div className="admin-collector-queue-options" role="group" aria-label="Collection options">
           {[
             {
