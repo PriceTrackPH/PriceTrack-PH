@@ -521,6 +521,7 @@ html[data-theme="dark"] .admin-collector-status-card strong { color: #f7faf9; }
 html:not([data-theme="dark"]) .health-page {
   background-color: #fff;
   background-image:
+    linear-gradient(to bottom, transparent 55%, #fff 100%),
     radial-gradient(
       ellipse 24% 145% at 82.5% 50%,
       rgba(111, 255, 225, .46) 0%,
@@ -535,6 +536,7 @@ html:not([data-theme="dark"]) .health-page {
 html[data-theme="dark"] .health-page {
   background-color: #101513;
   background-image:
+    linear-gradient(to bottom, transparent 55%, #101513 100%),
     radial-gradient(
       ellipse 34% 150% at 82% 50%,
       rgba(0, 123, 98, .62) 0%,
