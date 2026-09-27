@@ -104,7 +104,6 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favoriteMessage, setFavoriteMessage] = useState("");
   const [finishDueProducts, setFinishDueProducts] = useState(() => localStorage.getItem("pricetrack-admin-collector-finish-due-products") === "true");
-  const [backlogProgress, setBacklogProgress] = useState<{ total: number; remaining: number; finished: boolean } | null>(null);
   const isLogin = view === "login";
   const isSettings = view === "settings";
 
@@ -302,8 +301,6 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
       if (view === "settings") {
         void loadSiteSettings(nextToken).catch((cause) => setAdsMessage(cause instanceof Error ? cause.message : "Unable to load ad settings."));
         void loadFavorites(nextToken);
-        void favoriteRequest<{ backlog: { total: number; remaining: number; finished: boolean } | null }>("backlog-status", {}, nextToken)
-          .then(({ backlog }) => setBacklogProgress(backlog)).catch(() => undefined);
       }
     } catch (cause) {
       setData(null);
@@ -577,9 +574,6 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                   setFinishDueProducts(next);
                 }}>{finishDueProducts ? "On" : "Off"}</button>
               </div></div>
-              {finishDueProducts && backlogProgress && <p className="health-backlog-progress" role="status">
-                Saved backlog: {(backlogProgress.total - backlogProgress.remaining).toLocaleString("en-US")} of {backlogProgress.total.toLocaleString("en-US")} completed across days{backlogProgress.finished ? " — finished" : ""}.
-              </p>}
             </section>}
 
             {isSettings && <section className="health-ads admin-favorites" aria-labelledby="favorites-heading">
