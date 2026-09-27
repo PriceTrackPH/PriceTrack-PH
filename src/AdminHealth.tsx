@@ -565,9 +565,9 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
               <div>
                 <span className="health-kicker">COLLECTOR</span>
                 <h2 id="finish-due-heading">Finish remaining products</h2>
-                <p>End a run after its due products are checked, without continuing through Store Queue alone. The 2:1 normal-to-store order still applies while due products remain.</p>
+                <p>Save the current due products as a backlog. Resume it across days without repeating completed products. Store Queue stays in the 2:1 normal-to-store order but is outside the backlog.</p>
               </div>
-              <div className="admin-settings-links"><div className="admin-settings-link"><span>Finish when due products are done</span>
+              <div className="admin-settings-links"><div className="admin-settings-link"><span>Finish saved backlog</span>
                 <button type="button" aria-pressed={finishDueProducts} onClick={() => {
                   const next = !finishDueProducts;
                   localStorage.setItem("pricetrack-admin-collector-finish-due-products", String(next));
