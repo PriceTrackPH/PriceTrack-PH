@@ -550,7 +550,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
               </div>
               <div className="health-ads-control">
                 <span className={`health-ads-status ${adSettings?.adsEnabled ? "on" : "off"}`}>{adSettings?.adsEnabled ? "ADS ON" : "ADS OFF"}</span>
-                <button type="button" disabled={adsBusy || !adSettings} onClick={() => void updateAds(!adSettings?.requestedEnabled)}>
+                <button type="button" disabled={adsBusy || !adSettings} aria-pressed={adSettings?.requestedEnabled ?? false} onClick={() => void updateAds(!adSettings?.requestedEnabled)}>
                   {adsBusy ? "Saving…" : adSettings?.requestedEnabled ? "Turn ads off" : "Turn ads on"}
                 </button>
               </div>
