@@ -62,6 +62,7 @@ type CollectorRun = {
   stopStatus: CollectorStopStatus;
 };
 type CollectionMode = "normal" | "unlimited";
+type CollectorBacklog = { id: string; total: number; remaining: number; finished: boolean };
 type ProductPageOutcome = "sold_out" | "does_not_exist" | "unlisted" | "page_error" | "verification";
 
 const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -123,6 +124,8 @@ function playVerificationSound() {
 export default function AdminCollector() {
   const token = sessionStorage.getItem("pricetrack-admin-health-token") || "";
   const [summary, setSummary] = useState<CollectorSummary | null>(null);
+  const [backlog, setBacklog] = useState<CollectorBacklog | null>(null);
+  const backlogId = useRef<string | null>(null);
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState("Opening collector…");
   const [currentProduct, setCurrentProduct] = useState<CollectorProduct | null>(null);
@@ -304,6 +307,8 @@ export default function AdminCollector() {
     }
     const interrupted = readCollectorRunCheckpoint(localStorage);
     const recover = interrupted ? recoverCollectorCheckpoint(interrupted) : Promise.resolve();
+    void api<{ backlog: CollectorBacklog | null }>("backlog-status")
+      .then(({ backlog: saved }) => setBacklog(saved)).catch(() => undefined);
     void recover.then(() => api<CollectorSummary & { ok: boolean; history: CollectorRun[]; hasMore: boolean }>("bootstrap"))
       .then((next) => { setSummary(next); setHistory(next.history); setHistoryHasMore(next.hasMore); setMessage("Ready"); })
       .catch((cause) => setMessage(cause instanceof Error ? cause.message : "Unable to open collector."));
@@ -451,7 +456,7 @@ export default function AdminCollector() {
       succeeded: succeededCount.current,
       failed: failedCount.current,
       soldOut: soldOutCount.current,
-      remaining: Math.max(0, (summary?.totalDue || 0) - succeededCount.current - failedCount.current),
+      remaining: backlogId.current && backlog ? backlog.remaining : Math.max(0, (summary?.totalDue || 0) - succeededCount.current - failedCount.current),
       recheckAt: recheckAt.current,
       samePrice: samePriceCount.current,
       samePriceRecheckAt: samePriceRecheckAt.current,
@@ -461,7 +466,7 @@ export default function AdminCollector() {
       ? status as CollectorRunCheckpoint["failureReason"]
       : undefined;
     checkpointRun("pending_finalization", status, failureReason);
-    const { saved } = await api<{ saved: CollectorRun }>("finish", { run, originSessionId: collectorSessionId.current });
+    const { saved } = await api<{ saved: CollectorRun }>("finish", { run, backlogId: backlogId.current, originSessionId: collectorSessionId.current });
     runId.current = null;
     clearCollectorRunCheckpoint(localStorage);
     localHistoryVersion.current += 1;
@@ -486,7 +491,7 @@ export default function AdminCollector() {
         attemptedStoreRequestIds: [...attemptedStoreRequestIds.current],
         lastShopId: lastClaimedShopId.current,
         includeStoreImports: includeStoreImports,
-        finishDueProducts: localStorage.getItem(finishDueProductsStorageKey) === "true",
+        backlogId: backlogId.current,
         includeNormalQueue,
         includePriorityQueue,
         includePersonalQueue,
@@ -499,7 +504,12 @@ export default function AdminCollector() {
       }
       const product = claim.product;
       if (!product) {
-        setMessage("No more available due products");
+        if (backlogId.current) {
+          const { backlog: progress } = await api<{ backlog: CollectorBacklog | null }>("backlog-status");
+          setBacklog(progress);
+          setMessage(progress?.finished || progress?.remaining === 0
+            ? "Saved backlog finished" : "Backlog paused: no eligible products available now");
+        } else setMessage("No more available due products");
         await finishRun("stopped_safely");
         break;
       }
@@ -528,8 +538,9 @@ export default function AdminCollector() {
             shopId: product.shopId,
             externalProductId: product.externalProductId,
             outcome: pageOutcome,
+            backlogId: backlogId.current,
           });
-          if (pageOutcome === "page_error" && outcomeResult.result?.retryAfterCurrentRun) {
+          if (pageOutcome === "page_error" && !backlogId.current && outcomeResult.result?.retryAfterCurrentRun) {
             pageErrorRetries.current.push(product);
           }
           activeProduct.current = null;
@@ -547,7 +558,7 @@ export default function AdminCollector() {
           break;
         }
         const status = await api<{ completed: boolean; soldOut: boolean; recheckAt: string | null; samePrice: boolean; samePriceRecheckAt: string | null }>("status",
-          { claimSource: product.claimSource, ...(product.productId === null
+          { claimSource: product.claimSource, backlogId: backlogId.current, ...(product.productId === null
             ? { shopId: product.shopId, externalProductId: product.externalProductId }
             : { productId: product.productId }), skipUnchangedDay: skipUnchangedDay, skipSoldOut: skipSoldOut },
         );
@@ -620,6 +631,10 @@ export default function AdminCollector() {
       if (product.claimSource !== "priority") nonPriorityCadence.current += 1;
       setSucceeded(succeededCount.current);
       await refreshSharedSummary(product);
+      if (backlogId.current && product.claimSource !== "store") {
+        const { backlog: progress } = await api<{ backlog: CollectorBacklog | null }>("backlog-status");
+        setBacklog(progress);
+      }
       consecutiveFailures = 0;
       checkpointRun();
       if (stopRequested.current) {
@@ -648,6 +663,10 @@ export default function AdminCollector() {
 
   async function startCollection(mode: CollectionMode = "normal") {
     if (mode === "normal" && cooldownSeconds > 0) return;
+    if (localStorage.getItem(finishDueProductsStorageKey) === "true" && !includeNormalQueue) {
+      setMessage("Turn on Normal Queue to finish the saved backlog.");
+      return;
+    }
     const opened = window.open("about:blank", "ptph-admin-collector");
     if (!opened) { setMessage("Allow pop-ups for PriceTrack PH, then click Start collection again."); return; }
     productTab.current = opened;
@@ -671,6 +690,11 @@ export default function AdminCollector() {
     checkpointRun();
     setSucceeded(0); setFailed(0); setRunning(true); setMessage("Starting");
     try {
+      if (localStorage.getItem(finishDueProductsStorageKey) === "true") {
+        const { backlog: saved } = await api<{ backlog: CollectorBacklog }>("backlog-begin");
+        backlogId.current = saved.id;
+        setBacklog(saved);
+      } else backlogId.current = null;
       const next = await api<CollectorSummary & { ok: boolean }>("summary");
       setSummary(next);
       await runCollection();
@@ -801,7 +825,8 @@ export default function AdminCollector() {
     }
   }
 
-  const remaining = Math.max(0, summary?.totalDue || 0);
+  const remaining = localStorage.getItem(finishDueProductsStorageKey) === "true" && backlog && !backlog.finished
+    ? backlog.remaining : Math.max(0, summary?.totalDue || 0);
 
   return <main className="health-page">
     <div className="health-shell">
@@ -812,6 +837,8 @@ export default function AdminCollector() {
           <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
           <button type="button" onClick={() => void startCollection("unlimited")} disabled={running || !summary}>Start unlimited collection</button>
         </div>
+        {localStorage.getItem(finishDueProductsStorageKey) === "true" && backlog && !backlog.finished &&
+          <p role="status">Saved backlog: {formatCollectorCount(backlog.total - backlog.remaining)} of {formatCollectorCount(backlog.total)} completed across days.</p>}
         <div className="admin-collector-queue-options" role="group" aria-label="Collection options">
           {[
             {
