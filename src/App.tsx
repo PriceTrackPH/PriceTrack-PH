@@ -24,6 +24,7 @@ type Product = Tables<"products">;
 type Variation = Tables<"product_variations">;
 type Observation = Tables<"price_observations">;
 type RangeKey = "7D" | "30D" | "90D" | "ALL";
+type DiscoverReport = Pick<Product, "id" | "name" | "external_shop_id" | "external_product_id">;
 
 const UNTRACKED_DESKTOP_MESSAGE = "This product hasn't been tracked yet. Open it on a PC with the PriceTrack PH Chrome extension to record its first price and variations.";
 
@@ -490,6 +491,23 @@ function ReportApp() {
   const [error, setError] = useState<string | null>(null);
   const [queueNotice, setQueueNotice] = useState<string | null>(null);
   const [linkVisibility, setLinkVisibility] = useState({ shopeeLinkEnabled: true, affiliateLinkEnabled: true });
+  const [discoverReports, setDiscoverReports] = useState<DiscoverReport[]>([]);
+
+  useEffect(() => {
+    if (initialProductRoute || initialProductUrl || !supabase) return;
+    let active = true;
+    void supabase.from("products")
+      .select("id,name,external_shop_id,external_product_id")
+      .eq("platform", "shopee")
+      .eq("is_active", true)
+      .not("price_drop_at", "is", null)
+      .order("price_drop_at", { ascending: false })
+      .limit(6)
+      .then(({ data, error }) => {
+        if (!error && active) setDiscoverReports(data ?? []);
+      });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -764,6 +782,7 @@ function ReportApp() {
   const affiliateLink = linkVisibility.affiliateLinkEnabled ? resolveAffiliateLink(product) : null;
   const directShopeeLink = linkVisibility.shopeeLinkEnabled ? safeHttpsUrl(product?.product_url) : null;
   const priceChanges = countPriceChanges(allVariationPoints);
+  const reportHasPriceHistory = Boolean(product && !error && priceChanges > 0);
   const lastCheckedLabel = formatLastChecked(product?.last_seen_at);
   const axis = useMemo(() => roundedAxis(chartData), [chartData]);
 
@@ -873,7 +892,7 @@ function ReportApp() {
           </div>
         </section>
 
-        <ReportAd placement="top" />
+        {reportHasPriceHistory && <ReportAd placement="top" />}
 
         <section className="report-section">
           <div className="section-label">DATABASE PRODUCT REPORT</div>
@@ -1138,7 +1157,21 @@ function ReportApp() {
             <div className="report-loading">No tracked products are available yet.</div>
           )}
         </section>
-        {product && !error && <ReportAd />}
+        {!hasSearched && !initialProductRoute && discoverReports.length > 0 && (
+          <section className="discover-reports" aria-labelledby="discover-reports-heading">
+            <div className="section-label">RECORDED PRICE CHANGES</div>
+            <h2 id="discover-reports-heading">Explore tracked products</h2>
+            <p>These Shopee products have a recorded price drop. Open a report to compare its current listed price with earlier observations.</p>
+            <div className="discover-reports-grid">
+              {discoverReports.map((report) => (
+                <a key={report.id} href={`/product/shopee/${report.external_shop_id}/${report.external_product_id}`}>
+                  {report.name}<span aria-hidden="true"> ↗</span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+        {reportHasPriceHistory && <ReportAd />}
       </main>
 
       <footer>

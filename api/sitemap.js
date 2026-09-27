@@ -39,6 +39,10 @@ async function loadProducts() {
       select: "external_shop_id,external_product_id,updated_at",
       platform: "eq.shopee",
       is_active: "eq.true",
+      // A recorded price drop establishes at least one actual price change.
+      // Keep first-observation reports available by direct URL without listing
+      // thousands of single-snapshot reports for ad/crawler review.
+      price_drop_at: "not.is.null",
       order: "updated_at.desc",
       limit: String(Math.min(PAGE_SIZE, MAX_PRODUCT_URLS - offset)),
       offset: String(offset),
