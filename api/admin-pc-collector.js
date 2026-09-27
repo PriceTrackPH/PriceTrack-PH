@@ -586,11 +586,23 @@ export default async function handler(req, res) {
     }
 
     if (action === "personal-list") {
-      const response = await fetch(`${supabaseUrl}/rest/v1/personal_collection_products?select=product_id,added_at,next_check_at,products(product_url,external_shop_id,external_product_id)&order=added_at.desc`, {
-        headers: adminHeaders(secret),
+      const page = Number(req.body?.page);
+      const paged = Number.isSafeInteger(page) && page > 0;
+      const params = new URLSearchParams({
+        select: "product_id,added_at,next_check_at,products(product_url,external_shop_id,external_product_id,name,shop_name)",
+        order: "added_at.desc,product_id.desc",
+      });
+      if (paged) {
+        params.set("limit", "10");
+        params.set("offset", String((Math.min(page, 100_000) - 1) * 10));
+      }
+      const response = await fetch(`${supabaseUrl}/rest/v1/personal_collection_products?${params}`, {
+        headers: adminHeaders(secret, paged ? { Prefer: "count=exact" } : {}),
       });
       if (!response.ok) throw new Error(`personal_list_${response.status}`);
-      return send(res, 200, { ok: true, favorites: await response.json() });
+      const favorites = await response.json();
+      const count = response.headers?.get?.("content-range")?.match(/\/(\d+)$/);
+      return send(res, 200, { ok: true, favorites, ...(paged ? { total: count ? Number(count[1]) : favorites.length } : {}) });
     }
 
     if (action === "personal-add") {
