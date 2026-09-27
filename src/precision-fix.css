@@ -403,6 +403,10 @@ html[data-theme="dark"] .support-section {
 .admin-settings-link button { border: 1px solid #11d4aa; border-radius: 10px; padding: 10px 14px; background: #11d4aa; color: #07100d; font: inherit; font-weight: 800; cursor: pointer; white-space: nowrap; }
 .admin-settings-link button[aria-pressed="false"] { border-color: #52615b; background: transparent; color: inherit; }
 .admin-settings-link button:disabled { opacity: .6; cursor: not-allowed; }
+.admin-settings-link-buttons { grid-template-columns: 1fr; min-width: 132px; width: 132px; justify-self: end; }
+.admin-settings-link-buttons .admin-settings-link { display: block; }
+.admin-settings-link-buttons .admin-settings-link button { width: 100%; min-height: 45px; padding: 10px 8px; text-align: center; }
+.admin-settings-link-buttons .admin-settings-link button[aria-pressed="false"] { border-color: #292454; background: #292454; color: #a9a6c1; opacity: .65; }
 .health-ads-details { grid-column: 1 / -1; display: grid; gap: 5px; padding: 16px; border: 1px solid #303936; border-radius: 12px; }
 .health-ads-details span, .health-ads-details small { color: #aeb6b2; }
 .health-ads-message { grid-column: 1 / -1; padding: 11px 13px; border-radius: 10px; background: rgba(17,212,170,.1); color: #73e7c9 !important; }
