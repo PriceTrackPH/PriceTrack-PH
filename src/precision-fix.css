@@ -446,6 +446,14 @@ html:not([data-theme="dark"]) .admin-favorites-list a { color: #087e68; }
 .admin-collector-option input { width: 18px; height: 18px; margin: 0; accent-color: #00dfae; }
 .admin-collector-option:has(input:disabled) { opacity: .6; cursor: not-allowed; }
 .admin-collector-status { display: grid; gap: 6px; padding: 18px; border-radius: 12px; background: #0c1210; line-height: 1.5; }
+.admin-collector-status-row { display: grid; gap: 8px; min-width: 0; }
+.admin-collector-status-row-six { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.admin-collector-status-row-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 760px) {
+  .admin-collector-status-row-six,
+  .admin-collector-status-row-four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-collector-status-message { grid-column: 1 / -1 !important; }
+}
 html[data-theme="dark"] .admin-collector-status-card {
   background: #1a211e;
   border-color: #38413d !important;
