@@ -159,6 +159,20 @@ export function renderProductPage(shell, product, canonicalUrl, offerSummary) {
     } } : {}),
   }).replaceAll("<", "\\u003c");
   html = html.replace("</head>", `    <script id="product-server-structured-data" type="application/ld+json">${structuredData}</script>\n  </head>`);
+  // Give crawlers and visitors a useful report even before the client bundle loads.
+  // React replaces this initial content when the interactive report mounts.
+  const priceText = offerSummary
+    ? offerSummary.lowPrice === offerSummary.highPrice
+      ? `₱${offerSummary.lowPrice.toLocaleString("en-PH")}`
+      : `₱${offerSummary.lowPrice.toLocaleString("en-PH")}–₱${offerSummary.highPrice.toLocaleString("en-PH")}`
+    : null;
+  const reportSummary = `<main class="container" aria-label="Product price report">
+    <h1>${escapeHtml(product.name)} price history</h1>
+    <p>Recorded Shopee Philippines prices for ${escapeHtml(product.name)} from ${escapeHtml(product.shop_name || "a Shopee seller")}.</p>
+    <p>${priceText ? `Latest recorded variation price${offerSummary.offerCount === 1 ? "" : " range"}: <strong>${escapeHtml(priceText)}</strong> (${offerSummary.offerCount} ${offerSummary.offerCount === 1 ? "variation" : "variations"}).` : "No recorded variation price is available yet."}</p>
+    <p>The interactive report shows recorded price observations and changes when available.</p>
+  </main>`;
+  html = html.replace('<div id="root"></div>', `<div id="root">${reportSummary}</div>`);
   return html;
 }
 

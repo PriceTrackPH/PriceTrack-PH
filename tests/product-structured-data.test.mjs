@@ -65,10 +65,13 @@ test("product HTML contains one valid PHP aggregate offer", () => {
     offerCount: 2,
     availability: "https://schema.org/InStock",
   });
+  assert.match(html, /Latest recorded variation price range: <strong>₱98–₱129<\/strong>/);
+  assert.match(html, /Example cleaner price history<\/h1>/);
 });
 
 test("product HTML omits Product markup when no valid current price exists", () => {
   const html = renderProductPage(shell, product, canonicalUrl, null);
 
   assert.equal(productItems(html).length, 0);
+  assert.match(html, /No recorded variation price is available yet/);
 });
