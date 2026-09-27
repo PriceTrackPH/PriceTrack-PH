@@ -403,12 +403,6 @@ html[data-theme="dark"] .support-section {
 .admin-settings-link button { border: 1px solid #11d4aa; border-radius: 10px; padding: 10px 14px; background: #11d4aa; color: #07100d; font: inherit; font-weight: 800; cursor: pointer; white-space: nowrap; }
 .admin-settings-link button[aria-pressed="false"] { border-color: #52615b; background: transparent; color: inherit; }
 .admin-settings-link button:disabled { opacity: .6; cursor: not-allowed; }
-.admin-visibility-settings .admin-settings-links { min-width: min(100%, 360px); }
-.admin-visibility-settings .admin-settings-link { min-height: 48px; }
-.admin-visibility-settings .admin-settings-choice { display: flex; align-items: center; gap: 8px; }
-.admin-visibility-settings .admin-settings-choice button { min-width: 54px; border-color: #342969; background: #25204d; color: #c5c3d4; text-align: center; }
-.admin-visibility-settings .admin-settings-choice button[aria-pressed="true"] { border-color: #35238e; background: #35238e; color: white; }
-.admin-visibility-settings .admin-settings-choice button[aria-pressed="false"] { border-color: #342969; background: #25204d; color: #c5c3d4; }
 .health-ads-details { grid-column: 1 / -1; display: grid; gap: 5px; padding: 16px; border: 1px solid #303936; border-radius: 12px; }
 .health-ads-details span, .health-ads-details small { color: #aeb6b2; }
 .health-ads-message { grid-column: 1 / -1; padding: 11px 13px; border-radius: 10px; background: rgba(17,212,170,.1); color: #73e7c9 !important; }
@@ -561,7 +555,6 @@ html:not([data-theme="dark"]) .health-stats { border-color: #d9e0dd; background:
 html:not([data-theme="dark"]) .health-ads { border-color: #d9e0dd; background: #fff; }
 html:not([data-theme="dark"]) .health-ads p, html:not([data-theme="dark"]) .health-ads-details span, html:not([data-theme="dark"]) .health-ads-details small { color: #65706c; }
 html:not([data-theme="dark"]) .health-ads-details { border-color: #d9e0dd; }
-html:not([data-theme="dark"]) .admin-visibility-settings .admin-settings-choice button[aria-pressed="false"] { border-color: #dad8eb; background: #efedf7; color: #423a65; }
 html:not([data-theme="dark"]) .health-affiliate p,
 html:not([data-theme="dark"]) .health-affiliate-count span,
 html:not([data-theme="dark"]) .health-affiliate-count small { color: #65706c; }
