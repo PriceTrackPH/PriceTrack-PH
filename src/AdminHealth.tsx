@@ -94,6 +94,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [adSettings, setAdSettings] = useState<AdSettings | null>(null);
   const [adsBusy, setAdsBusy] = useState(false);
   const [linkBusy, setLinkBusy] = useState<"shopeeLinkEnabled" | "affiliateLinkEnabled" | null>(null);
+  const [linkMessage, setLinkMessage] = useState("");
   const [adsMessage, setAdsMessage] = useState("");
   const [favoriteUrl, setFavoriteUrl] = useState("");
   const [favorites, setFavorites] = useState<FavoriteProduct[]>([]);
@@ -433,7 +434,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
 
   async function updateLink(field: "shopeeLinkEnabled" | "affiliateLinkEnabled", enabled: boolean) {
     setLinkBusy(field);
-    setAdsMessage("");
+    setLinkMessage("");
     try {
       const response = await fetch("/api/site-settings", {
         method: "PATCH",
@@ -443,9 +444,9 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Unable to update link visibility.");
       setAdSettings(payload as AdSettings);
-      setAdsMessage(`${field === "shopeeLinkEnabled" ? "Shopee" : "Affiliate"} link is now ${enabled ? "shown" : "hidden"}.`);
+      setLinkMessage(`${field === "shopeeLinkEnabled" ? "Shopee" : "Affiliate"} link is now ${enabled ? "shown" : "hidden"}.`);
     } catch (cause) {
-      setAdsMessage(cause instanceof Error ? cause.message : "Unable to update link visibility.");
+      setLinkMessage(cause instanceof Error ? cause.message : "Unable to update link visibility.");
     } finally {
       setLinkBusy(null);
     }
@@ -538,6 +539,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                   </div>
                 ))}
               </div>
+              {linkMessage && <p className="health-ads-message" role="status">{linkMessage}</p>}
             </section>}
 
             {isSettings && <section className="health-ads" aria-labelledby="ads-heading">
