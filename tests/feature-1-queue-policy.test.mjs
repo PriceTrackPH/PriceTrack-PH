@@ -68,3 +68,37 @@ test("collector page sends the next Store-Normal-Normal preference", async () =>
   assert.match(source, /preferredSource:\s*nextNonPrioritySource\(nonPriorityCadence\.current\)/);
   assert.match(source, /if \(product\.claimSource !== "priority"\) nonPriorityCadence\.current \+= 1/);
 });
+
+test("saved backlog chooses only its pending product instead of the daily random queue", async () => {
+  const called = [];
+  const originalFetch = global.fetch;
+  global.fetch = async (url) => {
+    const name = String(url).split("/").at(-1);
+    called.push(name);
+    if (name === "collector_backlog_status") return { ok: true, json: async () => [{ backlog_id: "saved", remaining: 3, finished: false }] };
+    if (name === "claim_collector_backlog_product") return { ok: true, json: async () => [{
+      product_id: 24, shop_id: "100", external_product_id: "200",
+      product_url: "https://shopee.ph/product/100/200", lease_until: "2026-09-27T11:00:00Z",
+    }] };
+    throw new Error(`unexpected ${name}`);
+  };
+  try {
+    const product = await claimNextProduct("https://example.supabase.co", "secret", [], [], "2026-09-27T11:00:00Z", [], false, true, "normal", true, false, false, null, "saved");
+    assert.equal(product.productId, 24);
+    assert.deepEqual(called, ["collector_backlog_status", "claim_collector_backlog_product"]);
+  } finally { global.fetch = originalFetch; }
+});
+
+test("finished saved backlog never falls into Store Queue", async () => {
+  const called = [];
+  const originalFetch = global.fetch;
+  global.fetch = async (url) => {
+    called.push(String(url).split("/").at(-1));
+    return { ok: true, json: async () => [{ backlog_id: "saved", remaining: 0, finished: true }] };
+  };
+  try {
+    const product = await claimNextProduct("https://example.supabase.co", "secret", [], [], "2026-09-27T11:00:00Z", [], true, true, "store", true, false, true, null, "saved");
+    assert.equal(product, null);
+    assert.deepEqual(called, ["collector_backlog_status"]);
+  } finally { global.fetch = originalFetch; }
+});
