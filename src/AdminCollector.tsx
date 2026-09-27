@@ -72,6 +72,7 @@ const includeStoreImportsStorageKey = "pricetrack-admin-collector-include-store-
 const includeNormalQueueStorageKey = "pricetrack-admin-collector-include-normal-queue";
 const includePriorityQueueStorageKey = "pricetrack-admin-collector-include-priority-queue";
 const includePersonalQueueStorageKey = "pricetrack-admin-collector-include-personal-queue";
+const finishDueProductsStorageKey = "pricetrack-admin-collector-finish-due-products";
 const favoriteQueueEventKey = "pricetrack-favorite-queue-updated";
 const manilaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
@@ -485,6 +486,7 @@ export default function AdminCollector() {
         attemptedStoreRequestIds: [...attemptedStoreRequestIds.current],
         lastShopId: lastClaimedShopId.current,
         includeStoreImports: includeStoreImports,
+        finishDueProducts: localStorage.getItem(finishDueProductsStorageKey) === "true",
         includeNormalQueue,
         includePriorityQueue,
         includePersonalQueue,
