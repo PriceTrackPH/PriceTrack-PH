@@ -170,6 +170,26 @@ export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds
   };
 }
 
+async function claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut) {
+  const rows = await rpc(supabaseUrl, secret, "claim_collector_backlog_product", {
+    p_backlog_id: backlogId, p_skip_sold_out: skipSoldOut,
+  });
+  const product = rows?.[0];
+  if (!product) return null;
+  return {
+    claimSource: "random", queueRequestId: null, productId: Number(product.product_id),
+    shopId: String(product.shop_id), externalProductId: String(product.external_product_id),
+    productUrl: product.product_url, leaseUntil: product.lease_until,
+  };
+}
+
+async function backlogState(supabaseUrl, secret, backlogId, product) {
+  return rpc(supabaseUrl, secret, "collector_backlog_item_state", {
+    p_backlog_id: backlogId, p_shop_id: product.shopId,
+    p_external_product_id: product.externalProductId,
+  });
+}
+
 export async function claimStoreProduct(supabaseUrl, secret, excludedRequestIds = [], leaseUntil) {
   const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_oldest_store_collection_request`, {
     method: "POST",
@@ -223,26 +243,53 @@ async function advancePersonalProduct(supabaseUrl, secret, productId, days = 2) 
   if (!response.ok) throw new Error(`personal_advance_${response.status}`);
 }
 
-export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null, finishDueProducts = false) {
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null, backlogId = null) {
+  if (backlogId) {
+    const [backlog] = await rpc(supabaseUrl, secret, "collector_backlog_status", {});
+    if (!backlog || backlog.backlog_id !== backlogId || backlog.finished || Number(backlog.remaining) === 0) return null;
+  }
   if (includePersonalQueue) {
     const personal = await claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut, lastShopId);
-    if (personal) return personal;
+    if (personal) {
+      if (!backlogId || await backlogState(supabaseUrl, secret, backlogId, personal) === "pending") return personal;
+      await releaseClaimedProduct(supabaseUrl, secret, personal);
+    }
   }
-  const priority = includePriorityQueue ? await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil) : null;
-  if (priority) return priority;
-  if (finishDueProducts && includeStoreImports) {
-    const { totalDue } = await collectorSummary(supabaseUrl, secret);
-    if (totalDue === 0) return null;
+  if (includePriorityQueue) {
+    const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
+    if (priority) {
+      if (!backlogId || await backlogState(supabaseUrl, secret, backlogId, priority) === "pending") return priority;
+      await releaseClaimedProduct(supabaseUrl, secret, priority);
+    }
   }
   if (includeStoreImports && preferredSource === "store") {
-    const store = await claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
-    if (store) return store;
+    for (let i = 0; i < (backlogId ? 10 : 1); i += 1) {
+      const store = await claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
+      if (!store) break;
+      if (!backlogId || await backlogState(supabaseUrl, secret, backlogId, store) === null) return store;
+      excludedStoreRequestIds.push(store.queueRequestId);
+      await releaseStoreProduct(supabaseUrl, secret, store.queueRequestId, store.leaseUntil);
+    }
   }
   const normal = includeNormalQueue
-    ? await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut)
+    ? backlogId ? await claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut)
+      : await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut)
     : null;
   if (normal || !includeStoreImports || preferredSource === "store") return normal;
-  return finishDueProducts ? null : claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
+  return backlogId ? null : claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
+}
+
+async function releaseClaimedProduct(supabaseUrl, secret, product) {
+  if (product.claimSource === "priority")
+    await releasePriorityProduct(supabaseUrl, secret, product.queueRequestId, product.leaseUntil);
+  else if (product.claimSource === "personal") {
+    await releaseProduct(supabaseUrl, secret, product.productId);
+    const response = await fetch(`${supabaseUrl}/rest/v1/personal_collection_products?product_id=eq.${product.productId}`, {
+      method: "PATCH", headers: adminHeaders(secret, { "Content-Type": "application/json", Prefer: "return=minimal" }),
+      body: JSON.stringify({ lease_until: null }),
+    });
+    if (!response.ok) throw new Error(`personal_release_${response.status}`);
+  }
 }
 
 export async function releasePriorityProduct(supabaseUrl, secret, requestId, leaseUntil) {
@@ -564,6 +611,16 @@ export default async function handler(req, res) {
       return send(res, 200, { ok: true, ...(await collectorSummary(supabaseUrl, secret)) });
     }
 
+    if (action === "backlog-status" || action === "backlog-begin") {
+      const rows = await rpc(supabaseUrl, secret,
+        action === "backlog-begin" ? "collector_backlog_begin" : "collector_backlog_status", {});
+      const backlog = rows?.[0];
+      return send(res, 200, { ok: true, backlog: backlog ? {
+        id: backlog.backlog_id, total: safeInteger(backlog.total),
+        remaining: safeInteger(backlog.remaining), finished: backlog.finished === true,
+      } : null });
+    }
+
     if (action === "bootstrap") {
       const [summary, history] = await Promise.all([
         collectorSummary(supabaseUrl, secret),
@@ -584,7 +641,10 @@ export default async function handler(req, res) {
         return send(res, 400, { error: "A valid collector run is required" });
       }
       const liveSummary = await collectorSummary(supabaseUrl, secret);
-      const finishedRun = { ...run, remaining: liveSummary.totalDue };
+      const backlog = req.body?.backlogId && UUID_V4.test(req.body.backlogId)
+        ? (await rpc(supabaseUrl, secret, "collector_backlog_status", {}))?.[0] : null;
+      const finishedRun = { ...run, remaining: backlog?.backlog_id === req.body?.backlogId
+        ? safeInteger(backlog.remaining) : liveSummary.totalDue };
       await saveCollectorRun(supabaseUrl, secret, finishedRun);
       return send(res, 200, { ok: true, saved: finishedRun });
     }
@@ -680,6 +740,7 @@ export default async function handler(req, res) {
     }
 
     if (action === "claim") {
+      const backlogId = UUID_V4.test(String(req.body?.backlogId || "")) ? req.body.backlogId : null;
       const attemptedProductIds = Array.isArray(req.body?.attemptedProductIds)
         ? req.body.attemptedProductIds.map((value) => safeInteger(value)).filter(Boolean).slice(0, 5000)
         : [];
@@ -698,7 +759,7 @@ export default async function handler(req, res) {
         req.body?.includePersonalQueue === true,
         req.body?.includePriorityQueue !== false,
         /^\d+$/.test(String(req.body?.lastShopId || "")) ? String(req.body.lastShopId) : null,
-        req.body?.finishDueProducts === true,
+        backlogId,
       );
       return send(res, 200, { ok: true, product });
     }
@@ -761,6 +822,15 @@ export default async function handler(req, res) {
       const productId = safeInteger(req.body?.productId);
       if (productId) {
         const status = await productCheckStatus(supabaseUrl, secret, productId, skipUnchangedDay, skipSoldOut, checkedDate);
+        if (status.completed && req.body?.claimSource !== "store" && UUID_V4.test(String(req.body?.backlogId || ""))) {
+          const row = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${productId}&select=external_shop_id,external_product_id&limit=1`, { headers: adminHeaders(secret) });
+          if (!row.ok) throw new Error(`backlog_identity_${row.status}`);
+          const [product] = await row.json();
+          if (product) await rpc(supabaseUrl, secret, "collector_backlog_complete", {
+            p_backlog_id: req.body.backlogId, p_shop_id: product.external_shop_id,
+            p_external_product_id: product.external_product_id, p_outcome: "checked",
+          });
+        }
         if (status.completed && req.body?.claimSource === "personal") {
           const checkedManilaDate = new Intl.DateTimeFormat("en-CA", {
             timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
@@ -775,10 +845,13 @@ export default async function handler(req, res) {
       if (!/^\d+$/.test(shopId) || !/^\d+$/.test(externalProductId)) {
         return send(res, 400, { error: "A valid product identity is required" });
       }
-      return send(res, 200, {
-        ok: true,
-        ...(await productCheckStatusByIdentity(supabaseUrl, secret, shopId, externalProductId, skipUnchangedDay, skipSoldOut, checkedDate)),
-      });
+      const status = await productCheckStatusByIdentity(supabaseUrl, secret, shopId, externalProductId, skipUnchangedDay, skipSoldOut, checkedDate);
+      if (status.completed && req.body?.claimSource !== "store" && UUID_V4.test(String(req.body?.backlogId || "")))
+        await rpc(supabaseUrl, secret, "collector_backlog_complete", {
+          p_backlog_id: req.body.backlogId, p_shop_id: shopId, p_external_product_id: externalProductId,
+          p_outcome: "checked",
+        });
+      return send(res, 200, { ok: true, ...status });
     }
 
     if (action === "outcome") {
@@ -799,6 +872,11 @@ export default async function handler(req, res) {
         claimSource: claimSource === "personal" ? "random" : claimSource, queueRequestId: queueRequestId || null, productId: productId || null,
         shopId, externalProductId, outcome,
       });
+      if (claimSource !== "store" && UUID_V4.test(String(req.body?.backlogId || "")))
+        await rpc(supabaseUrl, secret, "collector_backlog_complete", {
+          p_backlog_id: req.body.backlogId, p_shop_id: shopId,
+          p_external_product_id: externalProductId, p_outcome: outcome,
+        });
       if (claimSource === "personal") await advancePersonalProduct(supabaseUrl, secret, productId, outcome === "page_error" ? 1 : 2);
       return send(res, 200, { ok: true, result: claimSource === "personal" ? { ...result, retryAfterCurrentRun: false } : result });
     }
