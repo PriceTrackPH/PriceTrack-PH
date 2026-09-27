@@ -520,32 +520,43 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
               )}
             </section>}
 
-            {isSettings && <section className="health-ads admin-visibility-settings" aria-labelledby="link-settings-heading">
+            {isSettings && <section className="health-ads" aria-labelledby="link-settings-heading">
               <div>
-                <span className="health-kicker">WEBSITE SETTINGS</span>
-                <h2 id="link-settings-heading">Links and ads</h2>
-                <p>Choose what appears on public product reports.</p>
+                <span className="health-kicker">PUBLIC PRODUCT LINKS</span>
+                <h2 id="link-settings-heading">Link visibility</h2>
+                <p>Choose which buttons appear on public product reports.</p>
               </div>
               <div className="admin-settings-links">
                 {([
-                  ["shopeeLinkEnabled", "Shopee"],
-                  ["affiliateLinkEnabled", "Affiliate"],
+                  ["shopeeLinkEnabled", "Shopee link"],
+                  ["affiliateLinkEnabled", "Affiliate link"],
                 ] as const).map(([field, label]) => (
                   <div className="admin-settings-link" key={field}>
                     <span>{label}</span>
-                    <div className="admin-settings-choice" role="group" aria-label={`${label} link visibility`}>
-                      <button type="button" disabled={!adSettings || linkBusy !== null} aria-pressed={adSettings?.[field] === false} onClick={() => void updateLink(field, false)}>Off</button>
-                      <button type="button" disabled={!adSettings || linkBusy !== null} aria-pressed={adSettings?.[field] === true} onClick={() => void updateLink(field, true)}>On</button>
-                    </div>
+                    <button type="button" disabled={!adSettings || linkBusy !== null} aria-pressed={adSettings?.[field] ?? true} onClick={() => void updateLink(field, !adSettings?.[field])}>
+                      {linkBusy === field ? "Saving…" : adSettings?.[field] === false ? "Off · Hidden" : "On · Shown"}
+                    </button>
                   </div>
                 ))}
-                <div className="admin-settings-link">
-                  <span>Ads</span>
-                  <div className="admin-settings-choice" role="group" aria-label="Report advertisements">
-                    <button type="button" disabled={!adSettings || adsBusy} aria-pressed={adSettings?.requestedEnabled === false} onClick={() => void updateAds(false)}>Off</button>
-                    <button type="button" disabled={!adSettings || adsBusy} aria-pressed={adSettings?.requestedEnabled === true} onClick={() => void updateAds(true)}>On</button>
-                  </div>
-                </div>
+              </div>
+            </section>}
+
+            {isSettings && <section className="health-ads" aria-labelledby="ads-heading">
+              <div>
+                <span className="health-kicker">ADVERTISING</span>
+                <h2 id="ads-heading">Report advertisement</h2>
+                <p>One responsive ad below a successfully loaded Database Product Report. It is hidden on errors and untracked products.</p>
+              </div>
+              <div className="health-ads-control">
+                <span className={`health-ads-status ${adSettings?.adsEnabled ? "on" : "off"}`}>{adSettings?.adsEnabled ? "ADS ON" : "ADS OFF"}</span>
+                <button type="button" disabled={adsBusy || !adSettings} onClick={() => void updateAds(!adSettings?.requestedEnabled)}>
+                  {adsBusy ? "Saving…" : adSettings?.requestedEnabled ? "Turn ads off" : "Turn ads on"}
+                </button>
+              </div>
+              <div className="health-ads-details">
+                <span>AdSense code</span>
+                <strong>{adSettings?.configured ? "Configured" : "Not configured"}</strong>
+                <small>The switch affects every website visitor immediately.</small>
               </div>
               {adsMessage && <p className="health-ads-message" role="status">{adsMessage}</p>}
             </section>}
