@@ -459,9 +459,11 @@ html:not([data-theme="dark"]) .admin-favorites-list a { color: #087e68; }
 .admin-collector-status-row { display: grid; gap: 8px; min-width: 0; }
 .admin-collector-status-row-six { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .admin-collector-status-row-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.admin-collector-status-row-five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 @media (max-width: 760px) {
   .admin-collector-status-row-six,
-  .admin-collector-status-row-four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-collector-status-row-four,
+  .admin-collector-status-row-five { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .admin-collector-status-message { grid-column: 1 / -1 !important; }
 }
 html[data-theme="dark"] .admin-collector-status-card {
