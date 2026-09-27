@@ -244,6 +244,19 @@ test("positions each new store page at Sort by instead of the store header", () 
   assert.match(source, /scrollToSortBar\(document, window\);\s*await sleep\(500\)/);
 });
 
+test("scrolls through product cards in steps and stops before the footer", () => {
+  const footer = { getBoundingClientRect: () => ({ top: 2300 - view.scrollY }) };
+  const root = { querySelector: () => footer };
+  const positions = [];
+  const view = { scrollY: 100, innerHeight: 600, scrollTo: ({ top }) => { positions.push(top); view.scrollY = top; } };
+
+  while (scanner.advanceThroughProducts(root, view)) {
+    assert.ok(positions.length < 10);
+  }
+  assert.deepEqual(positions, [520, 940, 1360, 1700]);
+  assert.match(source, /stableRounds < STABLE_ROUNDS \|\| productBoundaryScrollTop\(document, window\) > window\.scrollY \+ 4/);
+});
+
 test("uses the product boundary for normal scrolling and each Sold Out expansion", () => {
   assert.match(source, /async function expandSoldOutSection\(\)[\s\S]*scrollToProductBoundary\(document, window\)/);
   assert.doesNotMatch(source, /window\.scrollTo\(\{ top: Math\.max\(document\.body\.scrollHeight/);
