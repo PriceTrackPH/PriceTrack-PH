@@ -224,6 +224,15 @@
     view?.scrollTo?.({ top: productBoundaryScrollTop(root, view), behavior: "smooth" });
   }
 
+  function advanceThroughProducts(root, view) {
+    const current = Math.max(0, Number(view?.scrollY) || 0);
+    const boundary = productBoundaryScrollTop(root, view);
+    if (boundary <= current + 4) return false;
+    const step = Math.max(200, Math.floor((Number(view?.innerHeight) || 0) * 0.7));
+    view?.scrollTo?.({ top: Math.min(boundary, current + step), behavior: "smooth" });
+    return true;
+  }
+
   function findSortBar(root) {
     const targeted = root?.querySelector?.([
       ".shop-search-result-view__sort-bar",
@@ -281,7 +290,7 @@
     return [...regular, ...soldOut];
   }
 
-  const api = { productIdentityFromUrl, dedupeProductLinks, dedupeProductCandidates, shouldStopScan, findNextPageControl, isPageControlDisabled, readPageProgress, isFinalStorePage, findSoldOutSection, findSoldOutSeeMoreControl, pageFingerprint, nextPageStableRounds, hasPageTransitioned, beginScan, endScan, currentPageMarker, isConfirmedEmptyStore, storeProductLinks, findPageFooter, productBoundaryScrollTop, scrollToProductBoundary, findSortBar, scrollToSortBar, parseCompactCount, productCandidateFromAnchor, storeProductCandidates };
+  const api = { productIdentityFromUrl, dedupeProductLinks, dedupeProductCandidates, shouldStopScan, findNextPageControl, isPageControlDisabled, readPageProgress, isFinalStorePage, findSoldOutSection, findSoldOutSeeMoreControl, pageFingerprint, nextPageStableRounds, hasPageTransitioned, beginScan, endScan, currentPageMarker, isConfirmedEmptyStore, storeProductLinks, findPageFooter, productBoundaryScrollTop, scrollToProductBoundary, advanceThroughProducts, findSortBar, scrollToSortBar, parseCompactCount, productCandidateFromAnchor, storeProductCandidates };
   globalThis.PriceTrackStoreScanner = api;
 
   if (typeof chrome === "undefined" || !chrome.runtime?.onMessage || typeof document === "undefined") return;
@@ -338,7 +347,7 @@
         const pageStartedAt = Date.now();
         let stableRounds = 0;
         let fingerprint = "";
-        while (stableRounds < STABLE_ROUNDS) {
+        while (stableRounds < STABLE_ROUNDS || productBoundaryScrollTop(document, window) > window.scrollY + 4) {
           const links = pageLinks();
           const products = dedupeProductCandidates(storeProductCandidates(document));
           const added = [];
@@ -370,10 +379,8 @@
             await send({ type: "storeScanFinished", scanId, status: "incomplete", discovered: seen.size });
             return;
           }
-          if (stableRounds < STABLE_ROUNDS) {
-            scrollToProductBoundary(document, window);
-            await sleep(1_200);
-          }
+          advanceThroughProducts(document, window);
+          await sleep(1_200);
         }
 
         const nextPage = findNextPageControl(document);
