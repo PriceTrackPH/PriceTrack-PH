@@ -246,7 +246,13 @@ async function advancePersonalProduct(supabaseUrl, secret, productId, days = 2) 
 export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null, backlogId = null) {
   if (backlogId) {
     const [backlog] = await rpc(supabaseUrl, secret, "collector_backlog_status", {});
-    if (!backlog || backlog.backlog_id !== backlogId || backlog.finished || Number(backlog.remaining) === 0) return null;
+    if (!backlog || backlog.backlog_id !== backlogId || backlog.finished) return null;
+    if (Number(backlog.remaining) === 0) {
+      await rpc(supabaseUrl, secret, "collector_backlog_complete", {
+        p_backlog_id: backlogId, p_shop_id: "0", p_external_product_id: "0", p_outcome: "checked",
+      });
+      return null;
+    }
   }
   if (includePersonalQueue) {
     const personal = await claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut, lastShopId);
