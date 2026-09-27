@@ -39,7 +39,7 @@ test("summary uses the database availability cross-check", async () => {
   } finally {
     global.fetch = originalFetch;
   }
-  assert.ok(urls.some((url) => url.endsWith("/rest/v1/rpc/collector_available_summary_v2")));
+  assert.ok(urls.some((url) => url.endsWith("/rest/v1/rpc/collector_available_summary_v3")));
 });
 
 test("claims the oldest priority request before random due products", async () => {
@@ -208,7 +208,7 @@ test("finish stores the database's live remaining count instead of the browser e
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY = "publishable";
   let savedBody;
   global.fetch = async (url, options = {}) => {
-    if (String(url).includes("collector_available_summary_v2")) {
+    if (String(url).includes("collector_available_summary_v3")) {
       return { ok: true, json: async () => [{ total_tracked: 500, total_due: 321, sold_out_deferred: 20, same_price_deferred: 30 }] };
     }
     if (String(url).includes("public_collection_queue_pending_count")) {
