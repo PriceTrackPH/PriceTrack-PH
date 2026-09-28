@@ -4,7 +4,7 @@ import { isShopeeSaleWindow, skipNextDayForUnchangedPrice } from "../server/shop
 
 test("keeps every promotion day and the day before it eligible for a next-day check", () => {
   for (const day of [
-    "2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01",
+    "2026-09-29", "2026-09-30", "2026-10-01",
     "2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11",
     "2026-11-10", "2026-11-11", "2026-11-12",
     "2026-12-11", "2026-12-12", "2026-12-13",
@@ -16,5 +16,6 @@ test("keeps every promotion day and the day before it eligible for a next-day ch
   assert.equal(isShopeeSaleWindow("2026-10-09"), true);
   assert.equal(isShopeeSaleWindow("2026-10-08"), false);
   assert.equal(skipNextDayForUnchangedPrice("2026-09-26"), true);
+  assert.equal(skipNextDayForUnchangedPrice("2026-09-28"), true);
   assert.equal(skipNextDayForUnchangedPrice("2026-10-17"), true);
 });
