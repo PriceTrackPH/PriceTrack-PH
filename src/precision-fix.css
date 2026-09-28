@@ -449,7 +449,7 @@ html:not([data-theme="dark"]) .admin-favorites-list a { color: #087e68; }
 .health-events th { color: #aeb6b2; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
 .health-product-link { color: inherit; text-decoration: none; }
 .admin-collector-panel { border: 1px solid #303936; border-radius: 18px; padding: 24px; background: #151d1a; }
-.admin-collector-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 720px; margin: 0 auto 20px; }
+.admin-collector-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 720px; margin: 0 auto 10px; }
 .admin-collector-actions button { border: 0; border-radius: 10px; padding: 13px 20px; color: #fff; background: #281b6b; font-weight: 700; cursor: pointer; }
 .admin-collector-actions button:disabled { opacity: .5; cursor: not-allowed; }
 .admin-collector-option { display: flex; align-items: center; gap: 10px; width: fit-content; margin: -4px 0 18px; color: #f7faf9; font-weight: 650; cursor: pointer; }
