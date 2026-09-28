@@ -486,6 +486,7 @@ function ReportApp() {
   const variationPriceRef = useRef<HTMLSpanElement | null>(null);
   const variationPickerRef = useRef<HTMLDivElement | null>(null);
   const [variationPriceWrapped, setVariationPriceWrapped] = useState(false);
+  const [mobileChart, setMobileChart] = useState(() => window.matchMedia("(max-width: 680px)").matches);
   const [variationPickerWidth, setVariationPickerWidth] = useState<number | undefined>(undefined);
   const [range, setRange] = useState<RangeKey>("30D");
   const [loading, setLoading] = useState(false);
@@ -725,6 +726,14 @@ function ReportApp() {
   const allVariationPoints = useMemo(() => toRawChartPoints(allVariationRows), [allVariationRows]);
   const reportVariationName = selectedVariation?.name ?? "Default";
   const hasMultipleVariations = variations.length > 1;
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 680px)");
+    const update = () => setMobileChart(media.matches);
+    media.addEventListener("change", update);
+    update();
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useLayoutEffect(() => {
     const price = variationPriceRef.current;
@@ -1112,6 +1121,7 @@ function ReportApp() {
                           tick={{ fill: "#777887", fontSize: 12 }}
                         />
                         <Tooltip
+                          position={mobileChart ? { x: 0 } : undefined}
                           cursor={false}
                           content={(props) => (
                             <PriceHistoryTooltip
