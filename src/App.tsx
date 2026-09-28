@@ -483,6 +483,9 @@ function ReportApp() {
   const [selectedVariationId, setSelectedVariationId] = useState<number | null>(null);
   const [variationMenuOpen, setVariationMenuOpen] = useState(false);
   const variationButtonRef = useRef<HTMLButtonElement | null>(null);
+  const variationPriceRef = useRef<HTMLSpanElement | null>(null);
+  const variationPickerRef = useRef<HTMLDivElement | null>(null);
+  const [variationPriceWrapped, setVariationPriceWrapped] = useState(false);
   const [variationPickerWidth, setVariationPickerWidth] = useState<number | undefined>(undefined);
   const [range, setRange] = useState<RangeKey>("30D");
   const [loading, setLoading] = useState(false);
@@ -724,6 +727,25 @@ function ReportApp() {
   const hasMultipleVariations = variations.length > 1;
 
   useLayoutEffect(() => {
+    const price = variationPriceRef.current;
+    const picker = variationPickerRef.current;
+    if (!price || !picker) return;
+    const measure = () => setVariationPriceWrapped(
+      window.matchMedia("(max-width: 680px)").matches
+      && price.getBoundingClientRect().top > picker.getBoundingClientRect().top + 2,
+    );
+    const observer = new ResizeObserver(measure);
+    observer.observe(price.parentElement!);
+    observer.observe(picker);
+    window.addEventListener("resize", measure);
+    measure();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [hasMultipleVariations, variationPickerWidth, selectedVariationId]);
+
+  useLayoutEffect(() => {
     const button = variationButtonRef.current;
     if (!button || !variations.length) {
       setVariationPickerWidth(undefined);
@@ -934,6 +956,7 @@ function ReportApp() {
                       <div className="variation-control">
                         <span className="variation-label">Variation:</span>
                         <div
+                          ref={variationPickerRef}
                           className={`variation-picker${variationMenuOpen ? " open" : ""}`}
                           style={{ width: variationPickerWidth }}
                           onBlur={(event) => {
@@ -985,7 +1008,7 @@ function ReportApp() {
                             </div>
                           )}
                         </div>
-                        <span>· Public listed price</span>
+                        <span ref={variationPriceRef}><span aria-hidden="true" style={{ visibility: variationPriceWrapped ? "hidden" : undefined }}>· </span>Public listed price</span>
                       </div>
                     ) : (
                       <div className="variation-control single-listing-price">
