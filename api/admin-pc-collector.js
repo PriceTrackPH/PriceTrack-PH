@@ -235,7 +235,7 @@ async function claimPersonalProduct(supabaseUrl, secret, excludedProductIds, lea
   };
 }
 
-async function advancePersonalProduct(supabaseUrl, secret, productId, days = 2) {
+async function advancePersonalProduct(supabaseUrl, secret, productId, days = 3) {
   const manila = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date());
@@ -259,18 +259,18 @@ export async function claimNextProduct(supabaseUrl, secret, excludedProductIds =
       return null;
     }
   }
-  if (includePersonalQueue) {
-    const personal = await claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut, lastShopId);
-    if (personal) {
-      if (!backlogId || await backlogState(supabaseUrl, secret, backlogId, personal) === "pending") return personal;
-      await releaseClaimedProduct(supabaseUrl, secret, personal);
-    }
-  }
   if (includePriorityQueue) {
     const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
     if (priority) {
       if (!backlogId || await backlogState(supabaseUrl, secret, backlogId, priority) === "pending") return priority;
       await releaseClaimedProduct(supabaseUrl, secret, priority);
+    }
+  }
+  if (includePersonalQueue) {
+    const personal = await claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut, lastShopId);
+    if (personal) {
+      if (!backlogId || await backlogState(supabaseUrl, secret, backlogId, personal) === "pending") return personal;
+      await releaseClaimedProduct(supabaseUrl, secret, personal);
     }
   }
   if (includeStoreImports && preferredSource === "store") {
@@ -847,7 +847,7 @@ export default async function handler(req, res) {
             timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
           }).format(new Date(status.checkedAt));
           await advancePersonalProduct(supabaseUrl, secret, productId,
-            skipNextDayForUnchangedPrice(checkedManilaDate) ? 2 : 1);
+            skipNextDayForUnchangedPrice(checkedManilaDate) ? 3 : 1);
         }
         return send(res, 200, { ok: true, ...status });
       }
@@ -887,7 +887,7 @@ export default async function handler(req, res) {
           p_backlog_id: UUID_V4.test(String(req.body?.backlogId || "")) ? req.body.backlogId : null, p_shop_id: shopId,
           p_external_product_id: externalProductId, p_outcome: outcome,
         });
-      if (claimSource === "personal") await advancePersonalProduct(supabaseUrl, secret, productId, outcome === "page_error" ? 1 : 2);
+      if (claimSource === "personal") await advancePersonalProduct(supabaseUrl, secret, productId, outcome === "page_error" ? 1 : 3);
       return send(res, 200, { ok: true, result: claimSource === "personal" ? { ...result, retryAfterCurrentRun: false } : result });
     }
 
