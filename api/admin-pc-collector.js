@@ -622,6 +622,18 @@ export default async function handler(req, res) {
       return send(res, 200, { ok: true, ...(await collectorSummary(supabaseUrl, secret)) });
     }
 
+    if (action === "priority-due-notifications") {
+      // Read-only: this does not lease, re-order, or complete Priority Queue items.
+      const params = new URLSearchParams({
+        select: "request_id,eligible_at", status: "in.(pending,completed)",
+        eligible_at: `lte.${new Date().toISOString()}`, order: "eligible_at.asc", limit: "1000",
+      });
+      const response = await fetch(`${supabaseUrl}/rest/v1/public_collection_requests?${params}`,
+        { headers: adminHeaders(secret) });
+      if (!response.ok) throw new Error(`priority_due_notifications_${response.status}`);
+      return send(res, 200, { ok: true, due: await response.json() });
+    }
+
     if (action === "backlog-status" || action === "backlog-begin") {
       const rows = await rpc(supabaseUrl, secret,
         action === "backlog-begin" ? "collector_backlog_begin" : "collector_backlog_status", {});
