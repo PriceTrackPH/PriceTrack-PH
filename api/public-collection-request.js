@@ -7,6 +7,7 @@ const NUMERIC_ID = /^\d+$/;
 const queuedMessage = "This product hasn't been tracked yet. It has been added to the PriceTrack collection queue and will be checked soon.";
 const recheckMessage = "Added to Priority Queue for another price check.";
 const pendingMessage = "This product is already in Priority Queue for another price check.";
+const checkedTodayMessage = "This product was already checked today. You can request another check tomorrow.";
 const limitMessage = "You've reached today's 100-product request limit. You can request more products tomorrow.";
 
 function send(res, status, body) {
@@ -95,10 +96,10 @@ export default async function handler(req, res) {
     if (!response.ok) throw new Error(`queue_${response.status}`);
     const result = await response.json();
     const status = Array.isArray(result) ? result[0]?.status : result?.status;
-    if (status === "queued" || status === "duplicate") {
+    if (status === "queued" || status === "duplicate" || status === "checked_today") {
       return send(res, 200, { status, message: body.recheckTracked
-        ? status === "duplicate" ? pendingMessage : recheckMessage
-        : queuedMessage });
+        ? status === "duplicate" ? pendingMessage : status === "checked_today" ? checkedTodayMessage : recheckMessage
+        : status === "checked_today" ? checkedTodayMessage : queuedMessage });
     }
     if (status === "limit_reached") {
       return send(res, 429, { status, error: limitMessage });
