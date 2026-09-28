@@ -75,6 +75,8 @@ const includePriorityQueueStorageKey = "pricetrack-admin-collector-include-prior
 const includePersonalQueueStorageKey = "pricetrack-admin-collector-include-personal-queue";
 const finishDueProductsStorageKey = "pricetrack-admin-collector-finish-due-products";
 const favoriteQueueEventKey = "pricetrack-favorite-queue-updated";
+const priorityNoticeEnabledKey = "pricetrack-priority-due-notifications";
+const priorityNoticeSeenKey = "pricetrack-priority-due-seen";
 const manilaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
 }).format(date);
@@ -144,6 +146,8 @@ export default function AdminCollector() {
   const historyRefreshInFlight = useRef(false);
   const localHistoryVersion = useRef(0);
   const [remoteNotice, setRemoteNotice] = useState("");
+  const [priorityNoticeEnabled, setPriorityNoticeEnabled] = useState(() => localStorage.getItem(priorityNoticeEnabledKey) === "true");
+  const [priorityNoticeMessage, setPriorityNoticeMessage] = useState("");
   const [skipUnchangedDay, setSkipUnchangedDay] = useState(() =>
     skipUnchangedDayDefault(localStorage.getItem(skipUnchangedStorageKey))
   );
@@ -317,6 +321,54 @@ export default function AdminCollector() {
       document.body.classList.remove("admin-page-active");
     };
   }, []);
+
+  useEffect(() => {
+    if (!token || !priorityNoticeEnabled) return;
+    let active = true;
+    let checking = false;
+    const checkDue = async () => {
+      if (!active || checking || Notification.permission !== "granted") return;
+      checking = true;
+      try {
+        const { due } = await api<{ due: Array<{ request_id: string; eligible_at: string }> }>("priority-due-notifications");
+        if (!active) return;
+        const keys = due.map(({ request_id, eligible_at }) => `${request_id}:${eligible_at}`);
+        const seen = new Set<string>(JSON.parse(localStorage.getItem(priorityNoticeSeenKey) || "[]"));
+        const newlyDue = keys.filter((key) => !seen.has(key));
+        if (newlyDue.length) {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification("Priority Queue ready", {
+            body: `${newlyDue.length} product${newlyDue.length === 1 ? " is" : "s are"} available to check.`,
+            icon: "/icons/icon-192.png", tag: "priority-queue-due",
+            data: { url: "/admin/collector" },
+          });
+          localStorage.setItem(priorityNoticeSeenKey, JSON.stringify(keys));
+        } else if (keys.length !== seen.size) {
+          localStorage.setItem(priorityNoticeSeenKey, JSON.stringify(keys));
+        }
+      } catch {
+        // Keep notification permission and retry on the next poll.
+      } finally { checking = false; }
+    };
+    void checkDue();
+    const timer = window.setInterval(() => void checkDue(), 60_000);
+    const onResume = () => { if (document.visibilityState === "visible") void checkDue(); };
+    document.addEventListener("visibilitychange", onResume);
+    return () => { active = false; window.clearInterval(timer); document.removeEventListener("visibilitychange", onResume); };
+  }, [token, priorityNoticeEnabled]);
+
+  async function enablePriorityNotices() {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setPriorityNoticeMessage("Notifications are not supported on this device."); return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      setPriorityNoticeMessage("Allow notifications for PriceTrack PH in your device settings."); return;
+    }
+    localStorage.setItem(priorityNoticeEnabledKey, "true");
+    setPriorityNoticeEnabled(true);
+    setPriorityNoticeMessage("Priority Queue alerts are on while this app is open.");
+  }
 
   useEffect(() => {
     if (!cooldownUntil) return;
@@ -833,6 +885,15 @@ export default function AdminCollector() {
     <div className="health-shell">
       <div className="health-heading"><div><span className="health-kicker">PRIVATE ADMIN</span><h1>PriceTrack PH collector</h1><p>Randomly check available Shopee products in one dedicated Chrome tab.</p></div></div>
       <section className="admin-collector-panel">
+        <div style={{ marginBottom: "12px" }}>
+          <button type="button" aria-pressed={priorityNoticeEnabled} onClick={() => {
+            if (priorityNoticeEnabled) {
+              localStorage.setItem(priorityNoticeEnabledKey, "false"); setPriorityNoticeEnabled(false);
+              setPriorityNoticeMessage("Priority Queue alerts are off.");
+            } else void enablePriorityNotices();
+          }}>Priority Queue app alerts: {priorityNoticeEnabled ? "On" : "Off"}</button>
+          {priorityNoticeMessage && <span role="status" style={{ marginLeft: "10px" }}>{priorityNoticeMessage}</span>}
+        </div>
         <div className="admin-collector-actions">
           <button type="button" onClick={() => void startCollection("normal")} disabled={running || cooldownSeconds > 0 || !summary}>Start collection</button>
           <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
