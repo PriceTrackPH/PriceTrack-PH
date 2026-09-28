@@ -124,6 +124,20 @@ async function terminalPageOutcome(ids, statusKey) {
   return outcome;
 }
 
+async function waitForCollectorTerminalPage(ids, statusKey) {
+  if (window.name !== "ptph-admin-collector") return null;
+  // A cached PDP response can arrive before Shopee renders its terminal page.
+  // Give the visible page time to settle before submitting a price observation.
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const currentIds = parseShopeeIds(location.href);
+    if (currentIds?.shopId !== ids.shopId || currentIds.productId !== ids.productId) return "navigated";
+    const outcome = await terminalPageOutcome(ids, statusKey);
+    if (outcome) return outcome;
+    await sleep(250);
+  }
+  return null;
+}
+
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -582,6 +596,8 @@ async function automaticallyRecordPrice() {
     await storageSet(statusKey, { state: "error", message: "No valid variation prices were found", at: new Date().toISOString() });
     return { ok: false, error: "No valid variation prices were found" };
   }
+
+  if (await waitForCollectorTerminalPage(ids, statusKey)) return { ok: false, terminal: true };
 
   const inStockVariations = validVariations.filter(item => item.isInStock !== false);
   const selectedVariation = selectedVariationFromPage(validVariations);
