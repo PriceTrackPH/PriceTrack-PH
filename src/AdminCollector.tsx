@@ -491,6 +491,7 @@ export default function AdminCollector() {
         attemptedStoreRequestIds: [...attemptedStoreRequestIds.current],
         lastShopId: lastClaimedShopId.current,
         includeStoreImports: includeStoreImports,
+        skipUnchangedDay,
         backlogId: backlogId.current,
         includeNormalQueue,
         includePriorityQueue,
