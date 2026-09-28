@@ -7,7 +7,7 @@ const NUMERIC_ID = /^\d+$/;
 const queuedMessage = "This product hasn't been tracked yet. It has been added to the PriceTrack collection queue and will be checked soon.";
 const recheckMessage = "Added to Priority Queue for another price check.";
 const pendingMessage = "This product is already in Priority Queue for another price check.";
-const checkedTodayMessage = "This product was already checked today. You can request another check tomorrow.";
+const checkedTodayMessage = "This product’s price was already checked today. You can request another check tomorrow.";
 const limitMessage = "You've reached today's 100-product request limit. You can request more products tomorrow.";
 
 function send(res, status, body) {
