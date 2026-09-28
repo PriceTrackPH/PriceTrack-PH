@@ -1008,7 +1008,7 @@ function ReportApp() {
                             </div>
                           )}
                         </div>
-                        <span ref={variationPriceRef} style={{ marginLeft: variationPriceWrapped ? -7 : undefined }}><span aria-hidden="true" style={{ display: variationPriceWrapped ? "none" : undefined }}>· </span>Public listed price</span>
+                        <span ref={variationPriceRef}><span aria-hidden="true" style={{ display: variationPriceWrapped ? "none" : undefined }}>· </span>Public listed price</span>
                       </div>
                     ) : (
                       <div className="variation-control single-listing-price">
