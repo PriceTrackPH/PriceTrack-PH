@@ -946,7 +946,7 @@ export default function AdminCollector() {
             <td>{Math.floor(run.durationSeconds / 3600)}h {Math.floor((run.durationSeconds % 3600) / 60)}m {run.durationSeconds % 60}s</td>
             <td>{run.succeeded}</td><td>{run.failed}</td>
             <td>{run.soldOut}{run.recheckAt ? ` — ${new Date(run.recheckAt).toLocaleDateString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit" })}` : ""}</td>
-            <td>{run.samePrice}{run.samePriceRecheckAt ? ` — ${new Date(run.samePriceRecheckAt).toLocaleDateString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit" })}` : ""}</td>
+            <td>{run.samePrice}{run.samePriceRecheckAt ? ` — ${new Date(Date.parse(run.samePriceRecheckAt) - 24 * 60 * 60_000).toLocaleDateString("en-US", { timeZone: "Asia/Manila", year: "2-digit", month: "2-digit", day: "2-digit" })}` : ""}</td>
             <td>{run.remaining}</td>
             <td>{stopStatusLabel(run.stopStatus)}</td>
           </tr>)}</tbody>
