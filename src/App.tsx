@@ -732,7 +732,7 @@ function ReportApp() {
     if (!price || !picker) return;
     const measure = () => setVariationPriceWrapped(
       window.matchMedia("(max-width: 680px)").matches
-      && price.getBoundingClientRect().top > picker.getBoundingClientRect().top + 2,
+      && price.getBoundingClientRect().top >= picker.getBoundingClientRect().bottom + 2,
     );
     const observer = new ResizeObserver(measure);
     observer.observe(price.parentElement!);
