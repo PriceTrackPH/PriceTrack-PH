@@ -411,6 +411,11 @@ html[data-theme="dark"] .report-card .daily-price-tooltip {
   color: #13c89a;
 }
 
+.report-card .daily-price-tooltip {
+  max-width: min(320px, 100%);
+  overflow-wrap: anywhere;
+}
+
 .report-card .daily-price-tooltip-divider {
   border-top: 1px solid var(--report-border);
   margin: 7px 0 6px;
