@@ -112,6 +112,15 @@ test("returns duplicate success and the exact 100-product limit response", async
   }
 });
 
+test("explains when a priority product has already been checked today", async () => {
+  global.fetch = async () => ({ ok: true, json: async () => ({ status: "checked_today" }) });
+  const res = responseRecorder();
+  await handler(request({ "user-agent": "Mozilla/5.0 (iPhone) Mobile" }), res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.status, "checked_today");
+  assert.equal(res.body.message, "This product was already checked today. You can request another check tomorrow.");
+});
+
 test("rejects invalid device or mismatched Shopee identity", async () => {
   let calls = 0;
   global.fetch = async () => { calls += 1; return { ok: true, json: async () => ({ status: "queued" }) }; };
