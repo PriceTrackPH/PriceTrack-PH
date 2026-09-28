@@ -38,8 +38,7 @@
   }
 
   .report-card .recharts-tooltip-wrapper {
-    width: min(300px, calc(100vw - 80px)) !important;
-    max-width: 100%;
+    max-width: min(300px, calc(100vw - 80px));
   }
 
   .report-card .daily-price-tooltip {
