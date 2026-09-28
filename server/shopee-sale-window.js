@@ -15,6 +15,8 @@ export function skipNextDayForUnchangedPrice(manilaDate) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(manilaDate)) return false;
   const date = new Date(`${manilaDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== manilaDate) return false;
+  // A September 28 check still skips September 29, then returns September 30.
+  if (date.getUTCMonth() === 8 && date.getUTCDate() === 28) return true;
   const nextDay = new Date(date.getTime() + 86400_000).toISOString().slice(0, 10);
   return !isShopeeSaleWindow(manilaDate) && !isShopeeSaleWindow(nextDay);
 }
