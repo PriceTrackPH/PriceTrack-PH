@@ -383,6 +383,11 @@ html[data-theme="dark"] {
 }
 
 /* Daily price tooltip layout only; existing chart colors, font sizes and design remain unchanged. */
+.report-card .recharts-tooltip-wrapper {
+  width: min(320px, 100%) !important;
+  max-width: 100%;
+}
+
 .report-card .daily-price-tooltip {
   border-radius: 10px !important;
   border: 1px solid #dddfea !important;
