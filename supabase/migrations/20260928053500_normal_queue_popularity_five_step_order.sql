@@ -33,7 +33,7 @@ begin
   select leased.id, leased.external_shop_id, leased.external_product_id,
     leased.product_url, leased.check_lease_until from leased;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.claim_random_available_product_check(p_excluded_product_ids bigint[] DEFAULT '{}'::bigint[])
@@ -86,7 +86,7 @@ begin
   select leased.id, leased.external_shop_id, leased.external_product_id, leased.product_url, leased.check_lease_until
   from leased;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.claim_random_available_product_check(p_excluded_product_ids bigint[] DEFAULT '{}'::bigint[], p_skip_sold_out boolean DEFAULT true)
@@ -143,5 +143,5 @@ begin
          leased.product_url, leased.check_lease_until
   from leased;
 end;
-$function$
+$function$;
 
