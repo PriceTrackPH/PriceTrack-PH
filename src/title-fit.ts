@@ -5,6 +5,9 @@ const FONT_STEP = 0.5;
 let scheduledFrame: number | null = null;
 
 function fitTitleToTwoLines(title: HTMLElement) {
+  const mobile = window.matchMedia("(max-width: 680px)").matches;
+  const maxLines = mobile ? 4 : 2;
+  const minimumSize = mobile ? 14 : MIN_FONT_SIZE;
   // Start from the normal CSS size each time, then shrink only when needed.
   title.style.removeProperty("font-size");
   title.style.removeProperty("display");
@@ -15,21 +18,21 @@ function fitTitleToTwoLines(title: HTMLElement) {
   const baseSize = Number.parseFloat(window.getComputedStyle(title).fontSize) || 22;
   let fontSize = baseSize;
 
-  const fitsInTwoLines = () => {
+  const fitsInAvailableLines = () => {
     const computed = window.getComputedStyle(title);
     const lineHeight = Number.parseFloat(computed.lineHeight) || fontSize * 1.28;
-    return title.scrollHeight <= lineHeight * 2 + 1;
+    return title.scrollHeight <= lineHeight * maxLines + 1;
   };
 
-  while (fontSize > MIN_FONT_SIZE && !fitsInTwoLines()) {
-    fontSize = Math.max(MIN_FONT_SIZE, fontSize - FONT_STEP);
+  while (fontSize > minimumSize && !fitsInAvailableLines()) {
+    fontSize = Math.max(minimumSize, fontSize - FONT_STEP);
     title.style.setProperty("font-size", `${fontSize}px`, "important");
   }
 
-  // Never allow the report title to grow beyond two visible lines.
+  // Give mobile titles room to wrap while preserving the desktop layout.
   title.style.setProperty("display", "-webkit-box");
   title.style.setProperty("-webkit-box-orient", "vertical");
-  title.style.setProperty("-webkit-line-clamp", "2");
+  title.style.setProperty("-webkit-line-clamp", String(maxLines));
   title.style.setProperty("overflow", "hidden");
 }
 
