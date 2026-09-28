@@ -175,9 +175,9 @@ export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds
   };
 }
 
-async function claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut) {
-  const rows = await rpc(supabaseUrl, secret, "claim_collector_backlog_product", {
-    p_backlog_id: backlogId, p_skip_sold_out: skipSoldOut,
+async function claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay) {
+  const rows = await rpc(supabaseUrl, secret, "claim_collector_backlog_product_v2", {
+    p_backlog_id: backlogId, p_skip_sold_out: skipSoldOut, p_skip_unchanged_day: skipUnchangedDay,
   });
   const product = rows?.[0];
   if (!product) return null;
@@ -248,7 +248,7 @@ async function advancePersonalProduct(supabaseUrl, secret, productId, days = 3) 
   if (!response.ok) throw new Error(`personal_advance_${response.status}`);
 }
 
-export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null, backlogId = null) {
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null, backlogId = null, skipUnchangedDay = true) {
   if (backlogId) {
     const [backlog] = await rpc(supabaseUrl, secret, "collector_backlog_status", {});
     if (!backlog || backlog.backlog_id !== backlogId || backlog.finished) return null;
@@ -283,7 +283,7 @@ export async function claimNextProduct(supabaseUrl, secret, excludedProductIds =
     }
   }
   const normal = includeNormalQueue
-    ? backlogId ? await claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut)
+    ? backlogId ? await claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay)
       : await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut)
     : null;
   if (normal || !includeStoreImports || preferredSource === "store") return normal;
@@ -771,6 +771,7 @@ export default async function handler(req, res) {
         req.body?.includePriorityQueue !== false,
         /^\d+$/.test(String(req.body?.lastShopId || "")) ? String(req.body.lastShopId) : null,
         backlogId,
+        req.body?.skipUnchangedDay !== false,
       );
       return send(res, 200, { ok: true, product });
     }
