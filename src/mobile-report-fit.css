@@ -36,4 +36,19 @@
   .report-card .variation-control > span:last-child {
     white-space: nowrap;
   }
+
+  .report-card .recharts-tooltip-wrapper {
+    width: min(300px, calc(100vw - 80px)) !important;
+    max-width: 100%;
+  }
+
+  .report-card .daily-price-tooltip {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .report-card .daily-price-tooltip-date,
+  .report-card .daily-price-tooltip-variation {
+    white-space: normal;
+  }
 }
