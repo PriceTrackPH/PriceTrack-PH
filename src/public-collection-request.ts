@@ -59,7 +59,7 @@ async function requestProductCheck(ids: { shopId: string; productId: string }, r
     error?: string;
   };
 
-  if (response.ok && (payload.status === "queued" || payload.status === "duplicate") && payload.message) {
+  if (response.ok && (payload.status === "queued" || payload.status === "duplicate" || payload.status === "checked_today") && payload.message) {
     return payload.message;
   }
   if (response.status === 429 && payload.status === "limit_reached" && payload.error) {
