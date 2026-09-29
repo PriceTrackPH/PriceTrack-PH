@@ -1,5 +1,6 @@
 const PRICETRACK_SITE = "https://pricetrackph.com";
 const LOCAL_COLLECTOR_ENDPOINT = "http://127.0.0.1:47321/observations";
+const LOCAL_COLLECTOR_RETRY_KEY = "localCollectorUnavailableUntil";
 const BRIDGE_SOURCE = "pricetrack-ph-page";
 const REQUEST_SOURCE = "pricetrack-ph-extension";
 let capturedShopeePayload = null;
@@ -638,22 +639,28 @@ async function automaticallyRecordPrice() {
     };
 
     let response;
-    try {
-      const localController = new AbortController();
-      const localTimeout = setTimeout(() => localController.abort(), 1200);
+    const localAvailability = await chrome.storage.local.get(LOCAL_COLLECTOR_RETRY_KEY);
+    if (Date.now() >= Number(localAvailability[LOCAL_COLLECTOR_RETRY_KEY] || 0)) {
       try {
-        response = await fetch(LOCAL_COLLECTOR_ENDPOINT, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(observation),
-          signal: localController.signal,
-        });
-      } finally {
-        clearTimeout(localTimeout);
+        const localController = new AbortController();
+        const localTimeout = setTimeout(() => localController.abort(), 1200);
+        try {
+          response = await fetch(LOCAL_COLLECTOR_ENDPOINT, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(observation),
+            signal: localController.signal,
+          });
+        } finally {
+          clearTimeout(localTimeout);
+        }
+        if (!response.ok && response.status === 409) response = null;
+      } catch {
+        // Remember an unreachable local collector across Shopee page reloads.
+        // Try it again after a minute in case the local collector was started.
+        await chrome.storage.local.set({ [LOCAL_COLLECTOR_RETRY_KEY]: Date.now() + 60_000 });
+        response = null;
       }
-      if (!response.ok && response.status === 409) response = null;
-    } catch {
-      response = null;
     }
 
     if (!response) response = await fetch(`${PRICETRACK_SITE}/api/observations`, {
