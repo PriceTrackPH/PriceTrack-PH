@@ -413,6 +413,22 @@ export default function AdminCollector() {
     });
   }
 
+  async function refreshCountersAfterProduct(product: CollectorProduct) {
+    // These two database counts are independent; waiting for them in sequence
+    // delayed the next Shopee product after every completed check.
+    const [summaryResult, backlogResult] = await Promise.allSettled([
+      refreshSharedSummary(product),
+      api<{ backlog: CollectorBacklog | null }>("backlog-status"),
+    ]);
+    if (backlogResult.status === "fulfilled") setBacklog(backlogResult.value.backlog);
+    if (summaryResult.status === "rejected" && (summaryResult.reason as { code?: string })?.code === "AUTH_EXPIRED") {
+      throw summaryResult.reason;
+    }
+    if (backlogResult.status === "rejected" && (backlogResult.reason as { code?: string })?.code === "AUTH_EXPIRED") {
+      throw backlogResult.reason;
+    }
+  }
+
   async function loadMoreHistory() {
     if (!historyHasMore || historyLoading) return;
     setHistoryLoading(true);
@@ -592,9 +608,7 @@ export default function AdminCollector() {
             failedCount.current += 1;
             setFailed(failedCount.current);
           }
-          await refreshSharedSummary(product).catch(() => undefined);
-          const progress = await api<{ backlog: CollectorBacklog | null }>("backlog-status").catch(() => null);
-          if (progress) setBacklog(progress.backlog);
+          await refreshCountersAfterProduct(product);
           checkpointRun();
           setMessage(`${String(pageOutcome).replace(/_/g, " ")} skipped`);
           break;
@@ -692,9 +706,7 @@ export default function AdminCollector() {
       succeededCount.current += 1;
       if (product.claimSource !== "priority") nonPriorityCadence.current += 1;
       setSucceeded(succeededCount.current);
-      await refreshSharedSummary(product).catch(() => undefined);
-      const progress = await api<{ backlog: CollectorBacklog | null }>("backlog-status").catch(() => null);
-      if (progress) setBacklog(progress.backlog);
+      await refreshCountersAfterProduct(product);
       consecutiveFailures = 0;
       checkpointRun();
       if (stopRequested.current) {
