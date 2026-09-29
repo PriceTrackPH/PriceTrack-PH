@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { healthProductLinkProps } from "./admin-product-link.js";
+import { priorityNoticeChangeEvent, priorityNoticeEnabledKey } from "./priority-queue-alerts";
 
 type HealthEvent = {
   id: number;
@@ -104,6 +105,8 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favoriteMessage, setFavoriteMessage] = useState("");
   const [finishDueProducts, setFinishDueProducts] = useState(() => localStorage.getItem("pricetrack-admin-collector-finish-due-products") === "true");
+  const [priorityNoticeEnabled, setPriorityNoticeEnabled] = useState(() => localStorage.getItem(priorityNoticeEnabledKey) === "true");
+  const [priorityNoticeMessage, setPriorityNoticeMessage] = useState("");
   const isLogin = view === "login";
   const isSettings = view === "settings";
 
@@ -574,6 +577,37 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                   setFinishDueProducts(next);
                 }}>{finishDueProducts ? "On" : "Off"}</button>
               </div></div>
+            </section>}
+
+            {isSettings && <section className="health-ads" aria-labelledby="priority-alerts-heading">
+              <div>
+                <span className="health-kicker">COLLECTOR</span>
+                <h2 id="priority-alerts-heading">Priority Queue app alerts</h2>
+                <p>Notify this device when Priority Queue products become available while the app is open.</p>
+              </div>
+              <div className="admin-settings-links admin-finish-backlog-button"><div className="admin-settings-link">
+                <button type="button" aria-label={`Priority Queue app alerts ${priorityNoticeEnabled ? "on" : "off"}. Click to toggle.`}
+                  aria-pressed={priorityNoticeEnabled} onClick={() => void (async () => {
+                    if (priorityNoticeEnabled) {
+                      localStorage.setItem(priorityNoticeEnabledKey, "false");
+                      setPriorityNoticeEnabled(false);
+                      setPriorityNoticeMessage("Priority Queue alerts are off.");
+                      return;
+                    }
+                    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+                      setPriorityNoticeMessage("Notifications are not supported on this device."); return;
+                    }
+                    const permission = await Notification.requestPermission();
+                    if (permission !== "granted") {
+                      setPriorityNoticeMessage("Allow notifications for PriceTrack PH in your device settings."); return;
+                    }
+                    localStorage.setItem(priorityNoticeEnabledKey, "true");
+                    setPriorityNoticeEnabled(true);
+                    setPriorityNoticeMessage("Priority Queue alerts are on while this app is open.");
+                    window.dispatchEvent(new Event(priorityNoticeChangeEvent));
+                  })()}>{priorityNoticeEnabled ? "On" : "Off"}</button>
+              </div></div>
+              {priorityNoticeMessage && <p className="health-ads-message" role="status">{priorityNoticeMessage}</p>}
             </section>}
 
             {isSettings && <section className="health-ads admin-favorites" aria-labelledby="favorites-heading">
