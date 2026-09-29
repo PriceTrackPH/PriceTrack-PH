@@ -75,6 +75,13 @@ const includePriorityQueueStorageKey = "pricetrack-admin-collector-include-prior
 const includePersonalQueueStorageKey = "pricetrack-admin-collector-include-personal-queue";
 const finishDueProductsStorageKey = "pricetrack-admin-collector-finish-due-products";
 const favoriteQueueEventKey = "pricetrack-favorite-queue-updated";
+const summaryCacheKey = "pricetrack-admin-collector-last-summary";
+function readCachedSummary(): CollectorSummary | null {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(summaryCacheKey) || "null") as CollectorSummary | null;
+    return cached && Number.isFinite(cached.totalTracked) && Number.isFinite(cached.totalDue) ? cached : null;
+  } catch { return null; }
+}
 const manilaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
 }).format(date);
@@ -123,7 +130,8 @@ function playVerificationSound() {
 
 export default function AdminCollector() {
   const token = sessionStorage.getItem("pricetrack-admin-health-token") || "";
-  const [summary, setSummary] = useState<CollectorSummary | null>(null);
+  const [summary, setSummary] = useState<CollectorSummary | null>(readCachedSummary);
+  const [summaryFresh, setSummaryFresh] = useState(false);
   const [backlog, setBacklog] = useState<CollectorBacklog | null>(null);
   const backlogId = useRef<string | null>(null);
   const [running, setRunning] = useState(false);
@@ -182,6 +190,12 @@ export default function AdminCollector() {
   const remoteNoticeTimer = useRef<number | null>(null);
   const runManilaDate = useRef(manilaDate());
   const pageErrorRetries = useRef<CollectorProduct[]>([]);
+
+  function applySummary(next: CollectorSummary) {
+    sessionStorage.setItem(summaryCacheKey, JSON.stringify(next));
+    setSummary(next);
+    setSummaryFresh(true);
+  }
 
   function resetDailyRunCounters() {
     succeededCount.current = 0; failedCount.current = 0; soldOutCount.current = 0; samePriceCount.current = 0;
@@ -309,8 +323,13 @@ export default function AdminCollector() {
     const recover = interrupted ? recoverCollectorCheckpoint(interrupted) : Promise.resolve();
     void api<{ backlog: CollectorBacklog | null }>("backlog-status")
       .then(({ backlog: saved }) => setBacklog(saved)).catch(() => undefined);
-    void recover.then(() => api<CollectorSummary & { ok: boolean; history: CollectorRun[]; hasMore: boolean }>("bootstrap"))
-      .then((next) => { setSummary(next); setHistory(next.history); setHistoryHasMore(next.hasMore); setMessage("Ready"); })
+    void recover.then(() => {
+      // History can render without waiting for the expensive product counts.
+      void api<{ history: CollectorRun[]; hasMore: boolean }>("history")
+        .then((next) => { setHistory(next.history); setHistoryHasMore(next.hasMore); })
+        .catch(() => undefined);
+      return api<CollectorSummary & { ok: boolean }>("summary");
+    }).then((next) => { applySummary(next); setMessage("Ready"); })
       .catch((cause) => setMessage(cause instanceof Error ? cause.message : "Unable to open collector."));
     return () => {
       stopped.current = true;
@@ -351,7 +370,7 @@ export default function AdminCollector() {
     };
     const realtime = subscribeToAdminHistory((event) => {
       if (event.kind === "collector-progress") {
-        void api<CollectorSummary & { ok: boolean }>("summary").then(setSummary);
+        void api<CollectorSummary & { ok: boolean }>("summary").then(applySummary).catch(() => undefined);
         return;
       }
       if (event.kind !== "collector") return;
@@ -377,7 +396,7 @@ export default function AdminCollector() {
 
   async function refreshSharedSummary(product: CollectorProduct) {
     const next = await api<CollectorSummary & { ok: boolean }>("summary");
-    setSummary(next);
+    applySummary(next);
     void publishHistory.current({
       kind: "collector-progress",
       status: "updated",
@@ -483,7 +502,7 @@ export default function AdminCollector() {
       if (today !== runManilaDate.current) {
         runManilaDate.current = today;
         resetDailyRunCounters();
-        setSummary(await api<CollectorSummary & { ok: boolean }>("summary"));
+        applySummary(await api<CollectorSummary & { ok: boolean }>("summary"));
       }
       let claim = await api<{ product: CollectorProduct | null }>("claim", {
         attemptedProductIds: [...attemptedProductIds.current],
@@ -697,7 +716,7 @@ export default function AdminCollector() {
         setBacklog(saved);
       } else backlogId.current = null;
       const next = await api<CollectorSummary & { ok: boolean }>("summary");
-      setSummary(next);
+      applySummary(next);
       await runCollection();
     } catch (cause) {
       if (cause instanceof Error && (cause as Error & { code?: string }).code === "AUTH_EXPIRED") {
@@ -834,9 +853,9 @@ export default function AdminCollector() {
       <div className="health-heading"><div><span className="health-kicker">PRIVATE ADMIN</span><h1>PriceTrack PH collector</h1><p>Randomly check available Shopee products in one dedicated Chrome tab.</p></div></div>
       <section className="admin-collector-panel">
         <div className="admin-collector-actions">
-          <button type="button" onClick={() => void startCollection("normal")} disabled={running || cooldownSeconds > 0 || !summary}>Start collection</button>
+          <button type="button" onClick={() => void startCollection("normal")} disabled={running || cooldownSeconds > 0 || !summaryFresh}>Start collection</button>
           <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
-          <button type="button" onClick={() => void startCollection("unlimited")} disabled={running || !summary}>Start unlimited collection</button>
+          <button type="button" onClick={() => void startCollection("unlimited")} disabled={running || !summaryFresh}>Start unlimited collection</button>
         </div>
         <div className="admin-collector-queue-options" role="group" aria-label="Collection options">
           {[
@@ -915,7 +934,7 @@ export default function AdminCollector() {
             </div>
           ))}
           <button type="button" className={`admin-collector-status-card admin-collector-status-message${message.length > 32 || cooldownSeconds > 0 ? " admin-collector-status-long" : ""}`} style={{ ...collectorStatusCardStyle, gridColumn: "3 / span 2", width: "100%", font: "inherit", cursor: currentProduct ? "pointer" : "default" }} disabled={!currentProduct || favoriteSaving || !favoritesLoaded} onClick={() => void saveCurrentFavorite()} title={currentProduct ? "Save current product to Favorite Queue" : "No product is currently being collected"}>
-            <small>Status</small>
+            <small>{summary && !summaryFresh ? "Status · Updating counts" : "Status"}</small>
             <strong>{cooldownSeconds > 0
               ? `Next collection available in ${Math.floor(cooldownSeconds / 3600)}h ${Math.floor((cooldownSeconds % 3600) / 60)}m ${cooldownSeconds % 60}s`
               : currentProduct && favoriteIds.has(`${currentProduct.shopId}.${currentProduct.externalProductId}`) && message === `Opening ${currentProduct.shopId}.${currentProduct.externalProductId}`
