@@ -224,11 +224,19 @@ export default function AdminCollector() {
 
   async function api<T>(action: string, body: Record<string, unknown> = {}) {
     return withCollectorRetry(async () => {
-      const response = await fetch(`/api/admin-pc-collector?action=${action}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), action === "status" ? 10_000 : 20_000);
+      let response: Response;
+      try {
+        response = await fetch(`/api/admin-pc-collector?action=${action}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+      } finally {
+        window.clearTimeout(timeout);
+      }
       const payload = await response.json().catch(() => ({}));
       if (response.status === 401) {
         checkpointRun("pending_finalization", "login_expired", "login_expired");
@@ -240,7 +248,7 @@ export default function AdminCollector() {
         retryable: response.status === 408 || response.status === 429 || response.status >= 500,
       });
       return payload as T;
-    });
+    }, action === "status" ? { attempts: 1 } : {});
   }
 
   async function recoverCollectorCheckpoint(checkpoint: CollectorRunCheckpoint) {
@@ -497,6 +505,7 @@ export default function AdminCollector() {
 
   async function runCollection() {
     let consecutiveFailures = 0;
+    let consecutiveClaimErrors = 0;
     while (!stopped.current && !stopRequested.current) {
       const today = manilaDate();
       if (today !== runManilaDate.current) {
@@ -504,7 +513,9 @@ export default function AdminCollector() {
         resetDailyRunCounters();
         applySummary(await api<CollectorSummary & { ok: boolean }>("summary"));
       }
-      let claim = await api<{ product: CollectorProduct | null }>("claim", {
+      let claim: { product: CollectorProduct | null };
+      try {
+        claim = await api<{ product: CollectorProduct | null }>("claim", {
         attemptedProductIds: [...attemptedProductIds.current],
         attemptedQueueRequestIds: [...attemptedQueueRequestIds.current],
         attemptedStoreRequestIds: [...attemptedStoreRequestIds.current],
@@ -517,7 +528,15 @@ export default function AdminCollector() {
         includePersonalQueue,
         skipSoldOut,
         preferredSource: nextNonPrioritySource(nonPriorityCadence.current),
-      });
+        });
+        consecutiveClaimErrors = 0;
+      } catch (cause) {
+        if ((cause as { code?: string })?.code === "AUTH_EXPIRED") throw cause;
+        if (++consecutiveClaimErrors >= 3) throw cause;
+        setMessage("Collector request delayed; retrying selection");
+        await wait(2_000);
+        continue;
+      }
       if (!claim.product && pageErrorRetries.current.length) {
         const retryProduct = pageErrorRetries.current.shift();
         if (retryProduct) claim = await api<{ product: CollectorProduct | null }>("reclaim", { product: retryProduct });
@@ -572,18 +591,37 @@ export default function AdminCollector() {
             failedCount.current += 1;
             setFailed(failedCount.current);
           }
-          await refreshSharedSummary(product);
-          const { backlog: progress } = await api<{ backlog: CollectorBacklog | null }>("backlog-status");
-          setBacklog(progress);
+          await refreshSharedSummary(product).catch(() => undefined);
+          const progress = await api<{ backlog: CollectorBacklog | null }>("backlog-status").catch(() => null);
+          if (progress) setBacklog(progress.backlog);
           checkpointRun();
           setMessage(`${String(pageOutcome).replace(/_/g, " ")} skipped`);
           break;
         }
-        const status = await api<{ completed: boolean; soldOut: boolean; recheckAt: string | null; samePrice: boolean; samePriceRecheckAt: string | null }>("status",
+        if (collectorProductWaitExpired(productWaitStartedAt, Date.now())
+          || collectorStopGraceExpired(stopRequestedAt.current, Date.now())) {
+          await releaseCurrent();
+          failedCount.current += 1;
+          setFailed(failedCount.current);
+          checkpointRun();
+          confirmationTimedOut = true;
+          setMessage(stopRequested.current
+            ? "Current product confirmation timed out; stopping safely"
+            : "Current product confirmation timed out; moving to the next product");
+          break;
+        }
+        let status: { completed: boolean; soldOut: boolean; recheckAt: string | null; samePrice: boolean; samePriceRecheckAt: string | null };
+        try {
+          status = await api<typeof status>("status",
           { claimSource: product.claimSource, backlogId: backlogId.current, ...(product.productId === null
             ? { shopId: product.shopId, externalProductId: product.externalProductId }
             : { productId: product.productId }), skipUnchangedDay: skipUnchangedDay, skipSoldOut: skipSoldOut },
-        );
+          );
+        } catch (cause) {
+          if ((cause as { code?: string })?.code === "AUTH_EXPIRED") throw cause;
+          setMessage(`Waiting for ${product.shopId}.${product.externalProductId} confirmation`);
+          continue;
+        }
         if (status.completed) {
           if (status.soldOut) {
             soldOutCount.current += 1;
@@ -652,9 +690,9 @@ export default function AdminCollector() {
       succeededCount.current += 1;
       if (product.claimSource !== "priority") nonPriorityCadence.current += 1;
       setSucceeded(succeededCount.current);
-      await refreshSharedSummary(product);
-      const { backlog: progress } = await api<{ backlog: CollectorBacklog | null }>("backlog-status");
-      setBacklog(progress);
+      await refreshSharedSummary(product).catch(() => undefined);
+      const progress = await api<{ backlog: CollectorBacklog | null }>("backlog-status").catch(() => null);
+      if (progress) setBacklog(progress.backlog);
       consecutiveFailures = 0;
       checkpointRun();
       if (stopRequested.current) {
