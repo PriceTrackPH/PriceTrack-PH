@@ -1,6 +1,6 @@
 {
   "crons": [
-    { "path": "/api/priority-push", "schedule": "0 0 * * *" }
+    { "path": "/api/admin-health?push=cron", "schedule": "0 0 * * *" }
   ],
   "functions": {
     "api/*.js": {
