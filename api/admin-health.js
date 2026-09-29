@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import priorityPushHandler from "../server/priority-push.js";
 
 function send(res, status, body) {
   res.status(status).setHeader("Cache-Control", status === 200 ? "private, max-age=15" : "no-store").json(body);
@@ -29,6 +30,7 @@ async function fetchCount(baseUrl, headers, eventType) {
 }
 
 export default async function handler(req, res) {
+  if (req.query.push) return priorityPushHandler(req, res);
   if (req.method !== "GET") return send(res, 405, { error: "Method not allowed" });
 
   const expectedToken = process.env.ADMIN_HEALTH_TOKEN || "";
