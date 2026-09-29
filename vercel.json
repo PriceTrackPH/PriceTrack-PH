@@ -1,4 +1,7 @@
 {
+  "crons": [
+    { "path": "/api/priority-push", "schedule": "0 0 * * *" }
+  ],
   "functions": {
     "api/*.js": {
       "regions": [
