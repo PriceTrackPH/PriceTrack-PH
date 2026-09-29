@@ -11,8 +11,7 @@
   "host_permissions": [
     "https://shopee.ph/*",
     "https://*.shopee.ph/*",
-    "https://pricetrackph.com/*",
-    "http://127.0.0.1:47321/*"
+    "https://pricetrackph.com/*"
   ],
   "background": {
     "service_worker": "background.js"
