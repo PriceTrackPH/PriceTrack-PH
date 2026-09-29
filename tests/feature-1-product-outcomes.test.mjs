@@ -31,7 +31,7 @@ test("content script reports terminal outcomes to its Collector opener", async (
   assert.ok(shopeeScripts.js.indexOf("product-page-outcome.js") < shopeeScripts.js.indexOf("content.js"));
   assert.match(content, /reportCollectorPageOutcome/);
   assert.match(content, /state:\s*"terminal"/);
-  assert.ok(content.indexOf("await waitForCollectorTerminalPage(ids, statusKey)") < content.indexOf("fetch(LOCAL_COLLECTOR_ENDPOINT"));
+  assert.ok(content.indexOf("await waitForCollectorTerminalPage(ids, statusKey)") < content.indexOf("fetch(`${PRICETRACK_SITE}/api/observations`"));
 });
 
 test("Collector consumes terminal outcomes and schedules them through its authenticated API", async () => {
