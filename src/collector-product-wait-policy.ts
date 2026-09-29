@@ -1,4 +1,4 @@
-export const COLLECTOR_PRODUCT_WAIT_MS = 60_000;
+export const COLLECTOR_PRODUCT_WAIT_MS = 30_000;
 export const COLLECTOR_STOP_GRACE_MS = 30_000;
 
 export function collectorProductWaitExpired(startedAt: number, now: number) {
