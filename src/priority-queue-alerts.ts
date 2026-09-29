@@ -6,7 +6,7 @@ export async function savePriorityPushSubscription(token: string) {
   const registration = await navigator.serviceWorker.ready;
   let subscription = await registration.pushManager.getSubscription();
   if (!subscription) {
-    const keyResponse = await fetch("/api/priority-push?action=key", {
+    const keyResponse = await fetch("/api/admin-health?push=1&action=key", {
       method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: "{}",
     });
     if (!keyResponse.ok) throw new Error("Background notifications are not configured yet.");
@@ -15,7 +15,7 @@ export async function savePriorityPushSubscription(token: string) {
     const key = Uint8Array.from(decoded, (character) => character.charCodeAt(0));
     subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
   }
-  const response = await fetch("/api/priority-push?action=subscribe", {
+  const response = await fetch("/api/admin-health?push=1&action=subscribe", {
     method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ subscription }),
   });
@@ -26,7 +26,7 @@ export async function removePriorityPushSubscription(token: string) {
   const registration = await navigator.serviceWorker.ready;
   const subscription = await registration.pushManager.getSubscription();
   if (!subscription) return;
-  const response = await fetch("/api/priority-push?action=unsubscribe", {
+  const response = await fetch("/api/admin-health?push=1&action=unsubscribe", {
     method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ endpoint: subscription.endpoint }),
   });
