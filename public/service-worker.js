@@ -52,3 +52,12 @@ self.addEventListener("notificationclick", (event) => {
     return self.clients.openWindow("/admin/collector");
   }));
 });
+
+self.addEventListener("push", (event) => {
+  let message = {};
+  try { message = event.data?.json() || {}; } catch { /* Ignore malformed payloads. */ }
+  event.waitUntil(self.registration.showNotification(message.title || "Priority Queue ready", {
+    body: message.body || "Products are available to check.",
+    icon: "/icons/icon-192.png", tag: "priority-queue-due", data: { url: "/admin/collector" },
+  }));
+});
