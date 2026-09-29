@@ -22,6 +22,7 @@ import "./mobile-donation-close.css";
 import "./mobile-contact-modal.css";
 import "./accent-text-color.css";
 import "./report-ad.css";
+import { startPriorityQueueAlerts } from "./priority-queue-alerts";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -33,5 +34,6 @@ createRoot(document.getElementById("root")!).render(
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => {
     void navigator.serviceWorker.register("/service-worker.js");
+    startPriorityQueueAlerts();
   });
 }
