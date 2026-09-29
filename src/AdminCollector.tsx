@@ -20,6 +20,7 @@ import { includeStoreImportsDefault } from "./store-import-contract";
 import { nextNonPrioritySource } from "./collector-queue-policy";
 import { withCollectorRetry } from "./collector-request-policy";
 import {
+  COLLECTOR_PRODUCT_WAIT_MS,
   collectorProductWaitExpired,
   collectorStopGraceExpired,
 } from "./collector-product-wait-policy";
@@ -222,10 +223,10 @@ export default function AdminCollector() {
     });
   }
 
-  async function api<T>(action: string, body: Record<string, unknown> = {}) {
+  async function api<T>(action: string, body: Record<string, unknown> = {}, timeoutMs?: number) {
     return withCollectorRetry(async () => {
       const controller = new AbortController();
-      const timeout = window.setTimeout(() => controller.abort(), action === "status" ? 10_000 : 20_000);
+      const timeout = window.setTimeout(() => controller.abort(), timeoutMs ?? (action === "status" ? 10_000 : 20_000));
       let response: Response;
       try {
         response = await fetch(`/api/admin-pc-collector?action=${action}`, {
@@ -600,7 +601,7 @@ export default function AdminCollector() {
         }
         if (collectorProductWaitExpired(productWaitStartedAt, Date.now())
           || collectorStopGraceExpired(stopRequestedAt.current, Date.now())) {
-          await releaseCurrent();
+          void releaseCurrent();
           failedCount.current += 1;
           setFailed(failedCount.current);
           checkpointRun();
@@ -616,6 +617,7 @@ export default function AdminCollector() {
           { claimSource: product.claimSource, backlogId: backlogId.current, ...(product.productId === null
             ? { shopId: product.shopId, externalProductId: product.externalProductId }
             : { productId: product.productId }), skipUnchangedDay: skipUnchangedDay, skipSoldOut: skipSoldOut },
+          Math.max(1, Math.min(10_000, COLLECTOR_PRODUCT_WAIT_MS - (Date.now() - productWaitStartedAt))),
           );
         } catch (cause) {
           if ((cause as { code?: string })?.code === "AUTH_EXPIRED") throw cause;
@@ -639,7 +641,7 @@ export default function AdminCollector() {
           collectorProductWaitExpired(productWaitStartedAt, Date.now())
           || collectorStopGraceExpired(stopRequestedAt.current, Date.now())
         ) {
-          await releaseCurrent();
+          void releaseCurrent();
           failedCount.current += 1;
           setFailed(failedCount.current);
           checkpointRun();
