@@ -967,7 +967,7 @@ export default function AdminCollector() {
             ["Total Priority Queue", summary?.priorityPending ?? "—"],
             ["Total Favorite Queue", favoritesLoaded ? favoriteIds.size : "—"],
             ["Total Store Queue", summary?.storeQueuePending ?? "—"],
-            ["Total Backlog", backlog?.remaining ?? "—"],
+            ["Total Batch", backlog?.remaining ?? "—"],
           ].map(([label, value]) => (
             <div className="admin-collector-status-card" style={collectorStatusCardStyle} key={label}>
               <small>{label}</small>
