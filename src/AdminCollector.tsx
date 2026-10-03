@@ -24,6 +24,7 @@ import {
   collectorProductWaitExpired,
   collectorStopGraceExpired,
 } from "./collector-product-wait-policy";
+import { readNqCycle, nqCycleMode, advanceNqCycle } from "./collector-nq-cycle";
 import { subscribeToAdminHistory } from "./admin-realtime";
 
 type CollectorSummary = {
@@ -46,6 +47,8 @@ type CollectorProduct = {
   externalProductId: string;
   productUrl: string;
   leaseUntil: string;
+  nqCycleMode?: "low" | "unavailable";
+  nqCycleFallback?: boolean;
 };
 
 type CollectorRun = {
@@ -76,6 +79,7 @@ const includePriorityQueueStorageKey = "pricetrack-admin-collector-include-prior
 const includePersonalQueueStorageKey = "pricetrack-admin-collector-include-personal-queue";
 const finishDueProductsStorageKey = "pricetrack-admin-collector-finish-due-products";
 const favoriteQueueEventKey = "pricetrack-favorite-queue-updated";
+const nqCycleStorageKey = "pricetrack-admin-nq-cycle";
 const summaryCacheKey = "pricetrack-admin-collector-last-summary";
 function readCachedSummary(): CollectorSummary | null {
   try {
@@ -185,6 +189,7 @@ export default function AdminCollector() {
   const samePriceRecheckAt = useRef<string | null>(null);
   const collectionMode = useRef<CollectionMode>("normal");
   const nonPriorityCadence = useRef(0);
+  const nqCycle = useRef(readNqCycle(localStorage, nqCycleStorageKey));
   const currentPageOutcome = useRef<ProductPageOutcome | null>(null);
   const verificationAlertedFor = useRef(new Set<string>());
   const collectorSessionId = useRef(crypto.randomUUID());
@@ -567,6 +572,12 @@ export default function AdminCollector() {
     ].slice(0, 20));
   }
 
+  function recordNqCycle(product: CollectorProduct) {
+    if (product.claimSource !== "random" || backlogId.current) return;
+    nqCycle.current = advanceNqCycle(nqCycle.current, product);
+    localStorage.setItem(nqCycleStorageKey, JSON.stringify(nqCycle.current));
+  }
+
   async function runCollection() {
     let consecutiveFailures = 0;
     let consecutiveClaimErrors = 0;
@@ -593,6 +604,7 @@ export default function AdminCollector() {
         includePersonalQueue,
         skipSoldOut,
         preferredSource: nextNonPrioritySource(nonPriorityCadence.current),
+        nqCycleMode: backlogId.current ? null : nqCycleMode(nqCycle.current),
         });
         consecutiveClaimErrors = 0;
       } catch (cause) {
@@ -656,6 +668,7 @@ export default function AdminCollector() {
             failedCount.current += 1;
             setFailed(failedCount.current);
           }
+          if (product.nqCycleMode) recordNqCycle(product);
           await refreshCountersAfterProduct(product);
           checkpointRun();
           setMessage(`${String(pageOutcome).replace(/_/g, " ")} skipped`);
@@ -676,7 +689,7 @@ export default function AdminCollector() {
         let status: { completed: boolean; soldOut: boolean; recheckAt: string | null; samePrice: boolean; samePriceRecheckAt: string | null };
         try {
           status = await api<typeof status>("status",
-          { claimSource: product.claimSource, backlogId: backlogId.current, ...(product.productId === null
+          { claimSource: product.claimSource, nqCycleMode: product.nqCycleMode, backlogId: backlogId.current, ...(product.productId === null
             ? { shopId: product.shopId, externalProductId: product.externalProductId }
             : { productId: product.productId }), skipUnchangedDay: skipUnchangedDay, skipSoldOut: skipSoldOut },
           Math.max(1, Math.min(10_000, COLLECTOR_PRODUCT_WAIT_MS - (Date.now() - productWaitStartedAt))),
@@ -752,6 +765,7 @@ export default function AdminCollector() {
       activeProduct.current = null;
       setCurrentProduct(null);
       succeededCount.current += 1;
+      recordNqCycle(product);
       if (product.claimSource !== "priority") nonPriorityCadence.current += 1;
       setSucceeded(succeededCount.current);
       await refreshCountersAfterProduct(product);
