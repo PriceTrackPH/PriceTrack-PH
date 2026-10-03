@@ -407,10 +407,20 @@ export default function AdminCollector() {
     const refreshBatch = () => {
       if (disposed || inFlight || document.visibilityState === "hidden") return;
       inFlight = true;
-      void api<{ backlog: CollectorBacklog | null }>("backlog-status")
-        .then(({ backlog: saved }) => { if (!disposed) setBacklog(saved); })
-        .catch(() => undefined)
-        .finally(() => { inFlight = false; });
+      void Promise.allSettled([
+        api<{ backlog: CollectorBacklog | null }>("backlog-status")
+          .then(({ backlog: saved }) => { if (!disposed) setBacklog(saved); }),
+        api<CollectorSummary & { ok: boolean }>("summary")
+          .then((next) => {
+            if (disposed) return;
+            setSummary((previous) => {
+              if (!previous) return previous;
+              const updated = { ...previous, totalDue: next.totalDue };
+              sessionStorage.setItem(summaryCacheKey, JSON.stringify(updated));
+              return updated;
+            });
+          }),
+      ]).finally(() => { inFlight = false; });
     };
     const timer = window.setInterval(refreshBatch, 5_000);
     window.addEventListener("focus", refreshBatch);
