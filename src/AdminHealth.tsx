@@ -99,6 +99,8 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [linkMessage, setLinkMessage] = useState("");
   const [clickRefreshBusy, setClickRefreshBusy] = useState(false);
   const [adsMessage, setAdsMessage] = useState("");
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupMessage, setBackupMessage] = useState("");
   const [favoriteUrl, setFavoriteUrl] = useState("");
   const [favorites, setFavorites] = useState<FavoriteProduct[]>([]);
   const [favoritePage, setFavoritePage] = useState(1);
@@ -633,6 +635,24 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                 <small>The switch affects every website visitor immediately.</small>
               </div>
               {adsMessage && <p className="health-ads-message" role="status">{adsMessage}</p>}
+            </section>}
+
+            {isSettings && <section className="health-ads" aria-labelledby="backup-heading">
+              <div>
+                <span className="health-kicker">BACKUP</span>
+                <h2 id="backup-heading">Full backup</h2>
+                <p>Download database data and definitions, website code, assets, and browser settings to your device. Stop recording activity first and keep this page open until finished.</p>
+              </div>
+              <button type="button" disabled={backupBusy} onClick={() => void (async () => {
+                setBackupBusy(true);
+                try {
+                  const { downloadFullBackup } = await import("./admin-backup");
+                  await downloadFullBackup(token, setBackupMessage);
+                } catch (cause) {
+                  setBackupMessage(cause instanceof Error ? cause.message : "Backup failed. Please try again.");
+                } finally { setBackupBusy(false); }
+              })()}>{backupBusy ? "Backing up…" : "Backup"}</button>
+              {backupMessage && <p className="health-ads-message" role="status">{backupMessage}</p>}
             </section>}
 
             {isSettings && <section className="health-ads" aria-labelledby="finish-due-heading">
