@@ -543,6 +543,7 @@ export default function AdminCollector() {
         resetDailyRunCounters();
         applySummary(await api<CollectorSummary & { ok: boolean }>("summary"));
       }
+      setMessage("Selecting next product…");
       let claim: { product: CollectorProduct | null };
       try {
         claim = await api<{ product: CollectorProduct | null }>("claim", {
