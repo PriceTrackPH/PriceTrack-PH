@@ -261,10 +261,8 @@ export async function claimNextProduct(supabaseUrl, secret, excludedProductIds =
   }
   if (includePriorityQueue) {
     const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
-    if (priority) {
-      if (!backlogId || await backlogState(supabaseUrl, secret, backlogId, priority) === "pending") return priority;
-      await releaseClaimedProduct(supabaseUrl, secret, priority);
-    }
+    // Priority requests can be due even if they were not in the saved Normal Queue batch.
+    if (priority) return priority;
   }
   if (includePersonalQueue) {
     const personal = await claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut, lastShopId);
