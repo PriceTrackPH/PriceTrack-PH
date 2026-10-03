@@ -632,3 +632,26 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
 .admin-collector-option-button:disabled { cursor: not-allowed; opacity: .65; }
 @media (max-width: 900px) { .admin-collector-queue-options { grid-template-columns: repeat(6, minmax(155px, 1fr)); } }
 @media (max-width: 540px) { .admin-collector-actions { grid-template-columns: 1fr; } }
+
+/* Link click totals sit beside the public-link toggles. */
+.admin-settings-link-buttons { width: auto; min-width: 188px; }
+.admin-settings-link-buttons .admin-settings-link {
+  display: grid;
+  grid-template-columns: minmax(48px, auto) 132px;
+  gap: 8px;
+  align-items: stretch;
+}
+.admin-settings-link-buttons .admin-settings-link button { grid-column: 2; grid-row: 1; }
+.admin-link-click-count {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 45px;
+  padding: 0 8px;
+  border: 1px solid var(--report-border, #52615b);
+  border-radius: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
