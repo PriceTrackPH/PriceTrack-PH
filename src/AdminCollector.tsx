@@ -141,6 +141,7 @@ export default function AdminCollector() {
   const [favoriteSaving, setFavoriteSaving] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set());
   const [favoritesLoaded, setFavoritesLoaded] = useState(false);
+  const [favoriteDue, setFavoriteDue] = useState<number | null>(null);
   const pendingFavorites = useRef(new Set<string>());
   const lastFavoriteClick = useRef<{ identity: string; at: number } | null>(null);
   const [favoriteNotice, setFavoriteNotice] = useState("");
@@ -308,12 +309,7 @@ export default function AdminCollector() {
 
   useEffect(() => {
     if (!token) return;
-    const refreshFavorites = () => void api<{ favorites: Array<{ products: { external_shop_id: string; external_product_id: string } | null }> }>("personal-list")
-      .then(({ favorites }) => {
-        setFavoriteIds(new Set(favorites.flatMap(({ products }) =>
-          products ? [`${products.external_shop_id}.${products.external_product_id}`] : [],
-        )));
-      })
+    const refreshFavorites = () => void refreshFavoriteQueue()
       .catch((cause) => showFavoriteNotice(cause instanceof Error ? cause.message : "Unable to load Favorite Queue."))
       .finally(() => setFavoritesLoaded(true));
     const onFavoriteChange = (event: StorageEvent) => { if (event.key === favoriteQueueEventKey) refreshFavorites(); };
@@ -413,12 +409,29 @@ export default function AdminCollector() {
     });
   }
 
+  async function refreshFavoriteQueue() {
+    const { favorites } = await api<{ favorites: Array<{
+      next_check_at: string | null;
+      products: { external_shop_id: string; external_product_id: string; last_checked_at: string | null } | null;
+    }> }>("personal-list");
+    const now = Date.now();
+    const today = manilaDate();
+    setFavoriteIds(new Set(favorites.flatMap(({ products }) =>
+      products ? [`${products.external_shop_id}.${products.external_product_id}`] : [],
+    )));
+    setFavoriteDue(favorites.filter(({ next_check_at, products }) =>
+      products && (!next_check_at || Date.parse(next_check_at) <= now)
+        && (!products.last_checked_at || manilaDate(new Date(products.last_checked_at)) !== today),
+    ).length);
+  }
+
   async function refreshCountersAfterProduct(product: CollectorProduct) {
-    // These two database counts are independent; waiting for them in sequence
+    // These database counts are independent; waiting for them in sequence
     // delayed the next Shopee product after every completed check.
     const [summaryResult, backlogResult] = await Promise.allSettled([
       refreshSharedSummary(product),
       api<{ backlog: CollectorBacklog | null }>("backlog-status"),
+      refreshFavoriteQueue(),
     ]);
     if (backlogResult.status === "fulfilled") setBacklog(backlogResult.value.backlog);
     if (summaryResult.status === "rejected" && (summaryResult.reason as { code?: string })?.code === "AUTH_EXPIRED") {
@@ -818,6 +831,7 @@ export default function AdminCollector() {
 
   function publishFavoriteChange() {
     localStorage.setItem(favoriteQueueEventKey, `${Date.now()}:${crypto.randomUUID()}`);
+    void refreshFavoriteQueue().catch(() => undefined);
   }
 
   function markFavorite(identity: string, saved: boolean) {
@@ -965,7 +979,7 @@ export default function AdminCollector() {
           {[
             ["Total Available", summary?.totalDue ?? "—"],
             ["Total Priority Queue", summary?.priorityPending ?? "—"],
-            ["Total Favorite Queue", favoritesLoaded ? favoriteIds.size : "—"],
+            ["Total Favorite Queue", favoriteDue ?? "—"],
             ["Total Store Queue", summary?.storeQueuePending ?? "—"],
             ["Total Batch", backlog?.remaining ?? "—"],
           ].map(([label, value]) => (
