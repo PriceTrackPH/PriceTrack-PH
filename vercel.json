@@ -1,12 +1,22 @@
 {
   "crons": [
-    { "path": "/api/admin-health?push=cron", "schedule": "0 0 * * *" }
+    {
+      "path": "/api/admin-health?push=cron",
+      "schedule": "0 0 * * *"
+    }
   ],
   "functions": {
     "api/*.js": {
       "regions": [
         "sin1"
       ]
+    },
+    "api/admin-backup.js": {
+      "regions": [
+        "sin1"
+      ],
+      "includeFiles": ".backup/website.zip",
+      "maxDuration": 60
     }
   },
   "redirects": [
