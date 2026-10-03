@@ -48,6 +48,7 @@ type AffiliateImportResult = {
 };
 
 type AdSettings = {
+  linkClickCounts?: { shopee: number; affiliate: number };
   adsEnabled: boolean;
   requestedEnabled: boolean;
   shopeeLinkEnabled: boolean;
@@ -116,6 +117,10 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const isSettings = view === "settings";
 
   useEffect(() => {
+    if (token) localStorage.setItem("pricetrack-exclude-own-link-clicks", "true");
+  }, [token]);
+
+  useEffect(() => {
     document.body.classList.add("admin-page-active");
     return () => document.body.classList.remove("admin-page-active");
   }, []);
@@ -177,6 +182,36 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
       });
     };
   }, [isLogin, view]);
+
+  useEffect(() => {
+    if (!isSettings || !token) return;
+    let disposed = false;
+    let inFlight = false;
+    const refreshClicks = async () => {
+      if (disposed || inFlight || document.visibilityState === "hidden") return;
+      inFlight = true;
+      try {
+        const response = await fetch("/api/site-settings", {
+          headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+        });
+        if (!response.ok) return;
+        const payload = await response.json() as AdSettings;
+        if (!disposed && payload.linkClickCounts) {
+          setAdSettings((previous) => previous ? { ...previous, linkClickCounts: payload.linkClickCounts } : previous);
+        }
+      } catch {} finally { inFlight = false; }
+    };
+    const interval = window.setInterval(() => void refreshClicks(), 30_000);
+    const onFocus = () => void refreshClicks();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [isSettings, token]);
 
   async function loadSiteSettings(nextToken = token) {
     if (!nextToken) return;
@@ -300,6 +335,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
         throw new Error(message);
       }
       sessionStorage.setItem("pricetrack-admin-health-token", nextToken);
+      localStorage.setItem("pricetrack-exclude-own-link-clicks", "true");
       if (isLogin) {
         window.location.replace("/admin/health");
         return;
@@ -544,6 +580,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                     <button type="button" disabled={!adSettings || linkBusy !== null} aria-label={`${label} link ${adSettings?.[field] === false ? "off" : "on"}. Click to toggle.`} aria-pressed={adSettings?.[field] ?? true} onClick={() => void updateLink(field, !adSettings?.[field])}>
                       {linkBusy === field ? "Saving…" : label}
                     </button>
+                    <small>{adSettings?.linkClickCounts ? `${Number(adSettings.linkClickCounts[field === "shopeeLinkEnabled" ? "shopee" : "affiliate"] || 0).toLocaleString("en-PH")} clicks` : "— clicks"}</small>
                   </div>
                 ))}
               </div>
