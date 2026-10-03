@@ -896,7 +896,10 @@ function ReportApp() {
               <span className="link-mark">🔗</span>
               <input
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setError(null);
+                }}
                 placeholder="Paste a product link..."
                 aria-label="Marketplace product link"
               />
