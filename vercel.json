@@ -6,12 +6,11 @@
     }
   ],
   "functions": {
-    "api/admin-backup.js": {
+    "api/admin-health.js": {
       "regions": [
         "sin1"
       ],
-      "includeFiles": ".backup/website.zip",
-      "maxDuration": 60
+      "includeFiles": ".backup/website.zip"
     },
     "api/*.js": {
       "regions": [
