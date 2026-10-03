@@ -684,7 +684,7 @@ export default async function handler(req, res) {
       const page = Number(req.body?.page);
       const paged = Number.isSafeInteger(page) && page > 0;
       const params = new URLSearchParams({
-        select: "product_id,added_at,next_check_at,products(product_url,external_shop_id,external_product_id,name,shop_name,last_checked_at)",
+        select: "product_id,added_at,next_check_at,products(product_url,external_shop_id,external_product_id,name,shop_name,last_checked_at,collector_page_outcome,next_check_at)",
         order: "added_at.desc,product_id.desc",
       });
       if (paged) {
