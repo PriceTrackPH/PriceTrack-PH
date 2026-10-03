@@ -38,7 +38,7 @@ export default function ProductSearch({ query, onChange, loading, onSubmit, onSe
           .select("id,name,shop_name,external_shop_id,external_product_id")
           .eq("platform", "shopee").eq("is_active", true)
           .not("last_checked_at", "is", null)
-          .ilike("name", pattern).order("name").order("id").limit(8)
+          .ilike("name", pattern).order("name").order("id").limit(5)
           .abortSignal(controller.signal);
         if (controller.signal.aborted) return;
         setSuggestions(error ? [] : data ?? []);
