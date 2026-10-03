@@ -188,9 +188,9 @@ export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds
   };
 }
 
-async function claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay) {
-  const rows = await rpc(supabaseUrl, secret, "claim_collector_backlog_product_v2", {
-    p_backlog_id: backlogId, p_skip_sold_out: skipSoldOut, p_skip_unchanged_day: skipUnchangedDay,
+async function claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay, lastShopId = null) {
+  const rows = await rpc(supabaseUrl, secret, "claim_collector_backlog_product_v3", {
+    p_backlog_id: backlogId, p_skip_sold_out: skipSoldOut, p_skip_unchanged_day: skipUnchangedDay, p_last_shop_id: lastShopId,
   });
   const product = rows?.[0];
   if (!product) return null;
@@ -294,7 +294,7 @@ export async function claimNextProduct(supabaseUrl, secret, excludedProductIds =
     }
   }
   const normal = includeNormalQueue
-    ? backlogId ? await claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay)
+    ? backlogId ? await claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay, lastShopId)
       : await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut, lastShopId, nqCycleMode)
     : null;
   if (normal || !includeStoreImports || preferredSource === "store") return normal;
