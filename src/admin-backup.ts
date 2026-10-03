@@ -47,7 +47,7 @@ export async function downloadFullBackup(token: string, progress: (message: stri
       if (zipFailure) throw zipFailure;
       const timeout = AbortSignal.timeout(60000);
       try {
-        const response = await fetch('/api/admin-backup', { method:'POST', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify({action,...body}), cache:'no-store', signal:AbortSignal.any([controller.signal,timeout]) });
+        const response = await fetch('/api/admin-health?backup=1', { method:'POST', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify({action,...body}), cache:'no-store', signal:AbortSignal.any([controller.signal,timeout]) });
         if (!response.ok) {
           const message = (await response.json().catch(() => ({}))).error || `Backup request failed (${response.status})`;
           if (response.status===401 || response.status===400 || response.status===403 || response.status===409) throw Object.assign(new Error(message), { permanent:true });
