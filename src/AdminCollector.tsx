@@ -375,6 +375,7 @@ export default function AdminCollector() {
     };
     const realtime = subscribeToAdminHistory((event) => {
       if (event.kind === "collector-progress") {
+        void api<{ backlog: CollectorBacklog | null }>("backlog-status").then(({ backlog: saved }) => setBacklog(saved)).catch(() => undefined);
         void api<CollectorSummary & { ok: boolean }>("summary").then(applySummary).catch(() => undefined);
         return;
       }
@@ -398,6 +399,29 @@ export default function AdminCollector() {
       if (remoteNoticeTimer.current !== null) window.clearTimeout(remoteNoticeTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    let disposed = false;
+    let inFlight = false;
+    const refreshBatch = () => {
+      if (disposed || inFlight || document.visibilityState === "hidden") return;
+      inFlight = true;
+      void api<{ backlog: CollectorBacklog | null }>("backlog-status")
+        .then(({ backlog: saved }) => { if (!disposed) setBacklog(saved); })
+        .catch(() => undefined)
+        .finally(() => { inFlight = false; });
+    };
+    const timer = window.setInterval(refreshBatch, 5_000);
+    window.addEventListener("focus", refreshBatch);
+    document.addEventListener("visibilitychange", refreshBatch);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshBatch);
+      document.removeEventListener("visibilitychange", refreshBatch);
+    };
+  }, [token]);
 
   async function refreshSharedSummary(product: CollectorProduct) {
     const next = await api<CollectorSummary & { ok: boolean }>("summary");
