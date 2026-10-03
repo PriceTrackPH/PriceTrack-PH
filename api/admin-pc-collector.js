@@ -147,11 +147,11 @@ export async function claimPriorityProduct(supabaseUrl, secret, excludedRequestI
   };
 }
 
-export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds = [], skipSoldOut = true) {
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_random_available_product_check`, {
+export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds = [], skipSoldOut = true, lastShopId = null) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_random_available_product_check_v2`, {
     method: "POST",
     headers: adminHeaders(secret, { "Content-Type": "application/json" }),
-    body: JSON.stringify({ p_excluded_product_ids: excludedProductIds, p_skip_sold_out: skipSoldOut }),
+    body: JSON.stringify({ p_excluded_product_ids: excludedProductIds, p_skip_sold_out: skipSoldOut, p_last_shop_id: lastShopId }),
   });
   if (!response.ok) throw new Error(`random_claim_${response.status}`);
   const [product] = await response.json();
@@ -282,7 +282,7 @@ export async function claimNextProduct(supabaseUrl, secret, excludedProductIds =
   }
   const normal = includeNormalQueue
     ? backlogId ? await claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay)
-      : await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut)
+      : await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut, lastShopId)
     : null;
   if (normal || !includeStoreImports || preferredSource === "store") return normal;
   return backlogId ? null : claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
