@@ -580,7 +580,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                     <button type="button" disabled={!adSettings || linkBusy !== null} aria-label={`${label} link ${adSettings?.[field] === false ? "off" : "on"}. Click to toggle.`} aria-pressed={adSettings?.[field] ?? true} onClick={() => void updateLink(field, !adSettings?.[field])}>
                       {linkBusy === field ? "Saving…" : label}
                     </button>
-                    <small>{adSettings?.linkClickCounts ? `${Number(adSettings.linkClickCounts[field === "shopeeLinkEnabled" ? "shopee" : "affiliate"] || 0).toLocaleString("en-PH")} clicks` : "— clicks"}</small>
+                    <span className="admin-link-click-count" aria-label={`${label} link clicks`}>{adSettings?.linkClickCounts ? Number(adSettings.linkClickCounts[field === "shopeeLinkEnabled" ? "shopee" : "affiliate"] || 0).toLocaleString("en-PH") : "—"}</span>
                   </div>
                 ))}
               </div>
