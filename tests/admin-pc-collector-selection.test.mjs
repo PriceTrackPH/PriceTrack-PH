@@ -306,13 +306,13 @@ test("claim uses the atomic random database function and passes prior attempts",
     };
   };
   try {
-    const product = await claimRandomProduct("https://example.supabase.co", "secret", [3, 9]);
+    const product = await claimRandomProduct("https://example.supabase.co", "secret", [3, 9], true, "92328166");
     assert.equal(product.productId, 42);
   } finally {
     global.fetch = originalFetch;
   }
-  assert.match(request.url, /\/rest\/v1\/rpc\/claim_random_available_product_check$/);
-  assert.deepEqual(JSON.parse(request.options.body), { p_excluded_product_ids: [3, 9], p_skip_sold_out: true });
+  assert.match(request.url, /\/rest\/v1\/rpc\/claim_random_available_product_check_v2$/);
+  assert.deepEqual(JSON.parse(request.options.body), { p_excluded_product_ids: [3, 9], p_skip_sold_out: true, p_last_shop_id: "92328166" });
 });
 
 test("status returns the exact product's exclusion reason and scheduled recheck", async () => {
