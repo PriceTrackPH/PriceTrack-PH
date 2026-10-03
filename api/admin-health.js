@@ -1,3 +1,4 @@
+import backupHandler from "../backup/handler.js";
 import crypto from "node:crypto";
 import priorityPushHandler from "../server/priority-push.js";
 
@@ -30,6 +31,7 @@ async function fetchCount(baseUrl, headers, eventType) {
 }
 
 export default async function handler(req, res) {
+  if (req.query?.backup === "1") return backupHandler(req, res);
   if (req.query.push) return priorityPushHandler(req, res);
   if (req.method !== "GET") return send(res, 405, { error: "Method not allowed" });
 
