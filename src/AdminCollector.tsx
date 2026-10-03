@@ -451,7 +451,7 @@ export default function AdminCollector() {
   async function refreshFavoriteQueue() {
     const { favorites } = await api<{ favorites: Array<{
       next_check_at: string | null;
-      products: { external_shop_id: string; external_product_id: string; last_checked_at: string | null } | null;
+      products: { external_shop_id: string; external_product_id: string; last_checked_at: string | null; collector_page_outcome: string | null; next_check_at: string | null } | null;
     }> }>("personal-list");
     const now = Date.now();
     const today = manilaDate();
@@ -460,6 +460,8 @@ export default function AdminCollector() {
     )));
     setFavoriteDue(favorites.filter(({ next_check_at, products }) =>
       products && (!next_check_at || Date.parse(next_check_at) <= now)
+        && (!["does_not_exist", "unlisted", "page_error"].includes(products.collector_page_outcome ?? "")
+          || !products.next_check_at || Date.parse(products.next_check_at) <= now)
         && (!products.last_checked_at || manilaDate(new Date(products.last_checked_at)) !== today),
     ).length);
   }
