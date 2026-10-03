@@ -67,7 +67,7 @@ type CollectorRun = {
 };
 type CollectionMode = "normal" | "unlimited";
 type CollectorBacklog = { id: string; total: number; remaining: number; finished: boolean };
-type ProductPageOutcome = "sold_out" | "does_not_exist" | "unlisted" | "page_error" | "verification";
+type ProductPageOutcome = "sold_out" | "does_not_exist" | "unlisted" | "page_error" | "verification" | "account_restricted";
 
 const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 const cooldownStorageKey = "pricetrack-admin-collector-cooldown-until";
@@ -498,8 +498,13 @@ export default function AdminCollector() {
       if (data?.source !== "pricetrack-ph-collector-product" || data?.type !== "product-outcome") return;
       const product = activeProduct.current;
       if (!product || data.shopId !== product.shopId || data.externalProductId !== product.externalProductId) return;
-      if (!["does_not_exist", "unlisted", "page_error", "verification"].includes(data.outcome)) return;
+      if (!["does_not_exist", "unlisted", "page_error", "verification", "account_restricted"].includes(data.outcome)) return;
       currentPageOutcome.current = data.outcome;
+      if (data.outcome === "account_restricted") {
+        stopped.current = true;
+        setMessage("Shopee account temporarily restricted — collection stopped");
+        return;
+      }
       if (data.outcome === "verification") {
         const key = `${product.shopId}.${product.externalProductId}`;
         if (!verificationAlertedFor.current.has(key)) {
@@ -645,6 +650,7 @@ export default function AdminCollector() {
       const productWaitStartedAt = Date.now();
       while (!stopped.current) {
         await wait(1000);
+        if (stopped.current) break;
         const pageOutcome = currentPageOutcome.current;
         if (pageOutcome && pageOutcome !== "verification") {
           const outcomeResult = await api<{ result?: { retryAfterCurrentRun?: boolean; recheckAt?: string | null } }>("outcome", {
@@ -695,10 +701,12 @@ export default function AdminCollector() {
           Math.max(1, Math.min(10_000, COLLECTOR_PRODUCT_WAIT_MS - (Date.now() - productWaitStartedAt))),
           );
         } catch (cause) {
+          if (stopped.current) break;
           if ((cause as { code?: string })?.code === "AUTH_EXPIRED") throw cause;
           setMessage(`Waiting for ${product.shopId}.${product.externalProductId} confirmation`);
           continue;
         }
+        if (stopped.current) break;
         if (status.completed) {
           if (status.soldOut) {
             soldOutCount.current += 1;
@@ -792,6 +800,11 @@ export default function AdminCollector() {
       if (collectionMode.current === "normal") await wait(1_000);
     }
     stopped.current = true;
+    if (currentPageOutcome.current === "account_restricted") {
+      await releaseCurrent();
+      await finishRun("stopped_safely");
+      setMessage("Shopee account temporarily restricted — collection stopped");
+    }
     setRunning(false);
   }
 

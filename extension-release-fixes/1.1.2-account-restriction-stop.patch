@@ -1,0 +1,49 @@
+--- a/product-page-outcome.js
++++ b/product-page-outcome.js
+@@ -2,6 +2,7 @@
+   function classifyProductPage(value) {
+     const text = String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+     if (!text) return null;
++    if (/your account has been (?:temporarily )?restricted due to automated tools detected/.test(text)) return "account_restricted";
+     if (/security verification|verify to continue|captcha|verification required/.test(text)) return "verification";
+     if (/\bunlisted\b/.test(text)) return "unlisted";
+     if (/product doesn['’]?t exist|product does not exist|listing (?:has been )?(?:delisted|removed)|item (?:has been )?(?:delisted|removed)/.test(text)) {
+--- a/content.js
++++ b/content.js
+@@ -82,15 +82,15 @@
+   try { sessionStorage.setItem(collectorRedirectIdentityKey, JSON.stringify({ ...ids, at: Date.now() })); } catch {}
+ }
+ function reportCollectorErrorRedirect() {
++  const outcome = globalThis.PriceTrackProductPageOutcome?.classifyProductPage(document.body?.innerText || "");
+   if (reportedRedirectOutcome || window.name !== "ptph-admin-collector" || !window.opener
+-    || !/^\/verify\/traffic\/error\/?$/.test(location.pathname)) return false;
++    || (outcome !== "account_restricted" && !/^\/verify\/traffic\/error\/?$/.test(location.pathname))) return false;
+   let saved;
+   try { saved = JSON.parse(sessionStorage.getItem(collectorRedirectIdentityKey) || "null"); } catch { return false; }
+   if (!saved || !/^\d+$/.test(saved.shopId) || !/^\d+$/.test(saved.productId)
+     || !Number.isFinite(saved.at) || Date.now() - saved.at < 0 || Date.now() - saved.at > 120000) return false;
+-  const outcome = globalThis.PriceTrackProductPageOutcome?.classifyProductPage(document.body?.innerText || "");
+   // Never turn a real verification screen into a product failure.
+-  if (outcome !== "page_error") return false;
++  if (outcome !== "page_error" && outcome !== "account_restricted") return false;
+   reportedRedirectOutcome = reportCollectorPageOutcome(outcome, saved);
+   return reportedRedirectOutcome;
+ }
+@@ -140,7 +140,7 @@
+   const collectorHandlesOutcome = reportCollectorPageOutcome(outcome, ids);
+   let saved = collectorHandlesOutcome;
+   let saveError = "";
+-  if (!collectorHandlesOutcome && outcome !== "verification") {
++  if (!collectorHandlesOutcome && outcome !== "verification" && outcome !== "account_restricted") {
+     try {
+       const visible = extractPublicProduct();
+       const installationId = await getInstallationId();
+@@ -163,7 +163,7 @@
+   }
+   await storageSet(statusKey, {
+     state: "terminal", outcome, saved, saveError,
+-    message: outcome === "verification" ? "Shopee verification is required." : "Shopee product page is unavailable.",
++    message: outcome === "account_restricted" ? "Shopee account restricted — collection stopped." : outcome === "verification" ? "Shopee verification is required." : "Shopee product page is unavailable.",
+     at: new Date().toISOString(),
+   });
+   return outcome;
