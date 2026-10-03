@@ -1,0 +1,51 @@
+--- a/content.js
++++ b/content.js
+@@ -72,6 +72,27 @@
+   } catch {
+     return null;
+   }
++}
++
++// Preserve only the current collector tab's identity through Shopee error redirects.
++const collectorRedirectIdentityKey = "ptph-collector-redirect-identity";
++let reportedRedirectOutcome = false;
++function rememberCollectorIdentity(ids) {
++  if (window.name !== "ptph-admin-collector" || !window.opener || !ids) return;
++  try { sessionStorage.setItem(collectorRedirectIdentityKey, JSON.stringify({ ...ids, at: Date.now() })); } catch {}
++}
++function reportCollectorErrorRedirect() {
++  if (reportedRedirectOutcome || window.name !== "ptph-admin-collector" || !window.opener
++    || !/^\/verify\/traffic\/error\/?$/.test(location.pathname)) return false;
++  let saved;
++  try { saved = JSON.parse(sessionStorage.getItem(collectorRedirectIdentityKey) || "null"); } catch { return false; }
++  if (!saved || !/^\d+$/.test(saved.shopId) || !/^\d+$/.test(saved.productId)
++    || !Number.isFinite(saved.at) || Date.now() - saved.at < 0 || Date.now() - saved.at > 120000) return false;
++  const outcome = globalThis.PriceTrackProductPageOutcome?.classifyProductPage(document.body?.innerText || "");
++  // Never turn a real verification screen into a product failure.
++  if (outcome !== "page_error") return false;
++  reportedRedirectOutcome = reportCollectorPageOutcome(outcome, saved);
++  return reportedRedirectOutcome;
+ }
+ 
+ function getInstallationId() {
+@@ -741,7 +762,11 @@
+ 
+ function runAutomaticRecording() {
+   const ids = parseShopeeIds(location.href);
+-  if (!ids) return Promise.resolve();
++  if (!ids) {
++    reportCollectorErrorRedirect();
++    return Promise.resolve();
++  }
++  rememberCollectorIdentity(ids);
+   const key = `${ids.shopId}:${ids.productId}`;
+ 
+   if (recordingPromise && recordingProductKey === key) return recordingPromise;
+@@ -776,6 +801,7 @@
+   return ids ? `${ids.shopId}:${ids.productId}` : "";
+ })();
+ setInterval(() => {
++  reportCollectorErrorRedirect();
+   const ids = parseShopeeIds(location.href);
+   const nextKey = ids ? `${ids.shopId}:${ids.productId}` : "";
+   if (nextKey === observedProductKey) return;
