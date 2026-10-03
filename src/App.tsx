@@ -14,6 +14,7 @@ import type { Tables } from "./database.types";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import shopeeLogo from "./assets/shopee-logo.png";
 import ReportAd from "./ReportAd";
+import ProductSearch, { type SearchSuggestion } from "./ProductSearch";
 import { isMobileVisitor, requestTrackedProductRecheck, requestUntrackedProduct } from "./public-collection-request";
 
 const AdminHealth = lazy(() => import("./AdminHealth"));
@@ -674,6 +675,22 @@ function ReportApp() {
     return () => window.removeEventListener("popstate", reloadForHistoryNavigation);
   }, []);
 
+  async function selectSearchSuggestion(item: SearchSuggestion) {
+    setQuery(item.name);
+    setLoading(true);
+    setError(null);
+    setQueueNotice(null);
+    try {
+      const found = await loadProduct(item.external_shop_id, item.external_product_id);
+      showPermanentProductUrl(found, "push");
+      setHasSearched(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to load this product.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -892,22 +909,9 @@ function ReportApp() {
               how the price changed over time.
             </p>
 
-            <form className="search-box" onSubmit={handleSubmit}>
-              <span className="link-mark">🔗</span>
-              <input
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setError(null);
-                }}
-                placeholder="Paste a product link..."
-                aria-label="Marketplace product link"
-              />
-              <button disabled={loading || !query.trim()}>
-                {loading ? "Checking…" : "Check price"}
-                {!loading && <span aria-hidden="true">→</span>}
-              </button>
-            </form>
+            <ProductSearch query={query} loading={loading} onSubmit={handleSubmit}
+              onChange={(value) => { setQuery(value); setError(null); }}
+              onSelect={(item) => { void selectSearchSuggestion(item); }} />
 
             {hasSearched && !error && product && (
               <div className="found-status" role="status">
