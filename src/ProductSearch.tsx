@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { supabase } from "./lib/supabase";
 import "./product-search.css";
 
@@ -15,6 +15,7 @@ export default function ProductSearch({ query, onChange, loading, onSubmit, onSe
   const [focused, setFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [active, setActive] = useState(-1);
+  const activeRef = useRef(-1);
   const [searching, setSearching] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const text = query.trim();
@@ -23,6 +24,7 @@ export default function ProductSearch({ query, onChange, loading, onSubmit, onSe
   useEffect(() => {
     setSuggestions([]);
     setActive(-1);
+    activeRef.current = -1;
     setUnavailable(false);
     setSearching(canSuggest);
     if (!canSuggest || !supabase) { setSearching(false); return; }
@@ -60,8 +62,8 @@ export default function ProductSearch({ query, onChange, loading, onSubmit, onSe
     if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
   }}>
     <form className="search-box" onSubmit={(event) => {
-      if (canSuggest && active >= 0 && suggestions[active]) {
-        event.preventDefault(); choose(suggestions[active]); return;
+      if (canSuggest && activeRef.current >= 0 && suggestions[activeRef.current]) {
+        event.preventDefault(); choose(suggestions[activeRef.current]); return;
       }
       setFocused(false); onSubmit(event);
     }}>
@@ -69,12 +71,16 @@ export default function ProductSearch({ query, onChange, loading, onSubmit, onSe
       <input value={query} onChange={(event) => { setFocused(true); onChange(event.target.value); }}
         onFocus={() => setFocused(true)}
         onKeyDown={(event) => {
-          if (event.key === "Escape") { setFocused(false); setActive(-1); }
+          if (event.key === "Escape") { setFocused(false); setActive(-1); activeRef.current = -1; }
+          if (event.key === "Enter" && canSuggest && suggestions[activeRef.current]) {
+            event.preventDefault(); choose(suggestions[activeRef.current]); return;
+          }
           if ((event.key === "ArrowDown" || event.key === "ArrowUp") && suggestions.length) {
             event.preventDefault();
-            setActive((index) => event.key === "ArrowDown"
-              ? (index + 1) % suggestions.length
-              : (index <= 0 ? suggestions.length - 1 : index - 1));
+            const index = activeRef.current;
+            activeRef.current = event.key === "ArrowDown" ? (index + 1) % suggestions.length
+              : (index <= 0 ? suggestions.length - 1 : index - 1);
+            setActive(activeRef.current);
           }
         }}
         placeholder="Search a product or paste a link..."
