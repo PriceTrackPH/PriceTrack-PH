@@ -97,6 +97,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [adsBusy, setAdsBusy] = useState(false);
   const [linkBusy, setLinkBusy] = useState<"shopeeLinkEnabled" | "affiliateLinkEnabled" | null>(null);
   const [linkMessage, setLinkMessage] = useState("");
+  const [clickRefreshBusy, setClickRefreshBusy] = useState(false);
   const [adsMessage, setAdsMessage] = useState("");
   const [favoriteUrl, setFavoriteUrl] = useState("");
   const [favorites, setFavorites] = useState<FavoriteProduct[]>([]);
@@ -201,15 +202,33 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
         }
       } catch {} finally { inFlight = false; }
     };
-    const interval = window.setInterval(() => void refreshClicks(), 30_000);
-    const onFocus = () => void refreshClicks();
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onFocus);
+    const halfDayMs = 12 * 60 * 60 * 1000;
+    const manilaOffsetMs = 8 * 60 * 60 * 1000;
+    const nextBoundary = () => (Math.floor((Date.now() + manilaOffsetMs) / halfDayMs) + 1) * halfDayMs - manilaOffsetMs;
+    let dueAt = nextBoundary();
+    let timer: number;
+    const schedule = () => {
+      timer = window.setTimeout(() => {
+        if (document.visibilityState !== "hidden") {
+          void refreshClicks();
+          dueAt = nextBoundary();
+          schedule();
+        }
+      }, Math.max(0, dueAt - Date.now()));
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "hidden" || Date.now() < dueAt) return;
+      window.clearTimeout(timer);
+      void refreshClicks();
+      dueAt = nextBoundary();
+      schedule();
+    };
+    schedule();
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       disposed = true;
-      window.clearInterval(interval);
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onFocus);
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [isSettings, token]);
 
@@ -570,6 +589,12 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                 <span className="health-kicker">PUBLIC PRODUCT LINKS</span>
                 <h2 id="link-settings-heading">Link visibility</h2>
                 <p>Choose which buttons appear on public product reports.</p>
+                <button type="button" disabled={!adSettings || clickRefreshBusy} onClick={() => void (async () => {
+                  setClickRefreshBusy(true);
+                  try { await loadSiteSettings(); }
+                  catch (cause) { setLinkMessage(cause instanceof Error ? cause.message : "Unable to refresh click counts."); }
+                  finally { setClickRefreshBusy(false); }
+                })()}>{clickRefreshBusy ? "Refreshing…" : "Refresh"}</button>
               </div>
               <div className="admin-settings-links admin-settings-link-buttons">
                 {([
