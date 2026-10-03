@@ -18,7 +18,7 @@ function adminHeaders(secret, extra = {}) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "GET" && req.method !== "PATCH") {
+  if (req.method !== "GET" && req.method !== "PATCH" && req.method !== "POST") {
     return send(res, 405, { error: "Method not allowed" });
   }
 
@@ -34,6 +34,28 @@ export default async function handler(req, res) {
   const headers = adminHeaders(secret, { "Content-Type": "application/json" });
 
   try {
+    if (req.method === "POST") {
+      const clickToken = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+      if (secretsMatch(clickToken, process.env.ADMIN_HEALTH_TOKEN || "")) {
+        return send(res, 200, { recorded: false });
+      }
+      const linkType = req.body?.linkType;
+      if (linkType !== "shopee" && linkType !== "affiliate") {
+        return send(res, 400, { error: "Invalid link type" });
+      }
+      const origin = req.headers.origin;
+      if (origin) {
+        let sameOrigin = false;
+        try { sameOrigin = new URL(origin).host === req.headers.host; } catch {}
+        if (!sameOrigin) return send(res, 403, { error: "Invalid origin" });
+      }
+      const clickResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/increment_outbound_link_click`, {
+        method: "POST", headers, body: JSON.stringify({ p_link_type: linkType }),
+      });
+      if (!clickResponse.ok) throw new Error(`click_update_${clickResponse.status}`);
+      return send(res, 200, { recorded: true });
+    }
+
     const settingKeys = {
       adsEnabled: "ads_enabled",
       shopeeLinkEnabled: "shopee_link_enabled",
@@ -64,7 +86,17 @@ export default async function handler(req, res) {
     const byKey = Object.fromEntries(rows.map((row) => [row.key, row]));
     const requestedEnabled = byKey.ads_enabled?.boolean_value === true;
 
+    let linkClickCounts;
+    const suppliedToken = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    if (secretsMatch(suppliedToken, process.env.ADMIN_HEALTH_TOKEN || "")) {
+      const clicksResponse = await fetch(`${supabaseUrl}/rest/v1/outbound_link_click_counts?select=link_type,click_count`, { headers });
+      if (!clicksResponse.ok) throw new Error(`clicks_read_${clicksResponse.status}`);
+      const clicks = await clicksResponse.json();
+      linkClickCounts = Object.fromEntries(clicks.map((row) => [row.link_type, row.click_count]));
+    }
+
     return send(res, 200, {
+      ...(linkClickCounts ? { linkClickCounts } : {}),
       adsEnabled: requestedEnabled && configured,
       requestedEnabled,
       shopeeLinkEnabled: byKey.shopee_link_enabled?.boolean_value !== false,
