@@ -216,7 +216,7 @@ export default function AdminCollector() {
       succeeded: succeededCount.current, failed: failedCount.current,
       soldOut: soldOutCount.current, recheckAt: recheckAt.current,
       samePrice: samePriceCount.current, samePriceRecheckAt: samePriceRecheckAt.current,
-      remaining: Math.max(0, (summary?.totalDue || 0) - succeededCount.current - failedCount.current),
+      remaining: Math.max(0, summary?.totalDue || 0),
       phase,
       intendedStopStatus,
       failureReason,
@@ -513,7 +513,7 @@ export default function AdminCollector() {
       succeeded: succeededCount.current,
       failed: failedCount.current,
       soldOut: soldOutCount.current,
-      remaining: backlogId.current && backlog ? backlog.remaining : Math.max(0, (summary?.totalDue || 0) - succeededCount.current - failedCount.current),
+      remaining: Math.max(0, summary?.totalDue || 0),
       recheckAt: recheckAt.current,
       samePrice: samePriceCount.current,
       samePriceRecheckAt: samePriceRecheckAt.current,
@@ -912,8 +912,7 @@ export default function AdminCollector() {
     }
   }
 
-  const remaining = localStorage.getItem(finishDueProductsStorageKey) === "true" && backlog
-    ? backlog.remaining : Math.max(0, summary?.totalDue || 0);
+  const remaining = Math.max(0, summary?.totalDue || 0);
 
   return <main className="health-page">
     <div className="health-shell">
