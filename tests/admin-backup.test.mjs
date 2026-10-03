@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { unzipSync, strFromU8 } from 'fflate';
-import handler from '../api/admin-backup.js';
+import handler from '../backup/handler.js';
 import { downloadFullBackup } from '../src/admin-backup.ts';
 const originalFetch=globalThis.fetch;
 const originalEnv={...process.env};
