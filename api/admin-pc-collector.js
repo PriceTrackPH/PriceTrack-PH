@@ -147,7 +147,20 @@ export async function claimPriorityProduct(supabaseUrl, secret, excludedRequestI
   };
 }
 
-export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds = [], skipSoldOut = true, lastShopId = null) {
+export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds = [], skipSoldOut = true, lastShopId = null, nqCycleMode = null) {
+  if (nqCycleMode) {
+    const rows = await rpc(supabaseUrl, secret, "claim_nq_cycle_product", {
+      p_mode: nqCycleMode, p_excluded_product_ids: excludedProductIds, p_last_shop_id: lastShopId,
+    });
+    const product = rows?.[0];
+    if (product) return {
+      claimSource: "random", queueRequestId: null, productId: Number(product.product_id),
+      shopId: String(product.shop_id), externalProductId: String(product.external_product_id),
+      productUrl: product.product_url, leaseUntil: product.lease_until, nqCycleMode,
+    };
+    const fallback = await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut, lastShopId);
+    return fallback ? { ...fallback, nqCycleMode, nqCycleFallback: true } : null;
+  }
   const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_random_available_product_check_v2`, {
     method: "POST",
     headers: adminHeaders(secret, { "Content-Type": "application/json" }),
@@ -248,7 +261,7 @@ async function advancePersonalProduct(supabaseUrl, secret, productId, days = 3) 
   if (!response.ok) throw new Error(`personal_advance_${response.status}`);
 }
 
-export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null, backlogId = null, skipUnchangedDay = true) {
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null, backlogId = null, skipUnchangedDay = true, nqCycleMode = null) {
   if (backlogId) {
     const [backlog] = await rpc(supabaseUrl, secret, "collector_backlog_status", {});
     if (!backlog || backlog.backlog_id !== backlogId || backlog.finished) return null;
@@ -282,7 +295,7 @@ export async function claimNextProduct(supabaseUrl, secret, excludedProductIds =
   }
   const normal = includeNormalQueue
     ? backlogId ? await claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay)
-      : await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut, lastShopId)
+      : await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut, lastShopId, nqCycleMode)
     : null;
   if (normal || !includeStoreImports || preferredSource === "store") return normal;
   return backlogId ? null : claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
@@ -779,6 +792,7 @@ export default async function handler(req, res) {
         /^\d+$/.test(String(req.body?.lastShopId || "")) ? String(req.body.lastShopId) : null,
         backlogId,
         req.body?.skipUnchangedDay !== false,
+        ["low", "unavailable"].includes(req.body?.nqCycleMode) ? req.body.nqCycleMode : null,
       );
       return send(res, 200, { ok: true, product });
     }
@@ -841,6 +855,19 @@ export default async function handler(req, res) {
       const productId = safeInteger(req.body?.productId);
       if (productId) {
         const status = await productCheckStatus(supabaseUrl, secret, productId, skipUnchangedDay, skipSoldOut, checkedDate);
+        if (status.completed && req.body?.nqCycleMode === "unavailable" && !status.soldOut) {
+          // A recovered product must not retain its previous unavailable skip date.
+          const date = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
+          }).format(new Date(status.checkedAt));
+          const nextCheckAt = status.samePriceRecheckAt
+            || new Date(Date.parse(`${date}T00:00:00+08:00`) + 24 * 60 * 60_000).toISOString();
+          const reset = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${productId}`, {
+            method: "PATCH", headers: adminHeaders(secret, { "Content-Type": "application/json", Prefer: "return=minimal" }),
+            body: JSON.stringify({ next_check_at: nextCheckAt }),
+          });
+          if (!reset.ok) throw new Error(`nq_recovered_schedule_${reset.status}`);
+        }
         if (status.completed) {
           const row = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${productId}&select=external_shop_id,external_product_id&limit=1`, { headers: adminHeaders(secret) });
           if (!row.ok) throw new Error(`backlog_identity_${row.status}`);
