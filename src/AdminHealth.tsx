@@ -587,14 +587,18 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
             {isSettings && <section className="health-ads" aria-labelledby="link-settings-heading">
               <div>
                 <span className="health-kicker">PUBLIC PRODUCT LINKS</span>
-                <h2 id="link-settings-heading">Link visibility</h2>
+                <h2 id="link-settings-heading"><button type="button"
+                  style={{ all: "unset", cursor: "pointer" }}
+                  aria-label="Link visibility. Refresh click counts."
+                  aria-busy={clickRefreshBusy}
+                  disabled={!adSettings || clickRefreshBusy}
+                  onClick={() => void (async () => {
+                    setClickRefreshBusy(true);
+                    try { await loadSiteSettings(); }
+                    catch (cause) { setLinkMessage(cause instanceof Error ? cause.message : "Unable to refresh click counts."); }
+                    finally { setClickRefreshBusy(false); }
+                  })()}>Link visibility</button></h2>
                 <p>Choose which buttons appear on public product reports.</p>
-                <button type="button" disabled={!adSettings || clickRefreshBusy} onClick={() => void (async () => {
-                  setClickRefreshBusy(true);
-                  try { await loadSiteSettings(); }
-                  catch (cause) { setLinkMessage(cause instanceof Error ? cause.message : "Unable to refresh click counts."); }
-                  finally { setClickRefreshBusy(false); }
-                })()}>{clickRefreshBusy ? "Refreshing…" : "Refresh"}</button>
               </div>
               <div className="admin-settings-links admin-settings-link-buttons">
                 {([
