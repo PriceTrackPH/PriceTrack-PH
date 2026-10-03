@@ -239,6 +239,16 @@ async function resolveProductQuery(value: string) {
   return { shopId: payload.shopId, productId: payload.productId };
 }
 
+function countOutboundClick(linkType: "shopee" | "affiliate") {
+  if (sessionStorage.getItem("pricetrack-admin-health-token") || localStorage.getItem("pricetrack-exclude-own-link-clicks") === "true") return;
+  void fetch("/api/site-settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ linkType }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 const SITE_ORIGIN = "https://pricetrackph.com";
 
 function parseProductReportPath(pathname: string) {
@@ -1154,6 +1164,7 @@ function ReportApp() {
                       <a
                         className="track-price-button"
                         href={affiliateLink}
+                        onClick={() => countOutboundClick("affiliate")}
                         target="_blank"
                         rel="sponsored noopener noreferrer"
                       >
@@ -1164,6 +1175,7 @@ function ReportApp() {
                       <a
                         className="shopee-outbound-button"
                         href={directShopeeLink}
+                        onClick={() => countOutboundClick("shopee")}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
