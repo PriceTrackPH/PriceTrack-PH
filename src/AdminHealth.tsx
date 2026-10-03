@@ -643,6 +643,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                 <h2 id="backup-heading">Full backup</h2>
                 <p>Download database data and definitions, website code, assets, and browser settings to your device. Stop recording activity first and keep this page open until finished.</p>
               </div>
+              <div className="admin-settings-links admin-finish-backlog-button"><div className="admin-settings-link">
               <button type="button" disabled={backupBusy} onClick={() => void (async () => {
                 setBackupBusy(true);
                 try {
@@ -652,6 +653,7 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                   setBackupMessage(cause instanceof Error ? cause.message : "Backup failed. Please try again.");
                 } finally { setBackupBusy(false); }
               })()}>{backupBusy ? "Backing up…" : "Backup"}</button>
+              </div></div>
               {backupMessage && <p className="health-ads-message" role="status">{backupMessage}</p>}
             </section>}
 
