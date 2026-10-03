@@ -20,7 +20,7 @@ const AdminHealth = lazy(() => import("./AdminHealth"));
 const AdminCollector = lazy(() => import("./AdminCollector"));
 const AdminStoreScanner = lazy(() => import("./AdminStoreScanner"));
 
-type Product = Tables<"products">;
+type Product = Tables<"products"> & { collector_page_outcome?: string | null };
 type Variation = Tables<"product_variations">;
 type Observation = Tables<"price_observations">;
 type RangeKey = "7D" | "30D" | "90D" | "ALL";
@@ -707,6 +707,10 @@ function ReportApp() {
     ? null
     : latestByVariationId.get(selectedVariationId) ?? null;
   const selectedIsOutOfStock = selectedLatestObservation?.is_in_stock === false;
+  const collectorOutcomeBadge = product?.collector_page_outcome === "unlisted" ? "UNLISTED"
+    : product?.collector_page_outcome === "does_not_exist" ? "DOESN’T EXIST"
+    : product?.collector_page_outcome === "page_error" ? "PAGE ERROR"
+    : null;
 
   const allVariationRows = useMemo(() => {
     if (selectedVariationId == null) return [];
@@ -1019,7 +1023,7 @@ function ReportApp() {
                     <div className="current-price-row">
                       <strong>{displayedPrice}</strong>
                       <span className={`sample-badge live-badge${selectedIsOutOfStock ? " out-of-stock-badge" : ""}`}>
-                        {selectedIsOutOfStock ? "OUT OF STOCK" : "LIVE DATABASE"}
+                        {collectorOutcomeBadge ?? (selectedIsOutOfStock ? "OUT OF STOCK" : "LIVE DATABASE")}
                       </span>
                     </div>
                     <p>
