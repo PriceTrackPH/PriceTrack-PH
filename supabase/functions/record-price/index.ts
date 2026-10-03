@@ -63,6 +63,7 @@ type Observation = {
     rating?: number | null;
     discountPercent?: number | null;
   };
+  pageOutcome?: "sold_out" | "does_not_exist" | "unlisted" | "page_error";
 };
 
 type NormalizedVariation = Required<Pick<VariationObservation, "variationId" | "variationName" | "price" | "isInStock">> & VariationObservation;
@@ -212,6 +213,57 @@ Deno.serve(async (request: Request) => {
     const idMatch = productUrl.pathname.match(/-i\.(\d+)\.(\d+)/i) || productUrl.pathname.match(/\/product\/(\d+)\/(\d+)/i);
     if (!idMatch || idMatch[1] !== shopId || idMatch[2] !== productId) {
       return reply({ error: "Product URL does not match its identifiers" }, 400);
+    }
+
+    // A terminal Shopee page may have no usable variation or price. Preserve
+    // its product identity and public metadata without inventing a price.
+    if (body.pageOutcome != null) {
+      if (!["sold_out", "does_not_exist", "unlisted", "page_error"].includes(body.pageOutcome)) {
+        return reply({ error: "Invalid product page outcome" }, 400);
+      }
+      const quotaRequest = buildIngestQuotaRequest(await digest(clientId), observedDate);
+      if (!internalRequest && quotaRequest) {
+        const quotaResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_ingest_quota`, {
+          method: "POST",
+          headers: adminHeaders(secret, { "content-type": "application/json" }),
+          body: JSON.stringify(quotaRequest),
+        });
+        if (!quotaResponse.ok) return reply({ error: "Unable to verify recording quota" }, 503);
+        if (await quotaResponse.json() == null) return reply({ error: "Daily recording limit reached" }, 429);
+      }
+      const productResponse = await fetch(`${supabaseUrl}/rest/v1/products?on_conflict=platform,external_shop_id,external_product_id`, {
+        method: "POST",
+        headers: adminHeaders(secret, { "content-type": "application/json", prefer: "resolution=merge-duplicates,return=representation" }),
+        body: JSON.stringify({
+          platform, external_shop_id: shopId, external_product_id: productId,
+          product_url: canonicalUrl, name: title, currency: "PHP",
+          ...(storeName ? { shop_name: storeName } : {}),
+          ...(imageUrl ? { image_url: imageUrl } : {}),
+          last_seen_at: observedAt.toISOString(), updated_at: now.toISOString(),
+        }),
+      });
+      if (!productResponse.ok) throw new Error(`Product outcome upsert failed: ${await productResponse.text()}`);
+      const [product] = await productResponse.json() as Array<{
+        id: number; collector_page_outcome?: string | null; last_check_attempt_at?: string | null;
+      }>;
+      if (!product?.id) throw new Error("Product outcome upsert returned no product ID");
+      if (product.collector_page_outcome === body.pageOutcome && product.last_check_attempt_at &&
+        new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
+        }).format(new Date(product.last_check_attempt_at)) === observedDate) {
+        return reply({ ok: true, outcome: body.pageOutcome, productId: product.id, alreadyRecorded: true });
+      }
+      const outcomeResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/mark_collector_product_outcome`, {
+        method: "POST",
+        headers: adminHeaders(secret, { "content-type": "application/json" }),
+        body: JSON.stringify({
+          p_claim_source: "random", p_queue_request_id: null, p_product_id: product.id,
+          p_external_shop_id: shopId, p_external_product_id: productId,
+          p_outcome: body.pageOutcome, p_checked_at: observedAt.toISOString(),
+        }),
+      });
+      if (!outcomeResponse.ok) throw new Error(`Product outcome update failed: ${await outcomeResponse.text()}`);
+      return reply({ ok: true, outcome: body.pageOutcome, productId: product.id });
     }
 
     const submitted: VariationObservation[] = Array.isArray(body.variations) && body.variations.length
