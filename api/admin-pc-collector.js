@@ -262,6 +262,16 @@ async function advancePersonalProduct(supabaseUrl, secret, productId, days = 3) 
 }
 
 export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null, backlogId = null, skipUnchangedDay = true, nqCycleMode = null) {
+  if (includePriorityQueue) {
+    const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
+    // Priority requests can be due even if they were not in the saved Normal Queue batch.
+    if (priority) return priority;
+  }
+  if (includePersonalQueue) {
+    const personal = await claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut, lastShopId);
+    // Favorites follow Priority Queue independently of saved batch completion.
+    if (personal) return personal;
+  }
   if (backlogId) {
     const [backlog] = await rpc(supabaseUrl, secret, "collector_backlog_status", {});
     if (!backlog || backlog.backlog_id !== backlogId || backlog.finished) return null;
@@ -270,18 +280,6 @@ export async function claimNextProduct(supabaseUrl, secret, excludedProductIds =
         p_backlog_id: backlogId, p_shop_id: "0", p_external_product_id: "0", p_outcome: "checked",
       });
       return null;
-    }
-  }
-  if (includePriorityQueue) {
-    const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
-    // Priority requests can be due even if they were not in the saved Normal Queue batch.
-    if (priority) return priority;
-  }
-  if (includePersonalQueue) {
-    const personal = await claimPersonalProduct(supabaseUrl, secret, excludedProductIds, leaseUntil, skipSoldOut, lastShopId);
-    if (personal) {
-      if (!backlogId || await backlogState(supabaseUrl, secret, backlogId, personal) === "pending") return personal;
-      await releaseClaimedProduct(supabaseUrl, secret, personal);
     }
   }
   if (includeStoreImports && preferredSource === "store") {
