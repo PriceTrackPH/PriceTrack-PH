@@ -18,7 +18,12 @@ export async function savePriorityPushSubscription(token: string) {
     const paddedKey = normalizedKey + "=".repeat((4 - normalizedKey.length % 4) % 4);
     const decoded = atob(paddedKey);
     const key = Uint8Array.from(decoded, (character) => character.charCodeAt(0));
-    subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    try {
+      subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    } catch (cause) {
+      const error = cause as { name?: string; message?: string };
+      throw new Error(`Push registration failed: ${error.name || "Error"}${error.message ? ` — ${error.message}` : ""}`);
+    }
   }
   const response = await fetch("/api/admin-health?push=1&action=subscribe", {
     method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
