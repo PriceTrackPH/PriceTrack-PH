@@ -22,7 +22,22 @@ export async function savePriorityPushSubscription(token: string) {
       subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
     } catch (cause) {
       const error = cause as { name?: string; message?: string };
-      throw new Error(`Push registration failed: ${error.name || "Error"}${error.message ? ` — ${error.message}` : ""}`);
+      // Android Chromium can retain a broken PushManager state even though
+      // notification permission remains granted. Re-register the service worker
+      // once and retry with a fresh PushManager before surfacing the error.
+      if (error.name === "AbortError" && /push service error/i.test(error.message || "")) {
+        try {
+          await registration.unregister();
+          const freshRegistration = await navigator.serviceWorker.register("/service-worker.js");
+          await navigator.serviceWorker.ready;
+          subscription = await freshRegistration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+        } catch (retryCause) {
+          const retryError = retryCause as { name?: string; message?: string };
+          throw new Error(`Push registration failed: ${retryError.name || "Error"}${retryError.message ? ` — ${retryError.message}` : ""}`);
+        }
+      } else {
+        throw new Error(`Push registration failed: ${error.name || "Error"}${error.message ? ` — ${error.message}` : ""}`);
+      }
     }
   }
   const response = await fetch("/api/admin-health?push=1&action=subscribe", {
