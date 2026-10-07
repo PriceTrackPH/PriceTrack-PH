@@ -418,12 +418,7 @@ export default function AdminCollector() {
         api<CollectorSummary & { ok: boolean }>("summary")
           .then((next) => {
             if (disposed) return;
-            setSummary((previous) => {
-              if (!previous) return previous;
-              const updated = { ...previous, totalDue: next.totalDue };
-              sessionStorage.setItem(summaryCacheKey, JSON.stringify(updated));
-              return updated;
-            });
+            applySummary(next);
           }),
       ]).finally(() => { inFlight = false; });
     };
