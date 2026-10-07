@@ -59,7 +59,7 @@ function SiteSections() {
   const isAdminPage = ["/admin", "/admin/", "/admin/health", "/admin/health/", "/admin/affiliate", "/admin/affiliate/", "/admin/settings", "/admin/settings/", "/admin/ads", "/admin/ads/", "/admin/collector", "/admin/collector/", "/admin/store-scanner", "/admin/store-scanner/", "/admin/monitoring", "/admin/monitoring/"].includes(window.location.pathname);
   const [donationOpen, setDonationOpen] = useState(false);
   const [donationQrIndex, setDonationQrIndex] = useState(0);
-  const [footerModal, setFooterModal] = useState<FooterModalKey | null>(null);
+  const [footerModal, setFooterModal] = useState<FooterModalKey | null>(() => window.location.pathname === "/contact" || window.location.pathname === "/contact/" ? "contact" : null);
   const [contactDraft, setContactDraft] = useState<Omit<ContactDraft, "savedAt">>({ name: "", email: "", subject: "", message: "" });
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [contactSendState, setContactSendState] = useState<ContactSendState>("idle");
