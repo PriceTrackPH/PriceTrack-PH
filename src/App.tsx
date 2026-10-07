@@ -1133,7 +1133,6 @@ function ReportApp() {
                           tick={{ fill: "#777887", fontSize: 12 }}
                         />
                         <Tooltip
-                          position={{ x: 0 }}
                           cursor={false}
                           content={(props) => (
                             <PriceHistoryTooltip
