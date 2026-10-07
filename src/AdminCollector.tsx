@@ -26,6 +26,7 @@ import {
 } from "./collector-product-wait-policy";
 import { readNqCycle, nqCycleMode, advanceNqCycle } from "./collector-nq-cycle";
 import { subscribeToAdminHistory } from "./admin-realtime";
+import { supabase } from "./lib/supabase";
 
 type CollectorSummary = {
   totalTracked: number;
@@ -318,12 +319,14 @@ export default function AdminCollector() {
       .catch((cause) => showFavoriteNotice(cause instanceof Error ? cause.message : "Unable to load Favorite Queue."))
       .finally(() => setFavoritesLoaded(true));
     const onFavoriteChange = (event: StorageEvent) => { if (event.key === favoriteQueueEventKey) refreshFavorites(); };
+    const favoriteRealtime = supabase?.channel("favorite-queue-changed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "personal_collection_products" }, refreshFavorites)
+      .subscribe();
     window.addEventListener("storage", onFavoriteChange);
     refreshFavorites();
-    const favoriteTimer = window.setInterval(refreshFavorites, 5_000);
     return () => {
-      window.clearInterval(favoriteTimer);
       window.removeEventListener("storage", onFavoriteChange);
+      if (favoriteRealtime && supabase) void supabase.removeChannel(favoriteRealtime);
     };
   }, [token]);
 
