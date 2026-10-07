@@ -53,7 +53,7 @@ export default async function handler(req, res) {
         } catch { /* Retry on the next queue event. */ }
       }
       return res.status(200).json({ ok: true, count: currentCount, sent });
-    } catch { return res.status(500).json({ error: "Push check failed" }); }
+    } catch (error) { console.error("PQ push check failed", error); return res.status(500).json({ error: "Push check failed" }); }
   }
   if (req.method !== "POST" || !secureEqual(req.headers.authorization, `Bearer ${process.env.ADMIN_HEALTH_TOKEN}`))
     return res.status(401).json({ error: "Unauthorized" });
