@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "PriceTrack PH",
   "version": "1.0.0",
-  "description": "Detect Shopee product variations immediately at page start, then save price history in the background.",
+  "description": "Automatically record Shopee product prices and variations for PriceTrack PH.",
   "permissions": [
     "activeTab",
     "storage",
@@ -14,7 +14,10 @@
     "https://pricetrackph.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "scripts": [
+      "icon-state.js",
+      "background.js"
+    ]
   },
   "icons": {
     "16": "icons/icon-16.png",
@@ -33,15 +36,6 @@
   "content_scripts": [
     {
       "matches": [
-        "https://pricetrackph.com/admin/store-scanner*"
-      ],
-      "js": [
-        "admin-collector-bridge.js"
-      ],
-      "run_at": "document_start"
-    },
-    {
-      "matches": [
         "https://shopee.ph/*",
         "https://*.shopee.ph/*"
       ],
@@ -57,15 +51,26 @@
         "https://*.shopee.ph/*"
       ],
       "js": [
-        "collector-options.js",
-        "product-page-outcome.js",
-        "product-activity.js",
-        "store-scanner.js",
         "content.js",
         "notification-trigger.js",
         "completion-toast.js"
       ],
       "run_at": "document_start"
     }
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "firefox-test@pricetrackph.com",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "websiteContent",
+          "websiteActivity"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
+    }
+  }
 }
