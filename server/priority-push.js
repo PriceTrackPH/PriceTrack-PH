@@ -4,7 +4,7 @@ import { sendWebPush, validPushEndpoint, vapidKeys } from "./web-push.js";
 const secureEqual = (a, b) => Boolean(a && b) && Buffer.byteLength(a) === Buffer.byteLength(b)
   && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 const supabaseUrl = () => (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
-const dbKey = () => process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const dbKey = () => process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "";
 function headers(extra = {}) {
   const key = dbKey();
   return { apikey: key, ...(key.startsWith("ey") ? { Authorization: `Bearer ${key}` } : {}), ...extra };
