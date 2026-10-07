@@ -268,15 +268,9 @@ function normalizeShopeePayload(payload, ids) {
 
   if (!variations.length) return null;
 
-  const shop = payload?.data?.shop_detailed || payload?.data?.shop || payload?.shop_detailed || payload?.shop || {};
-  const productReview = payload?.data?.product_review || payload?.data?.product?.product_review ||
-    payload?.product_review || item.product_review;
   return {
     title: String(item.title ?? item.name ?? "").trim().slice(0, 500),
-    imageUrl: imageFromShopeeKey(item.image || item.images?.[0] || "").slice(0, 2000),
-    storeName: String(shop.name ?? shop.shop_name ?? shop.username ?? "Shopee Store").trim().slice(0, 200),
     variations,
-    activity: globalThis.PriceTrackProductActivity?.extractProductActivity(item, productReview) || null,
     collectionMode: "shopee-models",
   };
 }
@@ -582,13 +576,6 @@ async function automaticallyRecordPrice() {
 
   const visibleProduct = extractPublicProduct();
   product.title = product.title || visibleProduct.title;
-  product.imageUrl = product.imageUrl || visibleProduct.imageUrl;
-  product.storeName = product.storeName || visibleProduct.storeName;
-  const activityReader = globalThis.PriceTrackProductActivity;
-  product.activity = activityReader?.mergeProductActivity(
-    product.activity,
-    activityReader.extractVisibleProductActivity(document, product.title)
-  ) || product.activity;
 
   const validVariations = product.variations.filter(item => Number.isFinite(Number(item.price)) && Number(item.price) > 0);
   if (!validVariations.length) {
@@ -621,19 +608,21 @@ async function automaticallyRecordPrice() {
 
   try {
     const installationId = await getInstallationId();
+    // Firefox v1.0.0 intentionally sends only the core PriceTrack fields.
+    // Desktop PQ collection enriches the product later.
     const observation = {
       platform: "shopee",
-      ...ids,
+      shopId: ids.shopId,
+      productId: ids.productId,
+      canonicalUrl: ids.canonicalUrl,
       title: product.title,
-      imageUrl: product.imageUrl,
-      storeName: product.storeName,
-      variations: validVariations,
+      variations: validVariations.map(item => ({
+        variationId: item.variationId,
+        variationName: item.variationName,
+        price: Number(item.price),
+      })),
       installationId,
       observedAt: new Date().toISOString(),
-      skipUnchangedDay: globalThis.PriceTrackCollectorOptions?.skipUnchangedDayFromUrl(location.href) === true,
-      skipSoldOut: globalThis.PriceTrackCollectorOptions?.skipSoldOutFromUrl(location.href) !== false,
-      activity: product.activity || null,
-      isAdminCollector: window.name === "ptph-admin-collector",
     };
 
     const response = await fetch(`${PRICETRACK_SITE}/api/observations`, {
