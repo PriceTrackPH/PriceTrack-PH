@@ -32,23 +32,27 @@ export default async function handler(req, res) {
     if (!expectedSecret || !secureEqual(req.headers.authorization, `Bearer ${expectedSecret}`))
       return res.status(401).json({ error: "Unauthorized" });
     try {
-      const subscriptions = await rows("priority_push_subscriptions?select=endpoint,p256dh,auth,last_notified_at&limit=100");
+      const subscriptions = await rows("priority_push_subscriptions?select=endpoint,p256dh,auth,last_notified_at,last_notified_count&limit=100");
       const due = await rows(`public_collection_requests?select=request_id,eligible_at&status=in.(pending,completed)&eligible_at=lte.${encodeURIComponent(new Date().toISOString())}&order=eligible_at.asc&limit=1000`);
+      const currentCount = due.length;
       let sent = 0;
       for (const sub of subscriptions) {
-        const newlyDue = due.filter((r) => Date.parse(r.eligible_at) > Date.parse(sub.last_notified_at));
-        if (!newlyDue.length) continue;
+        const previousCount = Number(sub.last_notified_count) || 0;
+        if (currentCount <= previousCount) {
+          if (currentCount !== previousCount) await update(sub.endpoint, { last_notified_count: currentCount });
+          continue;
+        }
         try {
           const result = await sendWebPush(sub, { title: "Priority Queue ready",
-            body: `${newlyDue.length} product${newlyDue.length === 1 ? " is" : "s are"} available to check.`, url: "/admin/collector" },
+            body: `${currentCount} product${currentCount === 1 ? " is" : "s are"} available to check.`, url: "/admin/collector" },
           process.env.ADMIN_HEALTH_TOKEN);
           if (result.status === 404 || result.status === 410) { await update(sub.endpoint, null, "DELETE"); continue; }
           if (!result.ok) continue;
-          await update(sub.endpoint, { last_notified_at: newlyDue.at(-1).eligible_at });
+          await update(sub.endpoint, { last_notified_count: currentCount, last_notified_at: new Date().toISOString() });
           sent++;
-        } catch { /* Retry this subscription on the next scheduled run. */ }
+        } catch { /* Retry on the next queue event. */ }
       }
-      return res.status(200).json({ ok: true, sent });
+      return res.status(200).json({ ok: true, count: currentCount, sent });
     } catch { return res.status(500).json({ error: "Push check failed" }); }
   }
   if (req.method !== "POST" || !secureEqual(req.headers.authorization, `Bearer ${process.env.ADMIN_HEALTH_TOKEN}`))
@@ -70,7 +74,8 @@ export default async function handler(req, res) {
   try {
     const result = await fetch(`${supabaseUrl()}/rest/v1/priority_push_subscriptions?on_conflict=endpoint`, {
       method: "POST", headers: headers({ "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }),
-      body: JSON.stringify({ endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth }),
+      body: JSON.stringify({ endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth,
+        last_notified_count: (await rows(`public_collection_requests?select=request_id&status=in.(pending,completed)&eligible_at=lte.${encodeURIComponent(new Date().toISOString())}&limit=1000`)).length }),
     });
     if (!result.ok) throw new Error("Subscription failed");
     return res.status(200).json({ ok: true });
