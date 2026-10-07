@@ -25,8 +25,11 @@ async function update(endpoint, body, method = "PATCH") {
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (!supabaseUrl() || !dbKey() || !process.env.ADMIN_HEALTH_TOKEN) return res.status(503).json({ error: "Push service unavailable" });
-  if (req.method === "GET") {
-    if (!process.env.CRON_SECRET || !secureEqual(req.headers.authorization, `Bearer ${process.env.CRON_SECRET}`))
+  const isCronPush = req.method === "GET";
+  const isQueueEvent = req.method === "POST" && req.query.action === "event";
+  if (isCronPush || isQueueEvent) {
+    const expectedSecret = isQueueEvent ? process.env.PQ_WEBHOOK_SECRET : process.env.CRON_SECRET;
+    if (!expectedSecret || !secureEqual(req.headers.authorization, `Bearer ${expectedSecret}`))
       return res.status(401).json({ error: "Unauthorized" });
     try {
       const subscriptions = await rows("priority_push_subscriptions?select=endpoint,p256dh,auth,last_notified_at&limit=100");
