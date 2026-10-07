@@ -55,6 +55,10 @@
     {
       "source": "/admin/settings",
       "destination": "/"
+    },
+    {
+      "source": "/contact",
+      "destination": "/"
     }
   ]
 }
