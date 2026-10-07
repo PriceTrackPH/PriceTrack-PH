@@ -320,7 +320,11 @@ export default function AdminCollector() {
     const onFavoriteChange = (event: StorageEvent) => { if (event.key === favoriteQueueEventKey) refreshFavorites(); };
     window.addEventListener("storage", onFavoriteChange);
     refreshFavorites();
-    return () => window.removeEventListener("storage", onFavoriteChange);
+    const favoriteTimer = window.setInterval(refreshFavorites, 5_000);
+    return () => {
+      window.clearInterval(favoriteTimer);
+      window.removeEventListener("storage", onFavoriteChange);
+    };
   }, [token]);
 
   useEffect(() => {
@@ -418,7 +422,12 @@ export default function AdminCollector() {
         api<CollectorSummary & { ok: boolean }>("summary")
           .then((next) => {
             if (disposed) return;
-            applySummary(next);
+            setSummary((previous) => {
+              if (!previous) return previous;
+              const updated = { ...previous, totalDue: next.totalDue };
+              sessionStorage.setItem(summaryCacheKey, JSON.stringify(updated));
+              return updated;
+            });
           }),
       ]).finally(() => { inFlight = false; });
     };
