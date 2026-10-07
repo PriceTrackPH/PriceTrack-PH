@@ -3,7 +3,10 @@ const priorityNoticeSeenKey = "pricetrack-priority-due-seen";
 export const priorityNoticeChangeEvent = "pricetrack-priority-alerts-changed";
 
 export async function savePriorityPushSubscription(token: string) {
+  // Mobile PWAs can keep a stale service-worker registration after an update.
+  // Force the active registration to refresh before creating/saving the device subscription.
   const registration = await navigator.serviceWorker.ready;
+  await registration.update().catch(() => undefined);
   let subscription = await registration.pushManager.getSubscription();
   if (!subscription) {
     const keyResponse = await fetch("/api/admin-health?push=1&action=key", {
@@ -11,7 +14,9 @@ export async function savePriorityPushSubscription(token: string) {
     });
     if (!keyResponse.ok) throw new Error("Background notifications are not configured yet.");
     const { publicKey } = await keyResponse.json() as { publicKey: string };
-    const decoded = atob(publicKey.replace(/-/g, "+").replace(/_/g, "/"));
+    const normalizedKey = publicKey.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedKey = normalizedKey + "=".repeat((4 - normalizedKey.length % 4) % 4);
+    const decoded = atob(paddedKey);
     const key = Uint8Array.from(decoded, (character) => character.charCodeAt(0));
     subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
   }
