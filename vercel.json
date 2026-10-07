@@ -1,10 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/admin-health?push=cron",
-      "schedule": "*/5 * * * *"
-    }
-  ],
   "functions": {
     "api/admin-health.js": {
       "regions": [
