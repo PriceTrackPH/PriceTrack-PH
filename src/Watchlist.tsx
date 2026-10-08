@@ -16,6 +16,8 @@ export default function Watchlist() {
   const [saved, setSaved] = useState(readSaved);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("recent");
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
   const [prices, setPrices] = useState<Record<string, PriceInfo>>({});
   useEffect(() => {
     let active = true;
@@ -40,11 +42,16 @@ export default function Watchlist() {
   const shown = useMemo(() => saved.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).sort((a,b) => sort === "name" ? a.name.localeCompare(b.name) : Date.parse(b.added_at) - Date.parse(a.added_at)), [saved, search, sort]);
   const remove = (id: SavedProduct["id"]) => {
     const next = saved.filter(p => String(p.id) !== String(id));
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); setSaved(next); } catch { window.alert("Could not update browser storage."); }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); setSaved(next); setSelected(ids => ids.filter(value => value !== String(id))); } catch { window.alert("Could not update browser storage."); }
+  };
+  const deleteSelected = () => {
+    if (!selected.length || !window.confirm(`Remove ${selected.length} selected product${selected.length === 1 ? "" : "s"} from your Watchlist?`)) return;
+    const next = saved.filter(p => !selected.includes(String(p.id)));
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); setSaved(next); setSelected([]); setSelecting(false); } catch { window.alert("Could not update browser storage."); }
   };
   const clear = () => {
     if (!window.confirm("Remove all products from your Watchlist?")) return;
-    try { localStorage.setItem(STORAGE_KEY, "[]"); setSaved([]); } catch { window.alert("Could not update browser storage."); }
+    try { localStorage.setItem(STORAGE_KEY, "[]"); setSaved([]); setSelected([]); setSelecting(false); } catch { window.alert("Could not update browser storage."); }
   };
   return <main className="watchlist-background"><div className="watchlist-page">
     <div className="watchlist-top">
@@ -53,6 +60,8 @@ export default function Watchlist() {
         <input aria-label="Search in your watchlist" placeholder="Search in your watchlist..." value={search} onChange={e => setSearch(e.target.value)} />
         <select aria-label="Sort Watchlist" value={sort} onChange={e => setSort(e.target.value)}><option value="recent">Recently Added</option><option value="name">Product Name</option></select>
         {saved.length > 0 && <button className="watchlist-clear" onClick={clear}>Clear All</button>}
+        {saved.length > 0 && <button type="button" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? "Cancel Selection" : "Select Products"}</button>}
+        {selected.length > 0 && <button type="button" className="watchlist-clear" onClick={deleteSelected}>Delete Selected ({selected.length})</button>}
       </div>
     </div>
     {saved.length === 0 ? <div className="watchlist-empty"><h2>Your Watchlist is empty</h2><p>Find products and select Add to Watchlist to save them here.</p><a href="/">Search Products</a></div> :
@@ -60,6 +69,7 @@ export default function Watchlist() {
       <div className="watchlist-grid">{shown.map(p => {
         const price = prices[String(p.id)];
         return <article className="watchlist-card" key={String(p.id)}>
+          {selecting && <label className="watchlist-select"><input type="checkbox" checked={selected.includes(String(p.id))} onChange={e => setSelected(ids => e.target.checked ? [...ids, String(p.id)] : ids.filter(id => id !== String(p.id)))} aria-label={`Select ${p.name}`} />Select product</label>}
           <div className="watchlist-card-body">
             {p.image_url ? <img src={p.image_url} alt="" loading="lazy" /> : <div className="watchlist-no-image">No image</div>}
             <div className="watchlist-details"><h2>{p.name}</h2><strong>{price ? money.format(price.price) : "Price unavailable"}</strong><small>{price ? "Last checked: " + new Date(price.checked).toLocaleString("en-PH", {timeZone:"Asia/Manila"}) : "Open price history for latest details"}</small></div>
