@@ -24,6 +24,10 @@ import "./accent-text-color.css";
 import "./report-ad.css";
 import { startPriorityQueueAlerts } from "./priority-queue-alerts";
 
+if (/^\/admin(?:\/|$)/.test(window.location.pathname)) {
+  document.querySelector('.site-nav a[data-scroll-target="extension"]')?.remove();
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />
