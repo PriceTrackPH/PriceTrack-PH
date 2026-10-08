@@ -46,7 +46,7 @@ export default function Watchlist() {
     if (!window.confirm("Remove all products from your Watchlist?")) return;
     try { localStorage.setItem(STORAGE_KEY, "[]"); setSaved([]); } catch { window.alert("Could not update browser storage."); }
   };
-  return <main className="watchlist-page">
+  return <main className="watchlist-background"><div className="watchlist-page">
     <div className="watchlist-top">
       <div><h1>Watchlist</h1><p>Products you saved. Prices reflect the latest available recorded observations.</p></div>
       <div className="watchlist-tools">
@@ -67,5 +67,5 @@ export default function Watchlist() {
           <div className="watchlist-card-actions"><a href={`/product/shopee/${p.external_shop_id}/${p.external_product_id}`}>View Price History</a><button onClick={() => remove(p.id)}>Remove</button></div>
         </article>;
       })}</div>}
-  </main>;
+  </div></main>;
 }
