@@ -1191,7 +1191,7 @@ function ReportApp() {
 
                 {product && <div className="report-actions-wrap">
                   <div className="report-actions">
-                    <button type="button" className="shopee-outbound-button" onClick={toggleWatchlist} aria-pressed={watchlisted}>
+                    <button type="button" className="track-price-button" onClick={toggleWatchlist} aria-pressed={watchlisted}>
                       {watchlisted ? "Saved to Watchlist" : "Add to Watchlist"}
                     </button>
                     {affiliateLink && (
