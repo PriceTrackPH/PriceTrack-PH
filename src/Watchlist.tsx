@@ -51,10 +51,11 @@ export default function Watchlist() {
         const { data: variations } = await client.from("product_variations").select("id").eq("product_id", Number(p.id)).limit(30);
         const ids = variations?.map(v => v.id) || [];
         if (!ids.length) return;
-        const { data } = await client.from("price_observations").select("price,observed_at").in("variation_id", ids).order("observed_at", { ascending: false }).limit(100);
+        const { data } = await client.from("price_observations").select("price,observed_at,variation_id").in("variation_id", ids).order("observed_at", { ascending: false }).limit(100);
         if (!data?.length) return;
         const latest = data[0];
-        next[String(p.id)] = { price: Number(latest.price), checked: latest.observed_at, previous: data.length > 1 ? Number(data[1].price) : null };
+        const previous = data.slice(1).find(row => row.variation_id === latest.variation_id && row.observed_at < latest.observed_at);
+        next[String(p.id)] = { price: Number(latest.price), checked: latest.observed_at, previous: previous ? Number(previous.price) : null };
       }));
       if (active) setPrices(next);
     }
@@ -90,11 +91,12 @@ export default function Watchlist() {
       shown.length === 0 ? <div className="watchlist-empty"><p>No saved products match your search.</p></div> :
       <div className="watchlist-grid">{shown.map(p => {
         const price = prices[String(p.id)];
+        const change = price && price.previous !== null && price.previous > 0 ? (price.price - price.previous) / price.previous * 100 : null;
         return <article className="watchlist-card" key={String(p.id)}>
           {selecting && <label className="watchlist-select"><input type="checkbox" checked={selected.includes(String(p.id))} onChange={e => setSelected(ids => e.target.checked ? [...ids, String(p.id)] : ids.filter(id => id !== String(p.id)))} aria-label={`Select ${p.name}`} />Select product</label>}
           <div className="watchlist-card-body">
             {p.image_url ? <img src={p.image_url} alt="" loading="lazy" /> : <div className="watchlist-no-image">No image</div>}
-            <div className="watchlist-details"><h2>{p.name}</h2><strong>{price ? money.format(price.price) : "Price unavailable"}</strong><small>{price ? "Last checked: " + new Date(price.checked).toLocaleString("en-PH", {timeZone:"Asia/Manila"}) : "Open price history for latest details"}</small></div>
+            <div className="watchlist-details"><h2>{p.name}</h2><div className="watchlist-price-row"><strong>{price ? money.format(price.price) : "Price unavailable"}</strong>{price && <><span className="watchlist-price-divider" aria-hidden="true">|</span><span className={`watchlist-price-change ${change === null || change === 0 ? "unchanged" : change < 0 ? "down" : "up"}`} title="Compared with the previous recorded price of the same variation">{change === null ? "—" : `${change < 0 ? "↓ " : change > 0 ? "↑ " : ""}${Math.abs(change).toLocaleString("en-PH", {maximumFractionDigits: 1})}%`}</span></>}</div><small>{price ? "Last checked: " + new Date(price.checked).toLocaleString("en-PH", {timeZone:"Asia/Manila"}) : "Open price history for latest details"}</small></div>
           </div>
           <div className="watchlist-card-actions"><a href={`/product/shopee/${p.external_shop_id}/${p.external_product_id}`}>View Price History</a><button onClick={() => remove(p.id)}>Remove</button></div>
         </article>;
