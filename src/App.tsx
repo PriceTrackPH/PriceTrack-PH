@@ -489,6 +489,30 @@ function ReportApp() {
   const initialVariationId = new URLSearchParams(window.location.search).get("variation")?.trim() || null;
   const [query, setQuery] = useState(initialProductUrl);
   const [product, setProduct] = useState<Product | null>(null);
+  const [watchlisted, setWatchlisted] = useState(false);
+  useEffect(() => {
+    if (!product) { setWatchlisted(false); return; }
+    try {
+      const entries = JSON.parse(localStorage.getItem("pricetrack-watchlist-v1") || "[]");
+      setWatchlisted(Array.isArray(entries) && entries.some((entry) => entry?.id === product.id));
+    } catch { setWatchlisted(false); }
+  }, [product?.id]);
+  const toggleWatchlist = () => {
+    if (!product) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem("pricetrack-watchlist-v1") || "[]");
+      const entries: Array<{ id: Product["id"]; name: string; image_url: string | null; external_shop_id: string; external_product_id: string; added_at: string }> = Array.isArray(stored) ? stored : [];
+      const alreadySaved = entries.some((entry) => entry?.id === product.id);
+      const next = alreadySaved
+        ? entries.filter((entry) => entry?.id !== product.id)
+        : [{ id: product.id, name: product.name, image_url: product.image_url, external_shop_id: String(product.external_shop_id), external_product_id: String(product.external_product_id), added_at: new Date().toISOString() }, ...entries];
+      localStorage.setItem("pricetrack-watchlist-v1", JSON.stringify(next));
+      setWatchlisted(!alreadySaved);
+    } catch {
+      window.alert("Unable to save Watchlist on this browser. Please enable site storage.");
+    }
+  };
+
   const [variations, setVariations] = useState<Variation[]>([]);
   const [observations, setObservations] = useState<Observation[]>([]);
   const [selectedVariationId, setSelectedVariationId] = useState<number | null>(null);
@@ -1164,8 +1188,11 @@ function ReportApp() {
                   <div className="empty-state">No observations for this variation in the selected range yet.</div>
                 )}
 
-                {(affiliateLink || directShopeeLink) && <div className="report-actions-wrap">
+                {product && <div className="report-actions-wrap">
                   <div className="report-actions">
+                    <button type="button" className="shopee-outbound-button" onClick={toggleWatchlist} aria-pressed={watchlisted}>
+                      {watchlisted ? "Saved to Watchlist" : "Add to Watchlist"}
+                    </button>
                     {affiliateLink && (
                       <a
                         className="track-price-button"
