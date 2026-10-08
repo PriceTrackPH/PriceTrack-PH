@@ -508,6 +508,7 @@ function ReportApp() {
         ? entries.filter((entry) => entry?.id !== product.id)
         : [{ id: product.id, name: product.name, image_url: product.image_url, external_shop_id: String(product.external_shop_id), external_product_id: String(product.external_product_id), added_at: new Date().toISOString() }, ...entries];
       localStorage.setItem("pricetrack-watchlist-v1", JSON.stringify(next));
+      window.dispatchEvent(new Event("pricetrack-watchlist-changed"));
       setWatchlisted(!alreadySaved);
     } catch {
       window.alert("Unable to save Watchlist on this browser. Please enable site storage.");

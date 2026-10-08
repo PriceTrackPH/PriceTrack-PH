@@ -20,6 +20,28 @@ export default function Watchlist() {
   const [selected, setSelected] = useState<string[]>([]);
   const [prices, setPrices] = useState<Record<string, PriceInfo>>({});
   useEffect(() => {
+    const sync = () => {
+      const next = readSaved();
+      setSaved(current => JSON.stringify(current) === JSON.stringify(next) ? current : next);
+      setSelected(ids => ids.filter(id => next.some(p => String(p.id) === id)));
+    };
+    const onStorage = (event: StorageEvent) => {
+      if (event.storageArea === localStorage && (event.key === STORAGE_KEY || event.key === null)) sync();
+    };
+    const onVisible = () => { if (document.visibilityState === "visible") sync(); };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("pricetrack-watchlist-changed", sync);
+    window.addEventListener("focus", sync);
+    document.addEventListener("visibilitychange", onVisible);
+    sync();
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("pricetrack-watchlist-changed", sync);
+      window.removeEventListener("focus", sync);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+  useEffect(() => {
     let active = true;
     async function load() {
       const client = supabase;
