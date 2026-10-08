@@ -278,9 +278,9 @@ function SiteSections() {
         </section>
       </>}
 
-      {donationOpen && !isAdminPage && <div className="donation-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDonationOpen(false); }}>
+      {donationOpen && !isAdminPage && <div className="donation-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModalRoute(); }}>
         <section className="donation-modal" role="dialog" aria-modal="true" aria-labelledby="donation-title">
-          <button className="donation-modal-close" type="button" aria-label="Close donation window" onClick={() => setDonationOpen(false)}>×</button>
+          <button className="donation-modal-close" type="button" aria-label="Close donation window" onClick={closeModalRoute}>×</button>
           <div className="donation-modal-heading">
             <div className="section-label">SUPPORT PRICETRACK PH</div>
             <h3 id="donation-title">Choose a QR code to donate.</h3>
@@ -296,7 +296,7 @@ function SiteSections() {
         </section>
       </div>}
 
-      {activeFooterModal && <div className="footer-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFooterModal(null); }}><section className="footer-modal" role="dialog" aria-modal="true" aria-labelledby="footer-modal-title"><button className="footer-modal-close" type="button" aria-label="Close information window" onClick={() => setFooterModal(null)}>×</button><div className="section-label">{activeFooterModal.label}</div><h3 id="footer-modal-title">{activeFooterModal.title}</h3><div className="footer-modal-body">{footerModal === "contact" ? <form className="contact-form" onSubmit={sendContactEmail}>
+      {activeFooterModal && <div className="footer-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModalRoute(); }}><section className="footer-modal" role="dialog" aria-modal="true" aria-labelledby="footer-modal-title"><button className="footer-modal-close" type="button" aria-label="Close information window" onClick={closeModalRoute}>×</button><div className="section-label">{activeFooterModal.label}</div><h3 id="footer-modal-title">{activeFooterModal.title}</h3><div className="footer-modal-body">{footerModal === "contact" ? <form className="contact-form" onSubmit={sendContactEmail}>
         <p>For product-tracking issues, website bugs, feature requests, or general feedback, email PriceTrack PH directly.</p>
         <label>Name<input value={contactDraft.name} onChange={(e) => updateContactDraft("name", e.target.value)} autoComplete="name" /></label>
         <label>Email<input type="email" value={contactDraft.email} onChange={(e) => updateContactDraft("email", e.target.value)} autoComplete="email" /></label>
