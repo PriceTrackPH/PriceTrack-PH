@@ -57,9 +57,34 @@ const footerModalContent: Record<FooterModalKey, { label: string; title: string;
 function SiteSections() {
   const chromeWebStoreUrl = "https://chromewebstore.google.com/detail/ilabeaeblpcleaipmnppibbfhjknlmeo";
   const isAdminPage = ["/admin", "/admin/", "/admin/health", "/admin/health/", "/admin/affiliate", "/admin/affiliate/", "/admin/settings", "/admin/settings/", "/admin/ads", "/admin/ads/", "/admin/collector", "/admin/collector/", "/admin/store-scanner", "/admin/store-scanner/", "/admin/monitoring", "/admin/monitoring/"].includes(window.location.pathname);
-  const [donationOpen, setDonationOpen] = useState(false);
+  const routeModal = () => {
+    const path = window.location.pathname.replace(/\/$/, "");
+    return path === "/donate" ? "donate" : path === "/about" ? "about" : path === "/data-policy" ? "data" : path === "/contact" ? "contact" : null;
+  };
+  const [donationOpen, setDonationOpen] = useState(() => routeModal() === "donate");
   const [donationQrIndex, setDonationQrIndex] = useState(0);
-  const [footerModal, setFooterModal] = useState<FooterModalKey | null>(() => window.location.pathname === "/contact" || window.location.pathname === "/contact/" ? "contact" : null);
+  const [footerModal, setFooterModal] = useState<FooterModalKey | null>(() => {
+    const route = routeModal();
+    return route === "about" || route === "data" || route === "contact" ? route : null;
+  });
+  const syncModalRoute = () => {
+    const route = routeModal();
+    setDonationOpen(route === "donate");
+    setFooterModal(route === "about" || route === "data" || route === "contact" ? route : null);
+  };
+  const openModalRoute = (route: "donate" | "about" | "data" | "contact") => {
+    window.history.pushState(null, "", route === "data" ? "/data-policy" : "/" + route);
+    syncModalRoute();
+  };
+  const closeModalRoute = () => {
+    if (routeModal()) window.history.replaceState(null, "", "/");
+    setDonationOpen(false);
+    setFooterModal(null);
+  };
+  useEffect(() => {
+    window.addEventListener("popstate", syncModalRoute);
+    return () => window.removeEventListener("popstate", syncModalRoute);
+  }, []);
   const [contactDraft, setContactDraft] = useState<Omit<ContactDraft, "savedAt">>({ name: "", email: "", subject: "", message: "" });
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [contactSendState, setContactSendState] = useState<ContactSendState>("idle");
@@ -98,8 +123,7 @@ function SiteSections() {
     if (!donationOpen && !footerModal) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setDonationOpen(false);
-        setFooterModal(null);
+        closeModalRoute();
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -249,7 +273,7 @@ function SiteSections() {
               <h3>Support independent price tracking.</h3>
               <p>Donations help pay for daily price checks, storage, and alerts. All core history remains free.</p>
             </div>
-            <button type="button" onClick={() => setDonationOpen(true)}>♡ Donate to PriceTrack PH</button>
+            <button type="button" onClick={() => openModalRoute("donate")}>♡ Donate to PriceTrack PH</button>
           </div>
         </section>
       </>}
@@ -285,7 +309,7 @@ function SiteSections() {
         {contactSendMessage && <p className={`contact-send-status ${contactSendState}`}>{contactSendMessage}</p>}
       </form> : activeFooterModal.body}</div></section></div>}
 
-      <footer className="full-footer"><div className="section-shell"><div className="footer-main"><div><strong>PriceTrack <span>PH</span></strong><small>Independent price history for smarter shopping.</small></div><nav aria-label="Footer navigation"><button type="button" onClick={() => setFooterModal("about")}>About</button><button type="button" onClick={() => { window.location.href = "/privacy/"; }}>Privacy</button><button type="button" onClick={() => setFooterModal("data")}>Data policy</button><button type="button" onClick={() => setFooterModal("contact")}>Contact</button></nav></div><div className="footer-disclaimer">PriceTrack PH is independent and is not affiliated with or endorsed by the marketplaces it tracks.</div></div></footer>
+      <footer className="full-footer"><div className="section-shell"><div className="footer-main"><div><strong>PriceTrack <span>PH</span></strong><small>Independent price history for smarter shopping.</small></div><nav aria-label="Footer navigation"><button type="button" onClick={() => openModalRoute("about")}>About</button><button type="button" onClick={() => { window.location.href = "/privacy/"; }}>Privacy</button><button type="button" onClick={() => openModalRoute("data")}>Data policy</button><button type="button" onClick={() => openModalRoute("contact")}>Contact</button></nav></div><div className="footer-disclaimer">PriceTrack PH is independent and is not affiliated with or endorsed by the marketplaces it tracks.</div></div></footer>
     </>
   );
 }
