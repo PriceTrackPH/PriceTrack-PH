@@ -71,6 +71,14 @@
     {
       "source": "/data-policy",
       "destination": "/"
+    },
+    {
+      "source": "/watchlist",
+      "destination": "/"
+    },
+    {
+      "source": "/watchlist/",
+      "destination": "/"
     }
   ]
 }
