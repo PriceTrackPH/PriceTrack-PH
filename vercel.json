@@ -59,6 +59,18 @@
     {
       "source": "/contact",
       "destination": "/"
+    },
+    {
+      "source": "/donate",
+      "destination": "/"
+    },
+    {
+      "source": "/about",
+      "destination": "/"
+    },
+    {
+      "source": "/data-policy",
+      "destination": "/"
     }
   ]
 }
