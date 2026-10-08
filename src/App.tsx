@@ -17,6 +17,7 @@ import ReportAd from "./ReportAd";
 import ProductSearch, { type SearchSuggestion } from "./ProductSearch";
 import { isMobileVisitor, requestTrackedProductRecheck, requestUntrackedProduct } from "./public-collection-request";
 
+const Watchlist = lazy(() => import("./Watchlist"));
 const AdminHealth = lazy(() => import("./AdminHealth"));
 const AdminCollector = lazy(() => import("./AdminCollector"));
 const AdminStoreScanner = lazy(() => import("./AdminStoreScanner"));
@@ -1257,6 +1258,7 @@ function ReportApp() {
 
 function App() {
   const pathname = window.location.pathname;
+  if (pathname === "/watchlist" || pathname === "/watchlist/") return <Suspense fallback={<main>Loading Watchlist…</main>}><Watchlist /></Suspense>;
   const admin = (content: React.ReactNode) => <Suspense fallback={<main className="health-page"><div className="health-shell">Loading admin page…</div></main>}>{content}</Suspense>;
   if (pathname === "/admin" || pathname === "/admin/") {
     return admin(<AdminHealth view="login" />);
