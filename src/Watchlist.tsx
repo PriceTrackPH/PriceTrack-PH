@@ -22,7 +22,7 @@ export default function Watchlist() {
     async function load() {
       const next: Record<string, PriceInfo> = {};
       await Promise.all(saved.map(async (p) => {
-        const { data: variations } = await supabase.from("product_variations").select("id").eq("product_id", p.id).limit(30);
+        const { data: variations } = await supabase.from("product_variations").select("id").eq("product_id", Number(p.id)).limit(30);
         const ids = variations?.map(v => v.id) || [];
         if (!ids.length) return;
         const { data } = await supabase.from("price_observations").select("price,observed_at").in("variation_id", ids).order("observed_at", { ascending: false }).limit(100);
