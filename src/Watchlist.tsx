@@ -20,6 +20,7 @@ export default function Watchlist() {
   useEffect(() => {
     let active = true;
     async function load() {
+      if (!supabase) return;
       const next: Record<string, PriceInfo> = {};
       await Promise.all(saved.map(async (p) => {
         const { data: variations } = await supabase.from("product_variations").select("id").eq("product_id", Number(p.id)).limit(30);
