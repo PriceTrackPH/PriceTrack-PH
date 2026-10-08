@@ -20,13 +20,14 @@ export default function Watchlist() {
   useEffect(() => {
     let active = true;
     async function load() {
-      if (!supabase) return;
+      const client = supabase;
+      if (!client) return;
       const next: Record<string, PriceInfo> = {};
       await Promise.all(saved.map(async (p) => {
-        const { data: variations } = await supabase.from("product_variations").select("id").eq("product_id", Number(p.id)).limit(30);
+        const { data: variations } = await client.from("product_variations").select("id").eq("product_id", Number(p.id)).limit(30);
         const ids = variations?.map(v => v.id) || [];
         if (!ids.length) return;
-        const { data } = await supabase.from("price_observations").select("price,observed_at").in("variation_id", ids).order("observed_at", { ascending: false }).limit(100);
+        const { data } = await client.from("price_observations").select("price,observed_at").in("variation_id", ids).order("observed_at", { ascending: false }).limit(100);
         if (!data?.length) return;
         const latest = data[0];
         next[String(p.id)] = { price: Number(latest.price), checked: latest.observed_at, previous: data.length > 1 ? Number(data[1].price) : null };
