@@ -53,6 +53,11 @@ export default function Watchlist() {
     try { localStorage.setItem(SORT_KEY, sort); } catch { /* Keep sorting usable if browser storage is unavailable. */ }
   }, [sort]);
   const [page, setPage] = useState(1);
+  const productsTop = useRef<HTMLDivElement>(null);
+  const changePage = (nextPage: number) => {
+    setPage(nextPage);
+    productsTop.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [prices, setPrices] = useState<Record<string, PriceInfo>>({});
@@ -186,7 +191,7 @@ export default function Watchlist() {
   };
   return <main className="watchlist-background">
     <header className="watchlist-heading"><span className="watchlist-kicker">SAVED PRODUCTS</span><h1>Your Watchlist</h1><p>Keep your saved products together and follow their recorded prices. Prices show the latest recorded observations. The percentage compares the displayed variation’s latest price with its previous recorded price.</p><div className="watchlist-heading-notes"><p><strong>Saved in this browser only.</strong> Your list stays after closing or restarting the browser, but does not automatically sync to another browser or device. Clearing this site’s data or deleting your browser profile erases it. Uninstalling the browser may also erase it if its data is removed. In private browsing, the list is usually lost when the private session closes. Use <strong>Export</strong> to download a backup and <strong>Import</strong> to restore it here or in another browser. Import keeps existing products and skips duplicates.</p></div></header>
-    <div className="watchlist-page">
+    <div className="watchlist-page" ref={productsTop}>
     <div className="watchlist-top">
       <div className="watchlist-tools">
         <input aria-label="Search in your watchlist" placeholder="Search in your watchlist..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -223,9 +228,9 @@ export default function Watchlist() {
       })}</div>}
     <footer className="watchlist-footer">
       <nav className="watchlist-pagination" aria-label="Watchlist pages">
-        {totalPages > 1 && <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</button>}
+        {totalPages > 1 && <button type="button" disabled={currentPage === 1} onClick={() => changePage(currentPage - 1)}>Previous</button>}
         <span className="watchlist-page-summary" aria-live="polite"><span>Total: {saved.length}</span>{totalPages > 1 && <span>Page {currentPage} of {totalPages}</span>}</span>
-        {totalPages > 1 && <button type="button" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>Next</button>}
+        {totalPages > 1 && <button type="button" disabled={currentPage === totalPages} onClick={() => changePage(currentPage + 1)}>Next</button>}
       </nav>
     </footer>
   </div></main>;

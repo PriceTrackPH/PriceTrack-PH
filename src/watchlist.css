@@ -136,3 +136,5 @@ html:not([data-theme="dark"]) .watchlist-tools input:not([type="file"]){backgrou
   .watchlist-price-change{font-size:10px;padding:3px 5px}
   .watchlist-details small{margin:0;font-size:10px;line-height:12px;align-self:end}
 }
+
+.watchlist-page{scroll-margin-top:110px}
