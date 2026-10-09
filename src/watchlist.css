@@ -81,3 +81,9 @@ html:not([data-theme="dark"]) .watchlist-price-change.up{color:#a12636;backgroun
 html:not([data-theme="dark"]) .watchlist-price-change.unchanged{color:#68657f;background:#eee9fb;border-color:#d9d4eb}
 .watchlist-tools button:hover:not(:disabled),.watchlist-card-actions button:hover,.watchlist-pagination button:hover:not(:disabled){filter:brightness(.95)}
 .watchlist-card-actions a:hover,.watchlist-empty a:hover{filter:brightness(.95)}
+
+/* The brand palette is mint, dark blue, and lavender. */
+.watchlist-page{--report-text:#211b5c;--watchlist-navy:#211b5c;--watchlist-navy-text:#f5f2ff}
+html[data-theme="dark"] .watchlist-page{--report-text:#f3f5f4;--watchlist-navy:#29235f;--watchlist-navy-text:#f5f2ff}
+.watchlist-card-actions a,.watchlist-empty a{background:var(--watchlist-navy);color:var(--watchlist-navy-text)}
+.watchlist-tools button[aria-label="Select all saved products"],.watchlist-tools button[aria-label="Select products on this page"]{background:var(--watchlist-action);color:var(--watchlist-action-text)}
