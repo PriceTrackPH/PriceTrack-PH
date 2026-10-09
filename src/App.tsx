@@ -1257,27 +1257,57 @@ function ReportApp() {
   );
 }
 
+const adminPaths = new Set([
+  "/admin", "/admin/health", "/admin/affiliate", "/admin/settings",
+  "/admin/ads", "/admin/collector", "/admin/store-scanner",
+]);
+const normalizedPath = () => window.location.pathname.replace(/\/$/, "") || "/";
+
 function App() {
-  const pathname = window.location.pathname;
-  if (pathname === "/watchlist" || pathname === "/watchlist/") return <Suspense fallback={<main>Loading Watchlist…</main>}><Watchlist /></Suspense>;
-  const admin = (content: React.ReactNode) => <Suspense fallback={<main className="health-page"><div className="health-shell">Loading admin page…</div></main>}>{content}</Suspense>;
-  if (pathname === "/admin" || pathname === "/admin/") {
-    return admin(<AdminHealth view="login" />);
-  }
-  if (pathname === "/admin/health" || pathname === "/admin/health/") {
-    return admin(<AdminHealth view="health" />);
-  }
-  if (pathname === "/admin/affiliate" || pathname === "/admin/affiliate/") {
-    return admin(<AdminHealth view="affiliate" />);
-  }
-  if (pathname === "/admin/settings" || pathname === "/admin/settings/" || pathname === "/admin/ads" || pathname === "/admin/ads/") {
-    return admin(<AdminHealth view="settings" />);
-  }
-  if (pathname === "/admin/collector" || pathname === "/admin/collector/") {
-    return admin(<AdminCollector />);
-  }
-  if (pathname === "/admin/store-scanner" || pathname === "/admin/store-scanner/") {
-    return admin(<AdminStoreScanner />);
+  const [pathname, setPathname] = useState(normalizedPath);
+  const [collectorVisited, setCollectorVisited] = useState(() => normalizedPath() === "/admin/collector");
+  useEffect(() => {
+    const navigate = () => {
+      const path = normalizedPath();
+      if (path === "/admin/collector") setCollectorVisited(true);
+      setPathname(path);
+    };
+    const onClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+      if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
+      const url = new URL(link.href, window.location.href);
+      if (!adminPaths.has(normalizedPath()) || url.origin !== window.location.origin || !adminPaths.has(url.pathname.replace(/\/$/, ""))) return;
+      event.preventDefault();
+      if (url.href !== window.location.href) window.history.pushState(null, "", url);
+      navigate();
+      window.scrollTo({ top: 0, behavior: "instant" });
+    };
+    document.addEventListener("click", onClick);
+    window.addEventListener("popstate", navigate);
+    return () => {
+      document.removeEventListener("click", onClick);
+      window.removeEventListener("popstate", navigate);
+    };
+  }, []);
+  useEffect(() => {
+    if (adminPaths.has(pathname)) document.body.classList.add("admin-page-active");
+  }, [pathname]);
+  if (pathname === "/watchlist") return <Suspense fallback={<main>Loading Watchlist…</main>}><Watchlist /></Suspense>;
+  if (adminPaths.has(pathname)) {
+    const collectorVisible = pathname === "/admin/collector";
+    const fallback = <main className="health-page"><div className="health-shell">Loading admin page…</div></main>;
+    return <>
+      <div hidden={!collectorVisible}>
+        <Suspense fallback={fallback}>
+          {collectorVisited ? <AdminCollector visible={collectorVisible} /> : null}
+        </Suspense>
+      </div>
+      <Suspense fallback={fallback}>
+        {pathname === "/admin/store-scanner" ? <AdminStoreScanner /> :
+          !collectorVisible ? <AdminHealth view={pathname === "/admin" ? "login" : pathname === "/admin/affiliate" ? "affiliate" : pathname === "/admin/settings" || pathname === "/admin/ads" ? "settings" : "health"} /> : null}
+      </Suspense>
+    </>;
   }
   return <ReportApp />;
 }

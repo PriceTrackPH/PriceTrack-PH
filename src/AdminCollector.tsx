@@ -134,7 +134,7 @@ function playVerificationSound() {
   }
 }
 
-export default function AdminCollector() {
+export default function AdminCollector({ visible = true }: { visible?: boolean }) {
   const token = sessionStorage.getItem("pricetrack-admin-health-token") || "";
   const [summary, setSummary] = useState<CollectorSummary | null>(readCachedSummary);
   const [summaryFresh, setSummaryFresh] = useState(false);
@@ -530,6 +530,7 @@ export default function AdminCollector() {
   }, []);
 
   useEffect(() => {
+    if (!visible) return;
     const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a"));
     if (links.length < 2) return;
     const [healthLink, affiliateLink] = links;
@@ -539,11 +540,12 @@ export default function AdminCollector() {
     affiliateLink.after(collectorLink, scannerLink, settingsLink);
     healthLink.textContent = "Health"; healthLink.href = "/admin/health"; healthLink.removeAttribute("data-scroll-target");
     affiliateLink.textContent = "Affiliate"; affiliateLink.href = "/admin/affiliate"; affiliateLink.removeAttribute("data-scroll-target");
+    healthLink.removeAttribute("aria-current"); affiliateLink.removeAttribute("aria-current");
     settingsLink.textContent = "Settings"; settingsLink.href = "/admin/settings";
     collectorLink.textContent = "Collector"; collectorLink.href = "/admin/collector"; collectorLink.setAttribute("aria-current", "page");
     scannerLink.textContent = "Store Scanner"; scannerLink.href = "/admin/store-scanner";
     return () => { settingsLink.remove(); collectorLink.remove(); scannerLink.remove(); };
-  }, []);
+  }, [visible]);
 
   async function releaseCurrent() {
     const product = activeProduct.current;
@@ -607,6 +609,17 @@ export default function AdminCollector() {
       setMessage("Selecting next product…");
       let claim: { product: CollectorProduct | null };
       try {
+        // Apply Batch changes between products, preserving the current product's
+        // backlog association until its outcome has been recorded.
+        const batchEnabled = localStorage.getItem(finishDueProductsStorageKey) === "true";
+        if (batchEnabled && includeNormalQueue && !backlogId.current) {
+          const { backlog: saved } = await api<{ backlog: CollectorBacklog | null }>("backlog-begin");
+          if (!saved) throw new Error("Unable to start Batch; retrying selection.");
+          backlogId.current = saved.id;
+          setBacklog(saved);
+        } else if (!batchEnabled) {
+          backlogId.current = null;
+        }
         claim = await api<{ product: CollectorProduct | null }>("claim", {
         attemptedProductIds: [...attemptedProductIds.current],
         attemptedQueueRequestIds: [...attemptedQueueRequestIds.current],
