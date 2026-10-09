@@ -39,6 +39,48 @@ export default function Watchlist() {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [prices, setPrices] = useState<Record<string, PriceInfo>>({});
+  const importInput = useRef<HTMLInputElement>(null);
+  const [backupMessage, setBackupMessage] = useState("");
+  const exportWatchlist = () => {
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
+    const part = (type: string) => parts.find(p => p.type === type)!.value;
+    const stamp = `${part("year")}-${part("month")}-${part("day")}_${part("hour")}-${part("minute")}-${part("second")}`;
+    const url = URL.createObjectURL(new Blob([JSON.stringify({ version: 1, products: saved }, null, 2)], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `pricetrack-watchlist-${stamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setBackupMessage(`Exported ${saved.length} products.`);
+  };
+  const importWatchlist = async (file: File) => {
+    try {
+      if (file.size > 5 * 1024 * 1024) throw new Error("Please use a backup smaller than 5 MB.");
+      const data = JSON.parse(await file.text());
+      if (!data || data.version !== 1 || !Array.isArray(data.products)) throw new Error("This is not a supported Watchlist backup.");
+      const imported: SavedProduct[] = data.products.map((p: SavedProduct) => {
+        if (!p || !/^\d+$/.test(String(p.id)) || Number(p.id) <= 0 || typeof p.name !== "string" || !p.name.trim() || typeof p.external_shop_id !== "string" || !/^\d+$/.test(p.external_shop_id) || typeof p.external_product_id !== "string" || !/^\d+$/.test(p.external_product_id) || typeof p.added_at !== "string" || !Number.isFinite(Date.parse(p.added_at)) || !(p.image_url === null || (typeof p.image_url === "string" && /^https?:\/\//i.test(p.image_url)))) throw new Error("The backup contains invalid product details. Nothing was imported.");
+        return { id: p.id, name: p.name, image_url: p.image_url, external_shop_id: p.external_shop_id, external_product_id: p.external_product_id, added_at: p.added_at };
+      });
+      const next = readSaved();
+      const keys = new Set(next.map(p => `${p.external_shop_id}/${p.external_product_id}`));
+      const ids = new Set(next.map(p => String(p.id)));
+      let added = 0;
+      for (const product of imported) {
+        const key = `${product.external_shop_id}/${product.external_product_id}`;
+        if (keys.has(key) || ids.has(String(product.id))) continue;
+        next.push(product); keys.add(key); ids.add(String(product.id)); added++;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      setSaved(next);
+      window.dispatchEvent(new Event("pricetrack-watchlist-changed"));
+      setBackupMessage(`Imported ${added} products. Skipped ${imported.length - added} duplicates.`);
+    } catch (error) {
+      setBackupMessage(error instanceof SyntaxError ? "Could not read this JSON backup. Nothing was imported." : error instanceof Error ? error.message : "Could not import the Watchlist backup.");
+    }
+  };
   useEffect(() => {
     const sync = () => {
       const next = readSaved();
@@ -105,17 +147,21 @@ export default function Watchlist() {
     try { localStorage.setItem(STORAGE_KEY, "[]"); setSaved([]); setSelected([]); setSelecting(false); } catch { window.alert("Could not update browser storage."); }
   };
   return <main className="watchlist-background">
-    <header className="watchlist-heading"><span className="watchlist-kicker">SAVED PRODUCTS</span><h1>Your Watchlist</h1><p>Keep your saved products together and follow their recorded prices. Prices show the latest recorded observations. The percentage compares the displayed variation’s latest price with its previous recorded price.</p><div className="watchlist-heading-notes"><p><strong>Saved in this browser only.</strong> Your list stays after closing or restarting the browser, but does not automatically sync to another browser or device. Clearing this site’s data or deleting your browser profile erases it. Uninstalling the browser may also erase it if its data is removed. In private browsing, the list is usually lost when the private session closes.</p></div></header>
+    <header className="watchlist-heading"><span className="watchlist-kicker">SAVED PRODUCTS</span><h1>Your Watchlist</h1><p>Keep your saved products together and follow their recorded prices. Prices show the latest recorded observations. The percentage compares the displayed variation’s latest price with its previous recorded price.</p><div className="watchlist-heading-notes"><p><strong>Saved in this browser only.</strong> Your list stays after closing or restarting the browser, but does not automatically sync to another browser or device. Clearing this site’s data or deleting your browser profile erases it. Uninstalling the browser may also erase it if its data is removed. In private browsing, the list is usually lost when the private session closes. Use <strong>Export</strong> to download a backup and <strong>Import</strong> to restore it here or in another browser. Import keeps existing products and skips duplicates.</p></div></header>
     <div className="watchlist-page">
     <div className="watchlist-top">
       <div className="watchlist-tools">
         <input aria-label="Search in your watchlist" placeholder="Search in your watchlist..." value={search} onChange={e => setSearch(e.target.value)} />
         <select aria-label="Sort Watchlist" value={sort} onChange={e => setSort(e.target.value)}><option value="recent">Recently Added</option><option value="name">Product Name</option></select>
+        <button type="button" onClick={exportWatchlist} disabled={!saved.length}>Export</button>
+        <button type="button" onClick={() => importInput.current?.click()}>Import</button>
+        <input ref={importInput} type="file" accept=".json,application/json" hidden onChange={e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void importWatchlist(file); }} />
         {saved.length > 0 && <button className="watchlist-clear" onClick={clear}>Clear All</button>}
         {saved.length > 0 && <button type="button" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? "Cancel Selection" : "Select Products"}</button>}
         {selected.length > 0 && <button type="button" className="watchlist-clear" onClick={deleteSelected}>Delete Selected ({selected.length})</button>}
       </div>
     </div>
+    {backupMessage && <p className="watchlist-backup-message" role="status">{backupMessage}</p>}
     {saved.length === 0 ? <div className="watchlist-empty"><h2>Your Watchlist is empty</h2><p>Find products and select Add to Watchlist to save them here.</p><a href="/">Search Products</a></div> :
       shown.length === 0 ? <div className="watchlist-empty"><p>No saved products match your search.</p></div> :
       <div className="watchlist-grid">{shown.map(p => {

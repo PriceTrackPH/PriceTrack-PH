@@ -25,6 +25,9 @@
 .watchlist-grid{gap:8px 12px}
 .watchlist-card{display:flex;flex-direction:column;padding:4px 0}
 .watchlist-tools{width:100%}
+.watchlist-tools input[hidden]{display:none}
+.watchlist-tools button:disabled{opacity:.5;cursor:default}
+.watchlist-backup-message{margin:0 0 16px;color:#6fffd9;font-size:14px;overflow-wrap:anywhere}
 .watchlist-tools input{box-sizing:border-box;flex:1;min-width:180px;width:auto}
 @media(max-width:650px){.watchlist-tools input{flex:0 0 100%;min-width:0;width:100%}}
 .watchlist-card-body{min-height:0;gap:12px}
