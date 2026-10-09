@@ -157,7 +157,7 @@ export default function Watchlist() {
         <select aria-label="Sort Watchlist" value={sort} onChange={e => setSort(e.target.value)}><option value="recent">Recently Added</option><option value="name">Product Name</option></select>
         {selected.length > 0 && <button type="button" className="watchlist-clear" onClick={deleteSelected}>Delete Selected ({selected.length})</button>}
         {selecting && <>
-          <button type="button" aria-label="Select products on this page" disabled={!pageProducts.length} onClick={() => setSelected(ids => [...new Set([...ids, ...pageProducts.map(p => String(p.id))])])}>This Page</button>
+          <button type="button" aria-label="Select products on this page" disabled={!pageProducts.length} onClick={() => setSelected(pageProducts.map(p => String(p.id)))}>This Page</button>
           <button type="button" aria-label="Select all saved products" title="All Products" onClick={() => setSelected(saved.map(p => String(p.id)))}>All Products</button>
         </>}
         {saved.length > 0 && <button type="button" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? "Cancel" : "Select"}</button>}
