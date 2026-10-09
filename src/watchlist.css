@@ -23,7 +23,10 @@
 
 /* Compact product rows with aligned controls and bounded titles. */
 .watchlist-grid{gap:8px 12px}
-.watchlist-card{display:flex;flex-direction:column;padding:4px}
+.watchlist-card{display:flex;flex-direction:column;padding:4px 0}
+.watchlist-tools{width:100%}
+.watchlist-tools input{box-sizing:border-box;flex:1;min-width:180px;width:auto}
+@media(max-width:650px){.watchlist-tools input{flex:0 0 100%;min-width:0;width:100%}}
 .watchlist-card-body{min-height:0;gap:12px}
 .watchlist-details{gap:7px}
 .watchlist-details h2{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
