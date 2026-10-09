@@ -133,7 +133,32 @@ export default function Watchlist() {
     if (saved.length) void load();
     return () => { active = false; };
   }, [saved]);
-  const shown = useMemo(() => saved.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).sort((a,b) => sort === "name" ? a.name.localeCompare(b.name) : Date.parse(b.added_at) - Date.parse(a.added_at)), [saved, search, sort]);
+  const shown = useMemo(() => {
+    const changeFor = (p: SavedProduct) => {
+      const info = prices[String(p.id)];
+      return info && info.previous !== null && info.previous > 0 ? (info.price - info.previous) / info.previous * 100 : null;
+    };
+    return saved.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).sort((a, b) => {
+      const recent = Date.parse(b.added_at) - Date.parse(a.added_at);
+      if (sort === "name") return a.name.localeCompare(b.name) || recent;
+      if (sort === "price-low" || sort === "price-high") {
+        const ap = prices[String(a.id)]?.price, bp = prices[String(b.id)]?.price;
+        if (ap === undefined || bp === undefined) return Number(ap === undefined) - Number(bp === undefined) || recent;
+        return (sort === "price-low" ? ap - bp : bp - ap) || recent;
+      }
+      const ac = changeFor(a), bc = changeFor(b);
+      if (sort === "drop" || sort === "rise") {
+        if (ac === null || bc === null) return Number(ac === null) - Number(bc === null) || recent;
+        return (sort === "drop" ? ac - bc : bc - ac) || recent;
+      }
+      if (["green", "red", "grey"].includes(sort)) {
+        const group = (change: number | null) => change === null || change === 0 ? "grey" : change < 0 ? "green" : "red";
+        const priority = Number(group(bc) === sort) - Number(group(ac) === sort);
+        return priority || recent;
+      }
+      return recent;
+    });
+  }, [saved, search, sort, prices]);
   const totalPages = Math.max(1, Math.ceil(shown.length / 15));
   const currentPage = Math.min(page, totalPages);
   const pageProducts = shown.slice((currentPage - 1) * 15, currentPage * 15);
@@ -154,7 +179,7 @@ export default function Watchlist() {
     <div className="watchlist-top">
       <div className="watchlist-tools">
         <input aria-label="Search in your watchlist" placeholder="Search in your watchlist..." value={search} onChange={e => setSearch(e.target.value)} />
-        <select aria-label="Sort Watchlist" value={sort} onChange={e => setSort(e.target.value)}><option value="recent">Recently Added</option><option value="name">Product Name</option></select>
+        <select aria-label="Sort Watchlist" value={sort} onChange={e => setSort(e.target.value)}><option value="recent">Recently Added</option><option value="name">Product Name</option><option value="price-low">Price: Low to High</option><option value="price-high">Price: High to Low</option><option value="drop">Biggest Price Drop</option><option value="rise">Biggest Price Increase</option><option value="green">Green First</option><option value="red">Red First</option><option value="grey">Grey First</option></select>
         {selected.length > 0 && <button type="button" className="watchlist-clear" onClick={deleteSelected}>Delete Selected ({selected.length})</button>}
         {selecting && <>
           <button type="button" aria-label="Select products on this page" disabled={!pageProducts.length} onClick={() => setSelected(pageProducts.map(p => String(p.id)))}>This Page</button>
