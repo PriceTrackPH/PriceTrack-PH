@@ -95,3 +95,6 @@ html:not([data-theme="dark"]) .watchlist-page{--watchlist-action:#00f8b9;--watch
 html[data-theme="dark"] .watchlist-page{--watchlist-action:#00f8b9;--watchlist-action-text:#1b1844;--watchlist-navy:#1b1844}
 html:not([data-theme="dark"]) .watchlist-card{background:rgba(230,230,250,.5);border-radius:12px;padding:8px}
 .watchlist-tools select{appearance:none;box-sizing:border-box;min-height:44px;padding:12px 38px 12px 16px;line-height:20px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%23f5f2ff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px 12px}
+
+html:not([data-theme="dark"]) .watchlist-tools select,html:not([data-theme="dark"]) .watchlist-tools button:not(.watchlist-clear){background:#e6e6fa;color:#1b1844;border-color:#c7c7e8}
+html:not([data-theme="dark"]) .watchlist-tools select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%231b1844' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
