@@ -36,6 +36,7 @@ export default function Watchlist() {
   const [saved, setSaved] = useState(readSaved);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("recent");
+  const [page, setPage] = useState(1);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [prices, setPrices] = useState<Record<string, PriceInfo>>({});
@@ -133,6 +134,11 @@ export default function Watchlist() {
     return () => { active = false; };
   }, [saved]);
   const shown = useMemo(() => saved.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).sort((a,b) => sort === "name" ? a.name.localeCompare(b.name) : Date.parse(b.added_at) - Date.parse(a.added_at)), [saved, search, sort]);
+  const totalPages = Math.max(1, Math.ceil(shown.length / 15));
+  const currentPage = Math.min(page, totalPages);
+  const pageProducts = shown.slice((currentPage - 1) * 15, currentPage * 15);
+  useEffect(() => { setPage(1); }, [search, sort]);
+  useEffect(() => { setPage(value => Math.min(value, totalPages)); }, [totalPages]);
   const remove = (id: SavedProduct["id"]) => {
     const next = saved.filter(p => String(p.id) !== String(id));
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); setSaved(next); setSelected(ids => ids.filter(value => value !== String(id))); } catch { window.alert("Could not update browser storage."); }
@@ -164,7 +170,7 @@ export default function Watchlist() {
     {backupMessage && <p className="watchlist-backup-message" role="status">{backupMessage}</p>}
     {saved.length === 0 ? <div className="watchlist-empty"><h2>Your Watchlist is empty</h2><p>Find products and select Add to Watchlist to save them here.</p><a href="/">Search Products</a></div> :
       shown.length === 0 ? <div className="watchlist-empty"><p>No saved products match your search.</p></div> :
-      <div className="watchlist-grid">{shown.map(p => {
+      <div className="watchlist-grid">{pageProducts.map(p => {
         const price = prices[String(p.id)];
         const change = price && price.previous !== null && price.previous > 0 ? (price.price - price.previous) / price.previous * 100 : null;
         return <article className="watchlist-card" key={String(p.id)}>
@@ -178,5 +184,6 @@ export default function Watchlist() {
           <div className="watchlist-card-actions"><a href={`/product/shopee/${p.external_shop_id}/${p.external_product_id}`}>View Price History</a><button onClick={() => remove(p.id)}>Remove</button></div>
         </article>;
       })}</div>}
+    {totalPages > 1 && <nav className="watchlist-pagination" aria-label="Watchlist pages"><button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</button><span aria-live="polite">Page {currentPage} of {totalPages}</span><button type="button" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>Next</button></nav>}
   </div></main>;
 }
