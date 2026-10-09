@@ -129,12 +129,12 @@ html:not([data-theme="dark"]) .watchlist-tools input:not([type="file"]){backgrou
 }
 
 @media(max-width:650px){
-  .watchlist-details{height:88px;min-height:88px;display:grid;grid-template-rows:minmax(0,1fr) 22px 24px;gap:3px}
-  .watchlist-details h2{line-height:1.2;align-self:start}
+  .watchlist-details{height:88px;min-height:88px;display:grid;grid-template-rows:40px 22px 22px;gap:2px}
+  .watchlist-details h2{line-height:1.1;align-self:start;max-height:40px}
   .watchlist-details strong{font-size:18px;line-height:22px;white-space:nowrap}
   .watchlist-price-row{gap:5px;flex-wrap:nowrap;min-width:0}
   .watchlist-price-change{font-size:10px;padding:3px 5px}
-  .watchlist-details small{margin:0;font-size:10px;line-height:12px;align-self:end}
+  .watchlist-details small{margin:0;font-size:10px;line-height:11px;align-self:end}
 }
 
 .watchlist-page{scroll-margin-top:110px}
