@@ -48,14 +48,22 @@ export default function Watchlist() {
       if (!client) return;
       const next: Record<string, PriceInfo> = {};
       await Promise.all(saved.map(async (p) => {
-        const { data: variations } = await client.from("product_variations").select("id").eq("product_id", Number(p.id)).limit(30);
-        const ids = variations?.map(v => v.id) || [];
-        if (!ids.length) return;
-        const { data } = await client.from("price_observations").select("price,observed_at,variation_id").in("variation_id", ids).order("observed_at", { ascending: false }).limit(100);
-        if (!data?.length) return;
-        const latest = data[0];
-        const previous = data.slice(1).find(row => row.variation_id === latest.variation_id && row.observed_at < latest.observed_at);
+        const { data: variations, error: variationError } = await client.from("product_variations").select("id,name,external_variation_id").eq("product_id", Number(p.id)).order("name");
+        if (variationError) return;
+        const all = variations || [];
+        const real = all.filter(v => String(v.external_variation_id ?? "").trim().toLowerCase() !== "default");
+        const models = real.length ? real : all;
+        if (!models.length) return;
+        const { data, error } = await client.from("price_observations").select("price,observed_at,variation_id,is_in_stock").in("variation_id", models.map(v => v.id)).order("observed_at", { ascending: false });
+        if (error || !data?.length) return;
+        const candidates = models.map(model => ({ model, latest: data.find(row => row.variation_id === model.id) })).filter(entry => entry.latest);
+        const available = candidates.filter(entry => entry.latest!.is_in_stock);
+        const chosen = (available.length ? available : candidates).sort((a,b) => Number(a.latest!.price) - Number(b.latest!.price))[0];
+        if (!chosen?.latest) return;
+        const latest = chosen.latest;
+        const previous = data.find(row => row.variation_id === latest.variation_id && row.observed_at < latest.observed_at);
         next[String(p.id)] = { price: Number(latest.price), checked: latest.observed_at, previous: previous ? Number(previous.price) : null };
+
       }));
       if (active) setPrices(next);
     }
