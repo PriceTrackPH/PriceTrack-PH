@@ -117,7 +117,7 @@ html:not([data-theme="dark"]) .watchlist-tools input:not([type="file"]){backgrou
 @media(max-width:650px){
   .watchlist-page .watchlist-card{padding:10px 8px}
   .watchlist-card-body{gap:10px;align-items:flex-start}
-  .watchlist-card-body .watchlist-image{align-self:flex-end;width:88px;height:88px}
+  .watchlist-card-body .watchlist-image{align-self:flex-start;width:88px;height:88px}
   .watchlist-card-body img,.watchlist-card-body .watchlist-no-image{width:88px;height:88px}
   .watchlist-details{min-height:88px;gap:6px}
   .watchlist-details h2{line-height:1.35;font-weight:600}
@@ -126,4 +126,13 @@ html:not([data-theme="dark"]) .watchlist-tools input:not([type="file"]){backgrou
   .watchlist-details small{font-size:11px;line-height:1.4;overflow-wrap:anywhere}
   .watchlist-card-actions{gap:8px;padding-top:10px}
   .watchlist-card-actions a,.watchlist-card-actions button{display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:44px;font-size:12px;line-height:1.3;padding:10px 12px}
+}
+
+@media(max-width:650px){
+  .watchlist-details{height:88px;min-height:88px;display:grid;grid-template-rows:minmax(0,1fr) 22px 24px;gap:3px}
+  .watchlist-details h2{line-height:1.2;align-self:start}
+  .watchlist-details strong{font-size:18px;line-height:22px;white-space:nowrap}
+  .watchlist-price-row{gap:5px;flex-wrap:nowrap;min-width:0}
+  .watchlist-price-change{font-size:10px;padding:3px 5px}
+  .watchlist-details small{margin:0;font-size:10px;line-height:12px;align-self:end}
 }

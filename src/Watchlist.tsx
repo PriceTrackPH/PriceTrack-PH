@@ -21,7 +21,8 @@ function ProductTitle({ name }: { name: string }) {
       heading.style.webkitLineClamp = "unset";
       for (let size = window.matchMedia("(max-width:650px)").matches ? 14 : 16; size >= 12; size--) {
         heading.style.fontSize = `${size}px`;
-        if (heading.scrollHeight <= size * 1.35 * 3 + 1) break;
+        const mobile = window.matchMedia("(max-width:650px)").matches;
+        if (heading.scrollHeight <= (mobile ? 36 : size * 1.35 * 3) + 1) break;
       }
       heading.style.webkitLineClamp = "3";
     };
