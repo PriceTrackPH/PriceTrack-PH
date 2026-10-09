@@ -84,9 +84,10 @@ export default function Watchlist() {
     if (!window.confirm("Remove all products from your Watchlist?")) return;
     try { localStorage.setItem(STORAGE_KEY, "[]"); setSaved([]); setSelected([]); setSelecting(false); } catch { window.alert("Could not update browser storage."); }
   };
-  return <main className="watchlist-background"><div className="watchlist-page">
+  return <main className="watchlist-background">
+    <header className="watchlist-heading"><span className="watchlist-kicker">SAVED PRODUCTS</span><h1>Your Watchlist</h1><p>Keep your saved products together and follow their recorded prices.</p></header>
+    <div className="watchlist-page">
     <div className="watchlist-top">
-      <div><h1>Watchlist</h1><p>Products you saved. Prices reflect the latest available recorded observations.</p></div>
       <div className="watchlist-tools">
         <input aria-label="Search in your watchlist" placeholder="Search in your watchlist..." value={search} onChange={e => setSearch(e.target.value)} />
         <select aria-label="Sort Watchlist" value={sort} onChange={e => setSort(e.target.value)}><option value="recent">Recently Added</option><option value="name">Product Name</option></select>
@@ -95,6 +96,7 @@ export default function Watchlist() {
         {selected.length > 0 && <button type="button" className="watchlist-clear" onClick={deleteSelected}>Delete Selected ({selected.length})</button>}
       </div>
     </div>
+    <details className="watchlist-guide"><summary>How to use your Watchlist &amp; storage note</summary><div><p>Open a product’s price history and choose <strong>Add to Watchlist</strong>. Return here to search, sort, view price history, or remove saved products. Use <strong>Select Products</strong> to remove several at once.</p><p>Prices show the latest recorded observations. The percentage compares the displayed variation’s latest price with its previous recorded price.</p><p><strong>Saved in this browser only.</strong> Your list stays after closing or restarting the browser, but does not automatically sync to another browser or device. Clearing this site’s data or deleting your browser profile erases it. Uninstalling the browser may also erase it if its data is removed. In private browsing, the list is usually lost when the private session closes.</p></div></details>
     {saved.length === 0 ? <div className="watchlist-empty"><h2>Your Watchlist is empty</h2><p>Find products and select Add to Watchlist to save them here.</p><a href="/">Search Products</a></div> :
       shown.length === 0 ? <div className="watchlist-empty"><p>No saved products match your search.</p></div> :
       <div className="watchlist-grid">{shown.map(p => {
