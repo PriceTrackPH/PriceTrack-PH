@@ -43,8 +43,4 @@
 html[data-theme="dark"] .watchlist-heading{color:#f3f5f4}
 html[data-theme="dark"] .watchlist-heading p{color:#aeb6b2}
 html[data-theme="dark"] .watchlist-kicker{color:#11d4aa}
-.watchlist-guide{margin:0 0 20px;color:var(--report-muted);font-size:14px;line-height:1.6}
-.watchlist-guide summary{cursor:pointer;color:#6fffd9;font-weight:600}
-.watchlist-guide p{margin:10px 0 0}
-.watchlist-guide strong{color:var(--report-text)}
 @media(max-width:650px){.watchlist-heading{width:calc(100% - 28px);margin-bottom:20px}}
