@@ -62,3 +62,22 @@ html[data-theme="dark"] .watchlist-heading{color:#f3f5f4}
 html[data-theme="dark"] .watchlist-heading p{color:#aeb6b2}
 html[data-theme="dark"] .watchlist-kicker{color:#11d4aa}
 @media(max-width:650px){.watchlist-heading{width:calc(100% - 28px);margin-bottom:20px}}
+
+/* Lavender surfaces, mint actions, and neutral text adapt to the page theme. */
+.watchlist-page{--report-text:#252342;--report-muted:#68657f;--report-card:#f5f3ff;--watchlist-border:#d9d4eb;--watchlist-action:#dcf8ee;--watchlist-action-text:#075b48;--watchlist-secondary:#eee9fb;--watchlist-secondary-text:#514077;background:#fcfbff;border-color:var(--watchlist-border)}
+html[data-theme="dark"] .watchlist-page{--report-text:#f3f5f4;--report-muted:#aeb6b2;--report-card:#211f2c;--watchlist-border:#393445;--watchlist-action:#11d4aa;--watchlist-action-text:#10251e;--watchlist-secondary:#292336;--watchlist-secondary-text:#d8c8f4;background:#181d1f}
+.watchlist-tools input,.watchlist-tools select{border-color:var(--watchlist-border);background:var(--report-card)}
+.watchlist-tools input::placeholder{color:var(--report-muted);opacity:1}
+.watchlist-tools button,.watchlist-card-actions button,.watchlist-pagination button{background:var(--watchlist-secondary);color:var(--watchlist-secondary-text);border-color:var(--watchlist-border)}
+.watchlist-card-actions a,.watchlist-empty a{background:var(--watchlist-action);color:var(--watchlist-action-text)}
+.watchlist-tools button[aria-pressed="true"]{background:var(--watchlist-action);color:var(--watchlist-action-text)}
+.watchlist-tools .watchlist-clear{background:#fff0f1;color:#a12636;border-color:#e5b5bd}
+html[data-theme="dark"] .watchlist-tools .watchlist-clear{background:#482527;color:#ffb2b2;border-color:#874346}
+.watchlist-empty,.watchlist-card+ .watchlist-card{border-color:var(--watchlist-border)}
+.watchlist-backup-message{color:var(--watchlist-action-text)}
+html[data-theme="dark"] .watchlist-backup-message{color:#6fffd9}
+html:not([data-theme="dark"]) .watchlist-price-change.down{color:#08654f;background:#dcf8ee;border-color:#9cd9c6}
+html:not([data-theme="dark"]) .watchlist-price-change.up{color:#a12636;background:#fff0f1;border-color:#e5b5bd}
+html:not([data-theme="dark"]) .watchlist-price-change.unchanged{color:#68657f;background:#eee9fb;border-color:#d9d4eb}
+.watchlist-tools button:hover:not(:disabled),.watchlist-card-actions button:hover,.watchlist-pagination button:hover:not(:disabled){filter:brightness(.95)}
+.watchlist-card-actions a:hover,.watchlist-empty a:hover{filter:brightness(.95)}
