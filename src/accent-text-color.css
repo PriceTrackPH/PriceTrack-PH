@@ -11,7 +11,7 @@
 .trust-columns article > span,
 .support-card .section-label,
 .full-footer .footer-main strong span {
-  color: #00F8B9 !important;
+  color: #00DFA7 !important;
 }
 
 html[data-theme="dark"] .site-header .brand span,
@@ -32,11 +32,11 @@ html[data-theme="dark"] .full-footer .footer-main strong span {
 /* Admin-page accents follow the selected light or dark theme. */
 html:not([data-theme="dark"]) .health-kicker,
 html:not([data-theme="dark"]) .health-event-type.record_success {
-  color: #00F8B9 !important;
+  color: #00DFA7 !important;
 }
 
 html:not([data-theme="dark"]) .health-status.healthy {
-  border-left-color: #00F8B9 !important;
+  border-left-color: #00DFA7 !important;
 }
 
 html:not([data-theme="dark"]) .health-login {
@@ -65,8 +65,3 @@ html[data-theme="dark"] .health-status.healthy {
   background: #21185F !important;
   color: #FFFFFF !important;
 }
-
-/* Shared mint details in both themes. */
-html .preview-card > strong em,
-html .section-label,
-html .watchlist-kicker { color: #00F8B9 !important; }
