@@ -61,6 +61,7 @@ export default function Watchlist() {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [prices, setPrices] = useState<Record<string, PriceInfo>>({});
+  const [pricesLoading, setPricesLoading] = useState(true);
   const importInput = useRef<HTMLInputElement>(null);
   const [backupMessage, setBackupMessage] = useState("");
   const exportWatchlist = () => {
@@ -129,7 +130,8 @@ export default function Watchlist() {
     let active = true;
     async function load() {
       const client = supabase;
-      if (!client) return;
+      if (!client) { if (active) setPricesLoading(false); return; }
+      if (active) setPricesLoading(true);
       const next: Record<string, PriceInfo> = {};
       await Promise.all(saved.map(async (p) => {
         const { data: variations, error: variationError } = await client.from("product_variations").select("id,name,external_variation_id").eq("product_id", Number(p.id)).order("name");
@@ -149,9 +151,10 @@ export default function Watchlist() {
         next[String(p.id)] = { price: Number(latest.price), checked: latest.observed_at, previous: previous ? Number(previous.price) : null };
 
       }));
-      if (active) setPrices(next);
+      if (active) { setPrices(next); setPricesLoading(false); }
     }
-    if (saved.length) void load();
+    if (saved.length) void load().catch(() => { if (active) setPricesLoading(false); });
+    else setPricesLoading(false);
     return () => { active = false; };
   }, [saved]);
   const shown = useMemo(() => {
@@ -221,7 +224,7 @@ export default function Watchlist() {
             {p.image_url ? <img src={p.image_url} alt="" loading="lazy" /> : <div className="watchlist-no-image">No image</div>}
           {selecting && <input className="watchlist-image-checkbox" type="checkbox" checked={selected.includes(String(p.id))} onChange={e => setSelected(ids => e.target.checked ? [...ids, String(p.id)] : ids.filter(id => id !== String(p.id)))} aria-label={`Select ${p.name}`} />}
             </label>
-            <div className="watchlist-details"><ProductTitle name={p.name} /><div className="watchlist-price-row"><strong>{price ? money.format(price.price) : "Price unavailable"}</strong>{price && <><span className={`watchlist-price-change ${change === null || change === 0 ? "unchanged" : change < 0 ? "down" : "up"}`} title="Compared with the previous recorded price of the same variation">{change === null ? "—" : `${change < 0 ? "↓ " : change > 0 ? "↑ " : ""}${formatChange(change)}%`}</span></>}</div><small>{price ? "Last checked: " + new Date(price.checked).toLocaleString("en-PH", {timeZone:"Asia/Manila"}) : "Open price history for latest details"}</small></div>
+            <div className="watchlist-details"><ProductTitle name={p.name} /><div className="watchlist-price-row"><strong>{price ? money.format(price.price) : pricesLoading ? "Loading price…" : "Price unavailable"}</strong>{price && <><span className={`watchlist-price-change ${change === null || change === 0 ? "unchanged" : change < 0 ? "down" : "up"}`} title="Compared with the previous recorded price of the same variation">{change === null ? "—" : `${change < 0 ? "↓ " : change > 0 ? "↑ " : ""}${formatChange(change)}%`}</span></>}</div><small>{price ? "Last checked: " + new Date(price.checked).toLocaleString("en-PH", {timeZone:"Asia/Manila"}) : pricesLoading ? "Fetching recorded prices…" : "Open price history for latest details"}</small></div>
           </div>
           <div className="watchlist-card-actions"><a href={`/product/shopee/${p.external_shop_id}/${p.external_product_id}`}>View Price History</a><button onClick={() => remove(p.id)}>Remove</button></div>
         </article>;
