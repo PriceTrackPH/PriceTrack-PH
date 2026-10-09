@@ -57,6 +57,12 @@ const footerModalContent: Record<FooterModalKey, { label: string; title: string;
 function SiteSections() {
   const chromeWebStoreUrl = "https://chromewebstore.google.com/detail/ilabeaeblpcleaipmnppibbfhjknlmeo";
   const isAdminPage = ["/admin", "/admin/", "/admin/health", "/admin/health/", "/admin/affiliate", "/admin/affiliate/", "/admin/settings", "/admin/settings/", "/admin/ads", "/admin/ads/", "/admin/collector", "/admin/collector/", "/admin/store-scanner", "/admin/store-scanner/", "/admin/monitoring", "/admin/monitoring/"].includes(window.location.pathname);
+  const isWatchlistPage = /^\/watchlist\/?$/.test(window.location.pathname);
+  useEffect(() => {
+    if (window.location.hash === "#extension") {
+      document.getElementById("extension")?.scrollIntoView({ block: "start" });
+    }
+  }, []);
   const routeModal = () => {
     const path = window.location.pathname.replace(/\/$/, "");
     return path === "/donate" ? "donate" : path === "/about" ? "about" : path === "/data-policy" ? "data" : path === "/contact" ? "contact" : null;
@@ -229,7 +235,7 @@ function SiteSections() {
   return (
     <>
       {!isAdminPage && <>
-        <section className="extension-section" id="extension">
+        {!isWatchlistPage && <section className="extension-section" id="extension">
           <div className="section-shell extension-grid">
             <div className="extension-copy">
               <div className="section-label">AUTOMATIC PRICE CHECKS</div>
@@ -252,7 +258,7 @@ function SiteSections() {
               </div>
             </div>
           </div>
-        </section>
+        </section>}
 
         <section className="trust-section" id="how-it-works">
           <div className="section-shell">
