@@ -22,8 +22,8 @@
 @media(max-width:650px){.watchlist-background{padding:20px 0 40px}}
 
 /* Compact product rows with aligned controls and bounded titles. */
-.watchlist-grid{gap:12px 18px}
-.watchlist-card{display:flex;flex-direction:column;padding:12px}
+.watchlist-grid{gap:12px 16px}
+.watchlist-card{display:flex;flex-direction:column;padding:8px}
 .watchlist-card-body{min-height:0;gap:12px}
 .watchlist-details{gap:7px}
 .watchlist-details h2{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
