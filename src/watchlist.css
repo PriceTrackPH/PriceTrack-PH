@@ -91,3 +91,4 @@ html[data-theme="dark"] .watchlist-page{--report-text:#f3f5f4;--watchlist-navy:#
 html[data-theme="dark"] .watchlist-tools input:not([type="file"]){background:#e6e6fa;color:#211b5c;border-color:#c7c7e8}
 html[data-theme="dark"] .watchlist-tools input:not([type="file"])::placeholder{color:#625d85;opacity:1}
 html:not([data-theme="dark"]) .watchlist-card-actions a{background:#11d4aa;color:#211b5c}
+html[data-theme="dark"] .watchlist-page{--watchlist-action:#00f8b9;--watchlist-action-text:#1b1844;--watchlist-navy:#1b1844}
