@@ -99,3 +99,16 @@ html:not([data-theme="dark"]) .watchlist-card{background:rgba(230,230,250,.5);bo
 html:not([data-theme="dark"]) .watchlist-tools select,html:not([data-theme="dark"]) .watchlist-tools button:not(.watchlist-clear){background-color:#e6e6fa;color:#1b1844;border-color:#c7c7e8}
 html:not([data-theme="dark"]) .watchlist-tools select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%231b1844' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
 html:not([data-theme="dark"]) .watchlist-tools input:not([type="file"]){background-color:#e6e6fa;color:#1b1844;border-color:#c7c7e8}
+
+.watchlist-selection-tools{display:contents}
+@media(max-width:650px){
+  .watchlist-tools{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px}
+  .watchlist-tools input:not([type="file"]){grid-column:1 / -1;grid-row:1}
+  .watchlist-tools select{grid-column:1;grid-row:2;width:100%;min-width:0}
+  .watchlist-tools .watchlist-export{grid-column:2;grid-row:2}
+  .watchlist-tools .watchlist-import{grid-column:3;grid-row:2}
+  .watchlist-tools .watchlist-export,.watchlist-tools .watchlist-import{padding-inline:12px}
+  .watchlist-selection-tools{display:flex;grid-column:1 / -1;grid-row:3;flex-wrap:wrap;gap:10px}
+  .watchlist-selection-tools button[aria-pressed]{order:-1}
+  .watchlist-selection-tools:empty{display:none}
+}

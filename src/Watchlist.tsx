@@ -190,14 +190,16 @@ export default function Watchlist() {
       <div className="watchlist-tools">
         <input aria-label="Search in your watchlist" placeholder="Search in your watchlist..." value={search} onChange={e => setSearch(e.target.value)} />
         <select aria-label="Sort Watchlist" value={sort} onChange={e => setSort(e.target.value)}><option value="recent">Recently Added</option><option value="name">Product Name</option><option value="price-low">Price: Low to High</option><option value="price-high">Price: High to Low</option><option value="drop">Biggest Price Drop</option><option value="rise">Biggest Price Increase</option></select>
+        <div className="watchlist-selection-tools">
         {selected.length > 0 && <button type="button" className="watchlist-clear" onClick={deleteSelected}>Delete Selected ({selected.length})</button>}
         {selecting && <>
           <button type="button" aria-label="Select products on this page" disabled={!pageProducts.length} onClick={() => setSelected(pageProducts.map(p => String(p.id)))}>This Page</button>
           <button type="button" aria-label="Select all saved products" title="All Products" onClick={() => setSelected(saved.map(p => String(p.id)))}>All Products</button>
         </>}
         {saved.length > 0 && <button type="button" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? "Cancel" : "Select"}</button>}
-        <button type="button" onClick={exportWatchlist} disabled={!saved.length}>Export</button>
-        <button type="button" onClick={() => importInput.current?.click()}>Import</button>
+        </div>
+        <button className="watchlist-export" type="button" onClick={exportWatchlist} disabled={!saved.length}>Export</button>
+        <button className="watchlist-import" type="button" onClick={() => importInput.current?.click()}>Import</button>
         <input ref={importInput} type="file" accept=".json,application/json" hidden onChange={e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void importWatchlist(file); }} />
       </div>
     </div>
