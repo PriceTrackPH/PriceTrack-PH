@@ -148,10 +148,6 @@ export default function Watchlist() {
     const next = saved.filter(p => !selected.includes(String(p.id)));
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); setSaved(next); setSelected([]); setSelecting(false); } catch { window.alert("Could not update browser storage."); }
   };
-  const clear = () => {
-    if (!window.confirm("Remove all products from your Watchlist?")) return;
-    try { localStorage.setItem(STORAGE_KEY, "[]"); setSaved([]); setSelected([]); setSelecting(false); } catch { window.alert("Could not update browser storage."); }
-  };
   return <main className="watchlist-background">
     <header className="watchlist-heading"><span className="watchlist-kicker">SAVED PRODUCTS</span><h1>Your Watchlist</h1><p>Keep your saved products together and follow their recorded prices. Prices show the latest recorded observations. The percentage compares the displayed variation’s latest price with its previous recorded price.</p><div className="watchlist-heading-notes"><p><strong>Saved in this browser only.</strong> Your list stays after closing or restarting the browser, but does not automatically sync to another browser or device. Clearing this site’s data or deleting your browser profile erases it. Uninstalling the browser may also erase it if its data is removed. In private browsing, the list is usually lost when the private session closes. Use <strong>Export</strong> to download a backup and <strong>Import</strong> to restore it here or in another browser. Import keeps existing products and skips duplicates.</p></div></header>
     <div className="watchlist-page">
@@ -162,7 +158,6 @@ export default function Watchlist() {
         <button type="button" onClick={exportWatchlist} disabled={!saved.length}>Export</button>
         <button type="button" onClick={() => importInput.current?.click()}>Import</button>
         <input ref={importInput} type="file" accept=".json,application/json" hidden onChange={e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void importWatchlist(file); }} />
-        {saved.length > 0 && <button className="watchlist-clear" onClick={clear}>Clear All</button>}
         {saved.length > 0 && <button type="button" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? "Cancel" : "Select"}</button>}
         {selected.length > 0 && <button type="button" className="watchlist-clear" onClick={deleteSelected}>Delete Selected ({selected.length})</button>}
       </div>
