@@ -160,7 +160,7 @@ export default function Watchlist() {
         <input ref={importInput} type="file" accept=".json,application/json" hidden onChange={e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void importWatchlist(file); }} />
         {saved.length > 0 && <button type="button" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? "Cancel" : "Select"}</button>}
         {selecting && <>
-          <button type="button" aria-label="Select all saved products" title="All Products" onClick={() => setSelected(saved.map(p => String(p.id)))}>AP</button>
+          <button type="button" aria-label="Select all saved products" title="All Products" onClick={() => setSelected(saved.map(p => String(p.id)))}>All Products</button>
           <button type="button" aria-label="Select products on this page" disabled={!pageProducts.length} onClick={() => setSelected(ids => [...new Set([...ids, ...pageProducts.map(p => String(p.id))])])}>This Page</button>
         </>}
         {selected.length > 0 && <button type="button" className="watchlist-clear" onClick={deleteSelected}>Delete Selected ({selected.length})</button>}
