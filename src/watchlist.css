@@ -88,3 +88,5 @@ html[data-theme="dark"] .watchlist-page{--report-text:#f3f5f4;--watchlist-navy:#
 .watchlist-card-actions a,.watchlist-empty a{background:var(--watchlist-action);color:var(--watchlist-action-text)}
 .watchlist-card-actions button,.watchlist-pagination button{background:var(--watchlist-navy);color:var(--watchlist-navy-text);border-color:var(--watchlist-navy)}
 .watchlist-tools select,.watchlist-tools button:not(.watchlist-clear){background:var(--watchlist-navy);color:var(--watchlist-navy-text);border-color:var(--watchlist-navy)}
+html[data-theme="dark"] .watchlist-tools input:not([type="file"]){background:#e6e6fa;color:#211b5c;border-color:#c7c7e8}
+html[data-theme="dark"] .watchlist-tools input:not([type="file"])::placeholder{color:#625d85;opacity:1}
