@@ -151,11 +151,6 @@ export default function Watchlist() {
         if (ac === null || bc === null) return Number(ac === null) - Number(bc === null) || recent;
         return (sort === "drop" ? ac - bc : bc - ac) || recent;
       }
-      if (["green", "red", "grey"].includes(sort)) {
-        const group = (change: number | null) => change === null || change === 0 ? "grey" : change < 0 ? "green" : "red";
-        const priority = Number(group(bc) === sort) - Number(group(ac) === sort);
-        return priority || recent;
-      }
       return recent;
     });
   }, [saved, search, sort, prices]);
@@ -179,7 +174,7 @@ export default function Watchlist() {
     <div className="watchlist-top">
       <div className="watchlist-tools">
         <input aria-label="Search in your watchlist" placeholder="Search in your watchlist..." value={search} onChange={e => setSearch(e.target.value)} />
-        <select aria-label="Sort Watchlist" value={sort} onChange={e => setSort(e.target.value)}><option value="recent">Recently Added</option><option value="name">Product Name</option><option value="price-low">Price: Low to High</option><option value="price-high">Price: High to Low</option><option value="drop">Biggest Price Drop</option><option value="rise">Biggest Price Increase</option><option value="green">Green First</option><option value="red">Red First</option><option value="grey">Grey First</option></select>
+        <select aria-label="Sort Watchlist" value={sort} onChange={e => setSort(e.target.value)}><option value="recent">Recently Added</option><option value="name">Product Name</option><option value="price-low">Price: Low to High</option><option value="price-high">Price: High to Low</option><option value="drop">Biggest Price Drop</option><option value="rise">Biggest Price Increase</option></select>
         {selected.length > 0 && <button type="button" className="watchlist-clear" onClick={deleteSelected}>Delete Selected ({selected.length})</button>}
         {selecting && <>
           <button type="button" aria-label="Select products on this page" disabled={!pageProducts.length} onClick={() => setSelected(pageProducts.map(p => String(p.id)))}>This Page</button>
