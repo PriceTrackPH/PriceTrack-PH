@@ -138,3 +138,11 @@ html:not([data-theme="dark"]) .watchlist-tools input:not([type="file"]){backgrou
 }
 
 .watchlist-page{scroll-margin-top:110px}
+
+@media(max-width:650px){
+  .watchlist-details>h2{grid-row:1;min-height:0;margin:0}
+  .watchlist-details>.watchlist-price-row{grid-row:2;height:22px;align-self:start;align-items:center}
+  .watchlist-details>.watchlist-price-row>strong{display:block;margin:0;padding:0;line-height:22px;font-variant-numeric:tabular-nums}
+  .watchlist-details>.watchlist-price-row>.watchlist-price-change{box-sizing:border-box;height:22px;line-height:1;align-items:center}
+  .watchlist-details>small{grid-row:3;min-height:0}
+}
