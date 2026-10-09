@@ -117,7 +117,7 @@ html:not([data-theme="dark"]) .watchlist-tools input:not([type="file"]){backgrou
 @media(max-width:650px){
   .watchlist-page .watchlist-card{padding:10px 8px}
   .watchlist-card-body{gap:10px;align-items:flex-start}
-  .watchlist-card-body .watchlist-image{align-self:flex-start;width:88px;height:88px}
+  .watchlist-card-body .watchlist-image{align-self:flex-end;width:88px;height:88px}
   .watchlist-card-body img,.watchlist-card-body .watchlist-no-image{width:88px;height:88px}
   .watchlist-details{min-height:88px;gap:6px}
   .watchlist-details h2{line-height:1.35;font-weight:600}
