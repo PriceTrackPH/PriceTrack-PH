@@ -87,4 +87,4 @@ html:not([data-theme="dark"]) .watchlist-price-change.unchanged{color:#68657f;ba
 html[data-theme="dark"] .watchlist-page{--report-text:#f3f5f4;--watchlist-navy:#29235f;--watchlist-navy-text:#f5f2ff}
 .watchlist-card-actions a,.watchlist-empty a{background:var(--watchlist-action);color:var(--watchlist-action-text)}
 .watchlist-card-actions button,.watchlist-pagination button{background:var(--watchlist-navy);color:var(--watchlist-navy-text);border-color:var(--watchlist-navy)}
-.watchlist-tools button[aria-label="Select all saved products"],.watchlist-tools button[aria-label="Select products on this page"]{background:var(--watchlist-action);color:var(--watchlist-action-text)}
+.watchlist-tools select,.watchlist-tools button:not(.watchlist-clear){background:var(--watchlist-navy);color:var(--watchlist-navy-text);border-color:var(--watchlist-navy)}
