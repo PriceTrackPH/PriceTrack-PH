@@ -185,8 +185,11 @@ export default function Watchlist() {
         </article>;
       })}</div>}
     <footer className="watchlist-footer">
-      <span aria-live="polite">Total watchlisted: {saved.length}</span>
-      {totalPages > 1 && <nav className="watchlist-pagination" aria-label="Watchlist pages"><button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</button><span aria-live="polite">Page {currentPage} of {totalPages}</span><button type="button" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>Next</button></nav>}
+      <nav className="watchlist-pagination" aria-label="Watchlist pages">
+        {totalPages > 1 && <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</button>}
+        <span className="watchlist-page-summary" aria-live="polite"><span>Total: {saved.length}</span>{totalPages > 1 && <span>Page {currentPage} of {totalPages}</span>}</span>
+        {totalPages > 1 && <button type="button" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>Next</button>}
+      </nav>
     </footer>
   </div></main>;
 }
