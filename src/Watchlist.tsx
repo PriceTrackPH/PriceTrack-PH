@@ -163,7 +163,7 @@ export default function Watchlist() {
         <button type="button" onClick={() => importInput.current?.click()}>Import</button>
         <input ref={importInput} type="file" accept=".json,application/json" hidden onChange={e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void importWatchlist(file); }} />
         {saved.length > 0 && <button className="watchlist-clear" onClick={clear}>Clear All</button>}
-        {saved.length > 0 && <button type="button" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? "Cancel Selection" : "Select Products"}</button>}
+        {saved.length > 0 && <button type="button" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? "Cancel" : "Select"}</button>}
         {selected.length > 0 && <button type="button" className="watchlist-clear" onClick={deleteSelected}>Delete Selected ({selected.length})</button>}
       </div>
     </div>
