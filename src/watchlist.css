@@ -108,8 +108,8 @@ html:not([data-theme="dark"]) .watchlist-tools input:not([type="file"]){backgrou
   .watchlist-tools .watchlist-import{grid-column:1;grid-row:3}
   .watchlist-tools .watchlist-export{grid-column:2;grid-row:3}
   .watchlist-selection-tools button[aria-pressed]{grid-column:3;grid-row:3}
-  .watchlist-tools button{padding-inline:10px}
-  .watchlist-selection-tools .watchlist-clear{grid-column:1 / -1;grid-row:4}
-  .watchlist-selection-tools button[aria-label="Select products on this page"]{grid-column:1;grid-row:5}
-  .watchlist-selection-tools button[aria-label="Select all saved products"]{grid-column:2 / -1;grid-row:5}
+  .watchlist-tools button{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:10px 6px;font-size:12px}
+  .watchlist-selection-tools .watchlist-clear{grid-column:3;grid-row:4}
+  .watchlist-selection-tools button[aria-label="Select products on this page"]{grid-column:1;grid-row:4}
+  .watchlist-selection-tools button[aria-label="Select all saved products"]{grid-column:2;grid-row:4}
 }
