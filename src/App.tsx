@@ -14,6 +14,7 @@ import type { Tables } from "./database.types";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import shopeeLogo from "./assets/shopee-logo.png";
 import ReportAd from "./ReportAd";
+import { consumeAdminTabLogin, prepareAdminTabLogin } from "./admin-tab-login";
 import ProductSearch, { type SearchSuggestion } from "./ProductSearch";
 import { isMobileVisitor, requestTrackedProductRecheck, requestUntrackedProduct } from "./public-collection-request";
 
@@ -1264,7 +1265,10 @@ const adminPaths = new Set([
 const normalizedPath = () => window.location.pathname.replace(/\/$/, "") || "/";
 
 function App() {
-  const [pathname, setPathname] = useState(normalizedPath);
+  const [pathname, setPathname] = useState(() => {
+    consumeAdminTabLogin();
+    return normalizedPath();
+  });
   const [collectorVisited, setCollectorVisited] = useState(() => normalizedPath() === "/admin/collector");
   useEffect(() => {
     const navigate = () => {
@@ -1283,9 +1287,18 @@ function App() {
       navigate();
       window.scrollTo({ top: 0, behavior: "instant" });
     };
+    const prepareNewTab = (event: MouseEvent) => {
+      if (event.type !== "contextmenu" && event.button !== 1 && !event.ctrlKey && !event.metaKey && !event.shiftKey) return;
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+      if (link && adminPaths.has(normalizedPath())) prepareAdminTabLogin(link);
+    };
+    document.addEventListener("pointerdown", prepareNewTab);
+    document.addEventListener("contextmenu", prepareNewTab);
     document.addEventListener("click", onClick);
     window.addEventListener("popstate", navigate);
     return () => {
+      document.removeEventListener("pointerdown", prepareNewTab);
+      document.removeEventListener("contextmenu", prepareNewTab);
       document.removeEventListener("click", onClick);
       window.removeEventListener("popstate", navigate);
     };
