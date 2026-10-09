@@ -66,7 +66,7 @@
     <header class="site-header">
       <div class="site-header-inner">
         <a class="brand" href="/" data-scroll-target="top">PriceTrack <span>PH</span></a>
-        <nav class="site-nav" aria-label="Primary navigation">
+        <nav class="site-nav" id="primary-navigation" aria-label="Primary navigation">
           <a href="/watchlist">Watchlist</a>
           <a href="/" data-scroll-target="top">How it works</a>
           <a href="#extension" data-scroll-target="extension">Extension</a>
@@ -75,6 +75,9 @@
           <button class="theme-switch" id="theme-toggle" type="button" aria-label="Toggle light and dark mode">
             <span data-theme-label="light">☀ Light</span>
             <span data-theme-label="dark">☾ Dark</span>
+          </button>
+          <button class="mobile-nav-toggle" id="mobile-nav-toggle" type="button" aria-label="Open navigation" aria-controls="primary-navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
           </button>
         </div>
       </div>
@@ -100,6 +103,28 @@
 
           apply(document.documentElement.dataset.theme || "light");
         }
+
+        const menuToggle = document.getElementById("mobile-nav-toggle");
+        const navigation = document.getElementById("primary-navigation");
+        const setMenuOpen = (open) => {
+          navigation.classList.toggle("mobile-nav-open", open);
+          menuToggle.setAttribute("aria-expanded", String(open));
+          menuToggle.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
+        };
+        menuToggle.addEventListener("click", () => setMenuOpen(menuToggle.getAttribute("aria-expanded") !== "true"));
+        navigation.addEventListener("click", (event) => {
+          if (event.target.closest("a")) setMenuOpen(false);
+        });
+        document.addEventListener("click", (event) => {
+          if (!navigation.contains(event.target) && !menuToggle.contains(event.target)) setMenuOpen(false);
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && menuToggle.getAttribute("aria-expanded") === "true") {
+            setMenuOpen(false);
+            menuToggle.focus();
+          }
+        });
+        window.matchMedia("(max-width: 820px)").addEventListener("change", () => setMenuOpen(false));
 
         document.querySelectorAll("[data-scroll-target]").forEach((link) => {
           link.addEventListener("click", (event) => {
