@@ -37,6 +37,9 @@
 .watchlist-kicker{color:#00b995;font-size:12px;font-weight:800;letter-spacing:.16em}
 .watchlist-heading h1{margin:7px 0 8px;font-size:clamp(32px,5vw,56px);letter-spacing:-.04em;line-height:1.15}
 .watchlist-heading p{margin:0;color:#66736d;line-height:1.5}
+.watchlist-heading-notes{margin-top:16px;font-size:14px}
+.watchlist-heading-notes p+p{margin-top:10px}
+.watchlist-heading-notes strong{color:inherit}
 html[data-theme="dark"] .watchlist-heading{color:#f3f5f4}
 html[data-theme="dark"] .watchlist-heading p{color:#aeb6b2}
 html[data-theme="dark"] .watchlist-kicker{color:#11d4aa}
