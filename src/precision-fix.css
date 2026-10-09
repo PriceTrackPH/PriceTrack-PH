@@ -672,3 +672,15 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
   .site-nav.mobile-nav-open a:hover{background:var(--surface-muted)}
 }
 @media(max-width:360px){.site-header-inner{gap:6px}.site-header .brand{font-size:15px}.header-actions{gap:5px}.mobile-nav-toggle{width:36px}}
+
+/* Exact mint accents across the marked public and settings elements. */
+html .site-header .brand span,
+html .footer-main strong span,
+html .preview-card > strong em,
+html .section-label,
+html .trust-columns article > span,
+html .health-kicker { color: #00f8b9 !important; }
+html .admin-settings-link button,
+html .admin-settings-link button[aria-pressed="false"],
+html .health-ads-control button,
+html .admin-favorites button { background: #00f8b9; border-color: #00f8b9; }

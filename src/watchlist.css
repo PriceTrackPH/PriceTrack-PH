@@ -1,5 +1,5 @@
 .watchlist-page{max-width:1480px;margin:0 auto;padding:48px 24px 90px;min-height:70vh;color:var(--report-text,#f3f5f4)}.watchlist-top{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:28px;flex-wrap:wrap}.watchlist-top h1{font-size:34px;margin:0 0 8px}.watchlist-top p,.watchlist-empty p{color:var(--report-muted,#9fa7a7);margin:0}.watchlist-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.watchlist-tools input,.watchlist-tools select{background:var(--report-card,#1b2022);border:1px solid #343a3b;border-radius:10px;padding:12px;color:inherit;min-height:44px}.watchlist-tools input{width:260px}.watchlist-tools button,.watchlist-card-actions button{border:1px solid #343a3b;border-radius:9px;padding:12px 18px;background:transparent;color:inherit;cursor:pointer}.watchlist-tools .watchlist-clear{color:#ff6666;border-color:#a43131}.watchlist-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.watchlist-card{border:1px solid #303739;border-radius:14px;padding:16px;background:var(--report-card,#181d1f);min-width:0}.watchlist-card-body{display:flex;gap:16px;min-height:130px}.watchlist-card-body img,.watchlist-no-image{width:116px;height:116px;object-fit:contain;background:#fff;border-radius:10px;flex-shrink:0}.watchlist-no-image{display:grid;place-items:center;color:#777;font-size:12px}.watchlist-details{min-width:0;display:flex;flex-direction:column;gap:9px}.watchlist-details h2{font-size:16px;line-height:1.35;margin:0;overflow-wrap:anywhere}.watchlist-details strong{font-size:24px}.watchlist-details small{color:var(--report-muted,#9fa7a7);font-size:12px}.watchlist-card-actions{display:flex;gap:12px;margin-top:14px}.watchlist-card-actions a{flex:1;text-align:center;text-decoration:none;background:#1674f5;border-radius:9px;color:white;padding:12px 8px;font-weight:600;font-size:13px}.watchlist-card-actions button{font-size:13px}.watchlist-empty{border:1px solid #303739;border-radius:14px;text-align:center;padding:80px 24px}.watchlist-empty h2{margin:0 0 12px}.watchlist-empty a{display:inline-block;background:#1674f5;color:#fff;text-decoration:none;border-radius:9px;padding:12px 22px;margin-top:22px}@media(max-width:1050px){.watchlist-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.watchlist-page{padding:24px 14px 60px}.watchlist-grid{grid-template-columns:1fr}.watchlist-tools,.watchlist-tools input{width:100%}.watchlist-tools select{flex:1}.watchlist-card-body img,.watchlist-no-image{width:96px;height:96px}.watchlist-details strong{font-size:21px}}
-.watchlist-select{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;cursor:pointer}.watchlist-select input{width:18px;height:18px;accent-color:#11d4aa;cursor:pointer}
+.watchlist-select{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;cursor:pointer}.watchlist-select input{width:18px;height:18px;accent-color:#00f8b9;cursor:pointer}
 
 /* Keep dark watchlist surfaces readable in both page themes. */
 .watchlist-page{--report-text:#f3f5f4;--report-muted:#aeb6b2;--report-card:#181d1f}
@@ -42,9 +42,9 @@
 .watchlist-card-body img,.watchlist-no-image{align-self:flex-end}
 .watchlist-image{position:relative;align-self:flex-end;flex-shrink:0;width:116px;height:116px;border-radius:10px;overflow:hidden}
 .watchlist-image img{display:block}
-.watchlist-image.is-selected::after{content:"";position:absolute;inset:0;border-radius:10px;box-shadow:inset 0 0 0 3px #11d4aa;pointer-events:none}
+.watchlist-image.is-selected::after{content:"";position:absolute;inset:0;border-radius:10px;box-shadow:inset 0 0 0 3px #00f8b9;pointer-events:none}
 .watchlist-image.is-selectable{cursor:pointer}
-.watchlist-image-checkbox{position:absolute;top:8px;left:8px;z-index:1;margin:0;width:18px;height:18px;accent-color:#11d4aa;cursor:pointer}
+.watchlist-image-checkbox{position:absolute;top:8px;left:8px;z-index:1;margin:0;width:18px;height:18px;accent-color:#00f8b9;cursor:pointer}
 .watchlist-image-checkbox:focus-visible{outline:2px solid #6fffd9;outline-offset:2px}
 @media(max-width:650px){.watchlist-image{width:96px;height:96px}}
 .watchlist-details{flex:1;min-height:116px}
@@ -87,11 +87,13 @@ html:not([data-theme="dark"]) .watchlist-price-change.unchanged{color:#68657f;ba
 html[data-theme="dark"] .watchlist-page{--report-text:#f3f5f4;--watchlist-navy:#29235f;--watchlist-navy-text:#f5f2ff}
 .watchlist-card-actions a,.watchlist-empty a{background:var(--watchlist-action);color:var(--watchlist-action-text)}
 .watchlist-card-actions button,.watchlist-pagination button{background:var(--watchlist-navy);color:var(--watchlist-navy-text);border-color:var(--watchlist-navy)}
-.watchlist-tools select,.watchlist-tools button:not(.watchlist-clear){background:var(--watchlist-navy);color:var(--watchlist-navy-text);border-color:var(--watchlist-navy)}
+.watchlist-tools select,.watchlist-tools button:not(.watchlist-clear){background:#e6e6fa;color:#1b1844;border-color:#c7c7e8}
 html[data-theme="dark"] .watchlist-tools input:not([type="file"]){background:#e6e6fa;color:#211b5c;border-color:#c7c7e8}
 html[data-theme="dark"] .watchlist-tools input:not([type="file"])::placeholder{color:#625d85;opacity:1}
 html:not([data-theme="dark"]) .watchlist-card-actions a{background:var(--watchlist-action);color:var(--watchlist-action-text)}
 html:not([data-theme="dark"]) .watchlist-page{--watchlist-action:#00f8b9;--watchlist-action-text:#1b1844;--watchlist-navy:#1b1844}
 html[data-theme="dark"] .watchlist-page{--watchlist-action:#00f8b9;--watchlist-action-text:#1b1844;--watchlist-navy:#1b1844}
 html:not([data-theme="dark"]) .watchlist-card{background:rgba(230,230,250,.5);border-radius:12px;padding:8px}
-.watchlist-tools select{appearance:none;box-sizing:border-box;min-height:44px;padding:12px 38px 12px 16px;line-height:20px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%23f5f2ff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px 12px}
+.watchlist-tools select{appearance:none;box-sizing:border-box;min-height:44px;padding:12px 38px 12px 16px;line-height:20px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%231b1844' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px 12px}
+
+html .watchlist-kicker{color:#00f8b9}
