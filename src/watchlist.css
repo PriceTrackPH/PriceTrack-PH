@@ -28,7 +28,8 @@
 .watchlist-tools input[hidden]{display:none}
 .watchlist-tools button:disabled{opacity:.5;cursor:default}
 .watchlist-backup-message{margin:0 0 16px;color:#6fffd9;font-size:14px;overflow-wrap:anywhere}
-.watchlist-pagination{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:24px;font-size:14px}
+.watchlist-footer{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px 24px;margin-top:24px;font-size:14px}
+.watchlist-pagination{display:flex;justify-content:center;align-items:center;gap:16px;font-size:14px}
 .watchlist-pagination button{border:1px solid #343a3b;border-radius:9px;padding:10px 16px;background:transparent;color:inherit;cursor:pointer}
 .watchlist-pagination button:disabled{opacity:.4;cursor:default}
 .watchlist-tools input{box-sizing:border-box;flex:1;min-width:180px;width:auto}

@@ -184,6 +184,9 @@ export default function Watchlist() {
           <div className="watchlist-card-actions"><a href={`/product/shopee/${p.external_shop_id}/${p.external_product_id}`}>View Price History</a><button onClick={() => remove(p.id)}>Remove</button></div>
         </article>;
       })}</div>}
-    {totalPages > 1 && <nav className="watchlist-pagination" aria-label="Watchlist pages"><button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</button><span aria-live="polite">Page {currentPage} of {totalPages}</span><button type="button" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>Next</button></nav>}
+    <footer className="watchlist-footer">
+      <span aria-live="polite">Total watchlisted: {saved.length}</span>
+      {totalPages > 1 && <nav className="watchlist-pagination" aria-label="Watchlist pages"><button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</button><span aria-live="polite">Page {currentPage} of {totalPages}</span><button type="button" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>Next</button></nav>}
+    </footer>
   </div></main>;
 }
