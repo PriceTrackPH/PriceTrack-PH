@@ -175,10 +175,10 @@ export default function Watchlist() {
         const change = price && price.previous !== null && price.previous > 0 ? (price.price - price.previous) / price.previous * 100 : null;
         return <article className="watchlist-card" key={String(p.id)}>
           <div className="watchlist-card-body">
-            <div className={`watchlist-image${selecting && selected.includes(String(p.id)) ? " is-selected" : ""}`}>
+            <label className={`watchlist-image${selecting ? " is-selectable" : ""}${selecting && selected.includes(String(p.id)) ? " is-selected" : ""}`}>
             {p.image_url ? <img src={p.image_url} alt="" loading="lazy" /> : <div className="watchlist-no-image">No image</div>}
-          {selecting && <label className="watchlist-select"><input type="checkbox" checked={selected.includes(String(p.id))} onChange={e => setSelected(ids => e.target.checked ? [...ids, String(p.id)] : ids.filter(id => id !== String(p.id)))} aria-label={`Select ${p.name}`} /></label>}
-            </div>
+          {selecting && <input className="watchlist-image-checkbox" type="checkbox" checked={selected.includes(String(p.id))} onChange={e => setSelected(ids => e.target.checked ? [...ids, String(p.id)] : ids.filter(id => id !== String(p.id)))} aria-label={`Select ${p.name}`} />}
+            </label>
             <div className="watchlist-details"><ProductTitle name={p.name} /><div className="watchlist-price-row"><strong>{price ? money.format(price.price) : "Price unavailable"}</strong>{price && <><span className={`watchlist-price-change ${change === null || change === 0 ? "unchanged" : change < 0 ? "down" : "up"}`} title="Compared with the previous recorded price of the same variation">{change === null ? "—" : `${change < 0 ? "↓ " : change > 0 ? "↑ " : ""}${Math.abs(change).toLocaleString("en-PH", {maximumFractionDigits: 1})}%`}</span></>}</div><small>{price ? "Last checked: " + new Date(price.checked).toLocaleString("en-PH", {timeZone:"Asia/Manila"}) : "Open price history for latest details"}</small></div>
           </div>
           <div className="watchlist-card-actions"><a href={`/product/shopee/${p.external_shop_id}/${p.external_product_id}`}>View Price History</a><button onClick={() => remove(p.id)}>Remove</button></div>
