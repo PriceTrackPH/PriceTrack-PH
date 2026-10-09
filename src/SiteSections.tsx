@@ -61,6 +61,7 @@ function SiteSections() {
   useEffect(() => {
     if (window.location.hash === "#extension") {
       document.getElementById("extension")?.scrollIntoView({ block: "start" });
+      history.replaceState(null, "", window.location.pathname + window.location.search);
     }
   }, []);
   const routeModal = () => {
