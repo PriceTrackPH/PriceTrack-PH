@@ -146,3 +146,10 @@ html:not([data-theme="dark"]) .watchlist-tools input:not([type="file"]){backgrou
   .watchlist-details>.watchlist-price-row>.watchlist-price-change{box-sizing:border-box;height:22px;line-height:1;align-items:center}
   .watchlist-details>small{grid-row:3;min-height:0;align-self:start}
 }
+
+@media(max-width:650px){
+  .watchlist-details{display:flex;flex-direction:column;height:88px;min-height:88px;gap:3px}
+  .watchlist-details>h2{align-self:stretch;flex:0 1 auto;min-height:0;max-height:40px;line-height:1.1;margin:0}
+  .watchlist-details>.watchlist-price-row{flex:0 0 22px;align-self:stretch;height:22px}
+  .watchlist-details>small{margin-top:auto;align-self:stretch;flex-shrink:0;line-height:11px}
+}
