@@ -28,6 +28,10 @@
 .watchlist-details{gap:7px}
 .watchlist-details h2{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
 .watchlist-card-actions{margin-top:auto;padding-top:12px}
+.watchlist-card-body img,.watchlist-no-image{align-self:flex-end}
+.watchlist-details{flex:1;min-height:116px}
+.watchlist-details small{margin-top:auto;line-height:1.25}
+@media(max-width:650px){.watchlist-details{min-height:96px}}
 
 .watchlist-heading{box-sizing:border-box;width:min(1160px,calc(100% - 40px));margin:0 auto 28px;color:var(--text,#18201d)}
 .watchlist-kicker{color:#00b995;font-size:12px;font-weight:800;letter-spacing:.16em}

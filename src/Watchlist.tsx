@@ -1,10 +1,30 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./lib/supabase";
 import "./watchlist.css";
 
 type SavedProduct = { id: string | number; name: string; image_url: string | null; external_shop_id: string; external_product_id: string; added_at: string };
 type PriceInfo = { price: number; checked: string; previous: number | null };
 const STORAGE_KEY = "pricetrack-watchlist-v1";
+function ProductTitle({ name }: { name: string }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  useLayoutEffect(() => {
+    const heading = ref.current;
+    if (!heading) return;
+    const fit = () => {
+      heading.style.webkitLineClamp = "unset";
+      for (let size = 16; size >= 12; size--) {
+        heading.style.fontSize = `${size}px`;
+        if (heading.scrollHeight <= size * 1.35 * 3 + 1) break;
+      }
+      heading.style.webkitLineClamp = "3";
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    if (heading.parentElement) observer.observe(heading.parentElement);
+    return () => observer.disconnect();
+  }, [name]);
+  return <h2 ref={ref} title={name}>{name}</h2>;
+}
 function readSaved(): SavedProduct[] {
   try {
     const data: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -106,7 +126,7 @@ export default function Watchlist() {
           {selecting && <label className="watchlist-select"><input type="checkbox" checked={selected.includes(String(p.id))} onChange={e => setSelected(ids => e.target.checked ? [...ids, String(p.id)] : ids.filter(id => id !== String(p.id)))} aria-label={`Select ${p.name}`} />Select product</label>}
           <div className="watchlist-card-body">
             {p.image_url ? <img src={p.image_url} alt="" loading="lazy" /> : <div className="watchlist-no-image">No image</div>}
-            <div className="watchlist-details"><h2 title={p.name}>{p.name}</h2><div className="watchlist-price-row"><strong>{price ? money.format(price.price) : "Price unavailable"}</strong>{price && <><span className={`watchlist-price-change ${change === null || change === 0 ? "unchanged" : change < 0 ? "down" : "up"}`} title="Compared with the previous recorded price of the same variation">{change === null ? "—" : `${change < 0 ? "↓ " : change > 0 ? "↑ " : ""}${Math.abs(change).toLocaleString("en-PH", {maximumFractionDigits: 1})}%`}</span></>}</div><small>{price ? "Last checked: " + new Date(price.checked).toLocaleString("en-PH", {timeZone:"Asia/Manila"}) : "Open price history for latest details"}</small></div>
+            <div className="watchlist-details"><ProductTitle name={p.name} /><div className="watchlist-price-row"><strong>{price ? money.format(price.price) : "Price unavailable"}</strong>{price && <><span className={`watchlist-price-change ${change === null || change === 0 ? "unchanged" : change < 0 ? "down" : "up"}`} title="Compared with the previous recorded price of the same variation">{change === null ? "—" : `${change < 0 ? "↓ " : change > 0 ? "↑ " : ""}${Math.abs(change).toLocaleString("en-PH", {maximumFractionDigits: 1})}%`}</span></>}</div><small>{price ? "Last checked: " + new Date(price.checked).toLocaleString("en-PH", {timeZone:"Asia/Manila"}) : "Open price history for latest details"}</small></div>
           </div>
           <div className="watchlist-card-actions"><a href={`/product/shopee/${p.external_shop_id}/${p.external_product_id}`}>View Price History</a><button onClick={() => remove(p.id)}>Remove</button></div>
         </article>;
