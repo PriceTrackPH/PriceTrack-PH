@@ -5,6 +5,13 @@ import "./watchlist.css";
 type SavedProduct = { id: string | number; name: string; image_url: string | null; external_shop_id: string; external_product_id: string; added_at: string };
 type PriceInfo = { price: number; checked: string; previous: number | null };
 const STORAGE_KEY = "pricetrack-watchlist-v1";
+const SORT_KEY = "pricetrack-watchlist-sort";
+function readSort() {
+  try {
+    const value = localStorage.getItem(SORT_KEY);
+    return value && ["recent", "name", "price-low", "price-high", "drop", "rise"].includes(value) ? value : "recent";
+  } catch { return "recent"; }
+}
 function ProductTitle({ name }: { name: string }) {
   const ref = useRef<HTMLHeadingElement>(null);
   useLayoutEffect(() => {
@@ -40,7 +47,10 @@ const money = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP
 export default function Watchlist() {
   const [saved, setSaved] = useState(readSaved);
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("recent");
+  const [sort, setSort] = useState(readSort);
+  useEffect(() => {
+    try { localStorage.setItem(SORT_KEY, sort); } catch { /* Keep sorting usable if browser storage is unavailable. */ }
+  }, [sort]);
   const [page, setPage] = useState(1);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
