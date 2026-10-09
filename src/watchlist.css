@@ -9,3 +9,9 @@
 .watchlist-price-change.down{color:#6fffd9;background:#103e32;border-color:#236b55}
 .watchlist-price-change.up{color:#ffb2b2;background:#482527;border-color:#874346}
 .watchlist-price-change.unchanged{color:#d5dcda;background:#2b3330;border-color:#4c5953}
+
+/* One shared surface for the heading, controls, and all saved products. */
+.watchlist-page{background:#181d1f;border:1px solid #303739;border-radius:14px;margin:32px auto 60px;padding:28px 24px;min-height:0;width:calc(100% - 48px)}
+.watchlist-top{background:transparent;border:0;border-radius:0;padding:0}
+.watchlist-card{background:transparent;border:0;border-radius:0}
+@media(max-width:650px){.watchlist-page{width:calc(100% - 28px);margin:20px auto 40px;padding:20px 14px}.watchlist-card+ .watchlist-card{border-top:1px solid #303739}}
