@@ -719,7 +719,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
         let status: { completed: boolean; soldOut: boolean; recheckAt: string | null; samePrice: boolean; samePriceRecheckAt: string | null };
         try {
           status = await api<typeof status>("status",
-          { claimSource: product.claimSource, nqCycleMode: product.nqCycleMode, backlogId: backlogId.current, ...(product.productId === null
+          { claimSource: product.claimSource, queueRequestId: product.queueRequestId, nqCycleMode: product.nqCycleMode, backlogId: backlogId.current, ...(product.productId === null
             ? { shopId: product.shopId, externalProductId: product.externalProductId }
             : { productId: product.productId }), skipUnchangedDay: skipUnchangedDay, skipSoldOut: skipSoldOut },
           Math.max(1, Math.min(10_000, COLLECTOR_PRODUCT_WAIT_MS - (Date.now() - productWaitStartedAt))),

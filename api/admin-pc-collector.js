@@ -846,6 +846,22 @@ export default async function handler(req, res) {
     }
 
     if (action === "status") {
+      if (req.body?.claimSource === "priority" && UUID_V4.test(String(req.body?.queueRequestId || ""))) {
+        const params = new URLSearchParams({
+          select: "one_time,status", request_id: `eq.${req.body.queueRequestId}`, limit: "1",
+        });
+        const response = await fetch(`${supabaseUrl}/rest/v1/public_collection_requests?${params}`, {
+          headers: adminHeaders(secret),
+        });
+        if (!response.ok) throw new Error(`priority_confirmation_${response.status}`);
+        const [request] = await response.json();
+        // The Firefox check may already be successful today. A one-time job is
+        // confirmed only when its leased desktop recording completes the queue.
+        if (request?.one_time && request.status !== "completed") {
+          return send(res, 200, { ok: true, completed: false, checkedAt: null,
+            soldOut: false, recheckAt: null, samePrice: false, samePriceRecheckAt: null });
+        }
+      }
       const skipUnchangedDay = req.body?.skipUnchangedDay === true;
       const skipSoldOut = req.body?.skipSoldOut !== false;
       const requestedCheckDate = String(req.body?.checkedDate || "");

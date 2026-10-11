@@ -7,6 +7,7 @@ import {
   variationStatesMatchPrevious,
 } from "./observation-policy.ts";
 import { completeCollectionQueues } from "./queue-completion.ts";
+import { enqueueFirefoxRecording, shouldQueueFirefoxRecording } from "./firefox-priority.ts";
 
 const cors = {
   "access-control-allow-origin": "*",
@@ -546,11 +547,20 @@ Deno.serve(async (request: Request) => {
       console.error("Daily check update failed", await markCheckResponse.text());
     }
     if (shouldCompleteQueue(checkStatus, markCheckResponse.ok)) {
-      const completionFailures = await completeCollectionQueues(fetch, supabaseUrl, adminHeaders(secret), {
-        platform: "shopee", shopId, productId,
-      });
-      for (const failure of completionFailures) {
-        console.error("Collection queue completion failed", failure.queue, failure.status);
+      if (shouldQueueFirefoxRecording(request.headers.get("user-agent") || "", requestedSource, body.isAdminCollector === true)) {
+        const queueResponse = await enqueueFirefoxRecording(fetch, supabaseUrl, adminHeaders(secret), {
+          shopId, productId, canonicalUrl,
+        });
+        if (!queueResponse.ok) {
+          console.error("Firefox Priority Queue handoff failed", queueResponse.status);
+        }
+      } else {
+        const completionFailures = await completeCollectionQueues(fetch, supabaseUrl, adminHeaders(secret), {
+          platform: "shopee", shopId, productId,
+        });
+        for (const failure of completionFailures) {
+          console.error("Collection queue completion failed", failure.queue, failure.status);
+        }
       }
     }
 
