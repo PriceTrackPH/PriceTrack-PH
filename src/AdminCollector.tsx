@@ -523,11 +523,16 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
       const data = event.data;
       if (data?.source !== "pricetrack-ph-collector-product" || data?.type !== "product-outcome") return;
       const product = activeProduct.current;
-      if (!product || data.shopId !== product.shopId || data.externalProductId !== product.externalProductId) return;
+      if (!product) return;
+      if (data.outcome !== "account_restricted" && (data.shopId !== product.shopId || data.externalProductId !== product.externalProductId)) return;
       if (!["does_not_exist", "unlisted", "page_error", "verification", "account_restricted"].includes(data.outcome)) return;
       currentPageOutcome.current = data.outcome;
       if (data.outcome === "account_restricted") {
         stopped.current = true;
+        pauseCollectionRequested.current = false;
+        setPauseRequested(false);
+        setRunning(false);
+        void clearReservations();
         setMessage("Shopee account temporarily restricted — collection stopped");
         return;
       }

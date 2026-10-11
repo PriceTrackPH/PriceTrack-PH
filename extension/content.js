@@ -99,6 +99,23 @@ function storageSet(key, value) {
   return new Promise(resolve => chrome.storage.local.set({ [key]: value }, resolve));
 }
 
+// Stop the collector on an account restriction, including non-product redirects.
+let collectorRestrictionReported = false;
+function reportCollectorAccountRestriction() {
+  if (collectorRestrictionReported || window.name !== "ptph-admin-collector" || !window.opener) return;
+  const text = String(document.body?.innerText || "").replace(/\s+/g, " ").toLowerCase();
+  if (!/your account has been (?:temporarily )?restricted due to automated tools detected/.test(text)) return;
+  collectorRestrictionReported = true;
+  window.opener.postMessage({
+    source: "pricetrack-ph-collector-product", type: "product-outcome",
+    outcome: "account_restricted",
+  }, PRICETRACK_SITE);
+}
+if (window.name === "ptph-admin-collector") {
+  new MutationObserver(reportCollectorAccountRestriction).observe(document, { childList: true, subtree: true, characterData: true });
+  reportCollectorAccountRestriction();
+}
+
 function reportCollectorPageOutcome(outcome, ids) {
   if (!outcome || window.name !== "ptph-admin-collector" || !window.opener) return;
   window.opener.postMessage({
