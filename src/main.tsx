@@ -25,7 +25,12 @@ import "./report-ad.css";
 import { startPriorityQueueAlerts } from "./priority-queue-alerts";
 
 if (/^\/admin(?:\/|$)/.test(window.location.pathname)) {
-  document.querySelector('.site-nav a[data-scroll-target="extension"]')?.remove();
+  const adminLink = document.querySelector<HTMLAnchorElement>('.site-nav a[data-scroll-target="extension"]');
+  if (adminLink) {
+    adminLink.textContent = "Affiliate";
+    adminLink.href = "/admin/affiliate";
+    adminLink.removeAttribute("data-scroll-target");
+  }
 }
 
 createRoot(document.getElementById("root")!).render(
