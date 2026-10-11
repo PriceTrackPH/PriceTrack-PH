@@ -171,6 +171,8 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
   const [includePersonalQueue, setIncludePersonalQueue] = useState(() => localStorage.getItem(includePersonalQueueStorageKey) === "true");
   const [cooldownUntil, setCooldownUntil] = useState(() => Number(localStorage.getItem(cooldownStorageKey)) || 0);
   const [cooldownSeconds, setCooldownSeconds] = useState(() => cooldownSecondsRemaining(Number(localStorage.getItem(cooldownStorageKey)) || 0, Date.now()));
+  const [pauseRequested, setPauseRequested] = useState(false);
+  const pauseCollectionRequested = useRef(false);
   const stopped = useRef(true);
   const stopRequested = useRef(false);
   const stopRequestedAt = useRef<number | null>(null);
@@ -638,14 +640,14 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
   }
 
   function refillReservations() {
-    if (reservationFill.current || stopped.current || stopRequested.current) return;
+    if (reservationFill.current || stopped.current || stopRequested.current || pauseCollectionRequested.current) return;
     const generation = reservationGeneration.current;
     reservationFill.current = (async () => {
-      while (!stopped.current && !stopRequested.current && generation === reservationGeneration.current
+      while (!stopped.current && !stopRequested.current && !pauseCollectionRequested.current && generation === reservationGeneration.current
         && reservedProducts.current.length + (activeProduct.current ? 1 : 0) < 4) {
         const { product } = await api<{ product: CollectorProduct | null }>("claim", reservationPayload());
         if (!product) break;
-        if (stopped.current || stopRequested.current || generation !== reservationGeneration.current) {
+        if (stopped.current || stopRequested.current || pauseCollectionRequested.current || generation !== reservationGeneration.current) {
           await releaseReservation(product);
           break;
         }
@@ -681,6 +683,12 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
     let consecutiveFailures = 0;
     let consecutiveClaimErrors = 0;
     while (!stopped.current && !stopRequested.current) {
+      if (pauseCollectionRequested.current) {
+        await clearReservations();
+        setMessage("Collection paused — resume to continue this run");
+        while (pauseCollectionRequested.current && !stopped.current && !stopRequested.current) await wait(250);
+        if (stopped.current || stopRequested.current) break;
+      }
       const today = manilaDate();
       if (today !== runManilaDate.current) {
         await clearReservations();
@@ -721,6 +729,10 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
       if (stopped.current || stopRequested.current) {
         if (product) await releaseReservation(product);
         break;
+      }
+      if (pauseCollectionRequested.current) {
+        if (product) await releaseReservation(product);
+        continue;
       }
       if (!product) {
         if (backlogId.current) {
@@ -917,6 +929,8 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
     if (!opened) { setMessage("Allow pop-ups for PriceTrack PH, then click Start collection again."); return; }
     productTab.current = opened;
     stopped.current = false;
+    pauseCollectionRequested.current = false;
+    setPauseRequested(false);
     stopRequested.current = false;
     stopRequestedAt.current = null;
     attemptedProductIds.current.clear();
@@ -972,11 +986,28 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
       }
     } finally {
       stopped.current = true;
+      pauseCollectionRequested.current = false;
+      setPauseRequested(false);
       await clearReservations();
     }
   }
 
+  function toggleCollectionPause() {
+    if (stopped.current || stopRequested.current) return;
+    const next = !pauseCollectionRequested.current;
+    pauseCollectionRequested.current = next;
+    setPauseRequested(next);
+    if (next) {
+      void clearReservations();
+      setMessage(activeProduct.current
+        ? "Pausing after the current product finishes"
+        : "Collection paused — resume to continue this run");
+    } else setMessage(activeProduct.current ? "Recording current product…" : "Resuming collection…");
+  }
+
   async function stopCollection() {
+    pauseCollectionRequested.current = false;
+    setPauseRequested(false);
     if (activeProduct.current) {
       stopRequested.current = true;
       void clearReservations();
@@ -1087,6 +1118,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
         <div className="admin-collector-actions">
           <button type="button" onClick={() => void startCollection("normal")} disabled={running || cooldownSeconds > 0 || !summaryFresh}>Start collection</button>
           <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
+          <button type="button" onClick={toggleCollectionPause} disabled={!running} aria-pressed={pauseRequested}>{pauseRequested ? "Resume Collection" : "Pause Collection"}</button>
           <button type="button" onClick={() => void startCollection("unlimited")} disabled={running || !summaryFresh}>Start unlimited collection</button>
         </div>
         <div className="admin-collector-queue-options" role="group" aria-label="Collection options">

@@ -8,7 +8,7 @@ function setup(api) {
   const ref = (current) => ({ current });
   const context = {
     reservedProducts: ref([]), reservationFill: ref(null), reservationGeneration: ref(0),
-    activeProduct: ref(null), stopped: ref(false), stopRequested: ref(false),
+    activeProduct: ref(null), stopped: ref(false), stopRequested: ref(false), pauseCollectionRequested: ref(false),
     nqCycle: ref({ recorded: 0, lowDone: false }), backlogId: ref(null),
     attemptedProductIds: ref(new Set()), attemptedQueueRequestIds: ref(new Set()), attemptedStoreRequestIds: ref(new Set()),
     lastClaimedShopId: ref(null), nonPriorityCadence: ref(0),
@@ -64,4 +64,20 @@ test('expired reservation is released rather than opened', async () => {
   s.reservedProducts.current.push({ ...product(1), leaseUntil: new Date(0).toISOString() });
   assert.equal((await s.takeReservedProduct()).productId, 2);
   assert.deepEqual(released, [1]);
+});
+
+test('pause releases an in-flight reservation and prevents refill', async () => {
+  let resolveClaim; let calls = 0; const released = [];
+  const s = setup(async (action, body) => {
+    if (action === 'release') { released.push(body.productId); return {}; }
+    calls += 1;
+    return new Promise((resolve) => { resolveClaim = resolve; });
+  });
+  s.refillReservations();
+  s.pauseCollectionRequested.current = true;
+  resolveClaim({ product: product(3) }); await s.reservationFill.current;
+  s.refillReservations();
+  assert.equal(calls, 1);
+  assert.deepEqual(released, [3]);
+  assert.equal(s.reservedProducts.current.length, 0);
 });
