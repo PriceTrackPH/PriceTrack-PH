@@ -141,6 +141,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
   const [backlog, setBacklog] = useState<CollectorBacklog | null>(null);
   const backlogId = useRef<string | null>(null);
   const [running, setRunning] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [message, setMessage] = useState("Opening collector…");
   const [currentProduct, setCurrentProduct] = useState<CollectorProduct | null>(null);
   const [favoriteSaving, setFavoriteSaving] = useState(false);
@@ -358,6 +359,15 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
       document.body.classList.remove("admin-page-active");
     };
   }, []);
+
+  useEffect(() => {
+    if (!running) return;
+    const updateElapsed = () => setElapsedSeconds(startedAt.current
+      ? Math.max(0, Math.floor((Date.now() - Date.parse(startedAt.current)) / 1000)) : 0);
+    updateElapsed();
+    const timer = window.setInterval(updateElapsed, 1000);
+    return () => { window.clearInterval(timer); updateElapsed(); };
+  }, [running]);
 
   useEffect(() => {
     if (!cooldownUntil) return;
@@ -942,6 +952,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
     succeededCount.current = 0; failedCount.current = 0;
     soldOutCount.current = 0; recheckAt.current = null;
     samePriceCount.current = 0; samePriceRecheckAt.current = null;
+    setElapsedSeconds(0);
     startedAt.current = new Date().toISOString();
     runId.current = crypto.randomUUID();
     collectionMode.current = mode;
@@ -1217,7 +1228,10 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
           </div>
         </div>
         {favoriteNotice && <p className="admin-collector-remote-notice" role="status">{favoriteNotice}</p>}
-        <p className="admin-collector-note">Keep this page and the dedicated Shopee tab open. Complete Shopee verification manually if it appears.</p>
+        <div className="admin-collector-run-footer">
+          <p className="admin-collector-note">Keep this page and the dedicated Shopee tab open. Complete Shopee verification manually if it appears.</p>
+          {startedAt.current && <span className="admin-collector-elapsed" aria-label="Elapsed collection time">{Math.floor(elapsedSeconds / 3600)}h {Math.floor((elapsedSeconds % 3600) / 60)}m {elapsedSeconds % 60}s</span>}
+        </div>
         {remoteNotice && <p className="admin-collector-remote-notice" role="status">{remoteNotice}</p>}
       </section>
       <section className="health-events admin-collector-history">

@@ -672,3 +672,7 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
   .site-nav.mobile-nav-open a:hover{background:var(--surface-muted)}
 }
 @media(max-width:360px){.site-header-inner{gap:6px}.site-header .brand{font-size:15px}.header-actions{gap:5px}.mobile-nav-toggle{width:36px}}
+
+.admin-collector-run-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.admin-collector-run-footer .admin-collector-note { flex: 1; min-width: 240px; }
+.admin-collector-elapsed { margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text); }
