@@ -176,6 +176,9 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
   const stopRequestedAt = useRef<number | null>(null);
   const productTab = useRef<Window | null>(null);
   const activeProduct = useRef<CollectorProduct | null>(null);
+  const reservedProducts = useRef<CollectorProduct[]>([]);
+  const reservationFill = useRef<Promise<void> | null>(null);
+  const reservationGeneration = useRef(0);
   const attemptedProductIds = useRef(new Set<number>());
   const attemptedQueueRequestIds = useRef(new Set<string>());
   const attemptedStoreRequestIds = useRef(new Set<string>());
@@ -560,6 +563,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
   }
 
   async function finishRun(status: CollectorRun["stopStatus"]) {
+    await clearReservations();
     if (!runId.current || !startedAt.current) return;
     const stoppedAt = new Date().toISOString();
     const run: CollectorRun = {
@@ -596,12 +600,90 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
     localStorage.setItem(nqCycleStorageKey, JSON.stringify(nqCycle.current));
   }
 
+  function reservationPayload(urgentOnly = false) {
+    const queued = reservedProducts.current;
+    let projectedCycle = nqCycle.current;
+    for (const product of [...(activeProduct.current ? [activeProduct.current] : []), ...queued]) {
+      if (product.claimSource === "random" && !backlogId.current) projectedCycle = advanceNqCycle(projectedCycle, product);
+    }
+    return {
+        attemptedProductIds: [...attemptedProductIds.current, ...queued.flatMap((p) => p.productId === null ? [] : [p.productId])],
+        attemptedQueueRequestIds: [...attemptedQueueRequestIds.current, ...queued.flatMap((p) => p.claimSource === "priority" && p.queueRequestId ? [p.queueRequestId] : [])],
+        attemptedStoreRequestIds: [...attemptedStoreRequestIds.current, ...queued.flatMap((p) => p.claimSource === "store" && p.queueRequestId ? [p.queueRequestId] : [])],
+        lastShopId: queued.at(-1)?.shopId || lastClaimedShopId.current,
+        includeStoreImports: !urgentOnly && includeStoreImports,
+        skipUnchangedDay,
+        backlogId: urgentOnly ? null : backlogId.current,
+        includeNormalQueue: !urgentOnly && includeNormalQueue,
+        includePriorityQueue,
+        includePersonalQueue,
+        skipSoldOut,
+        preferredSource: nextNonPrioritySource(nonPriorityCadence.current + (activeProduct.current && activeProduct.current.claimSource !== "priority" ? 1 : 0) + queued.filter((p) => p.claimSource !== "priority").length),
+        nqCycleMode: backlogId.current ? null : nqCycleMode(projectedCycle),
+        };
+  }
+
+  async function releaseReservation(product: CollectorProduct) {
+    await api("release", {
+      claimSource: product.claimSource, queueRequestId: product.queueRequestId,
+      productId: product.productId, leaseUntil: product.leaseUntil,
+    }).catch(() => undefined);
+  }
+
+  async function clearReservations() {
+    reservationGeneration.current += 1;
+    const unused = reservedProducts.current.splice(0);
+    await Promise.allSettled(unused.map(releaseReservation));
+    await reservationFill.current;
+  }
+
+  function refillReservations() {
+    if (reservationFill.current || stopped.current || stopRequested.current) return;
+    const generation = reservationGeneration.current;
+    reservationFill.current = (async () => {
+      while (!stopped.current && !stopRequested.current && generation === reservationGeneration.current
+        && reservedProducts.current.length + (activeProduct.current ? 1 : 0) < 4) {
+        const { product } = await api<{ product: CollectorProduct | null }>("claim", reservationPayload());
+        if (!product) break;
+        if (stopped.current || stopRequested.current || generation !== reservationGeneration.current) {
+          await releaseReservation(product);
+          break;
+        }
+        reservedProducts.current.push(product);
+      }
+    })().catch(() => undefined).finally(() => { reservationFill.current = null; });
+  }
+
+  async function takeReservedProduct() {
+    // Finish any in-flight claim before checking precedence or consuming its result.
+    await reservationFill.current;
+    if (stopped.current || stopRequested.current) return null;
+    const expired = reservedProducts.current.filter((product) => Date.parse(product.leaseUntil) <= Date.now() + 30_000);
+    reservedProducts.current = reservedProducts.current.filter((product) => Date.parse(product.leaseUntil) > Date.now() + 30_000);
+    await Promise.allSettled(expired.map(releaseReservation));
+    const priorityIndex = reservedProducts.current.findIndex((product) => product.claimSource === "priority");
+    if (priorityIndex >= 0) return reservedProducts.current.splice(priorityIndex, 1)[0];
+    const first = reservedProducts.current[0];
+    if (first && first.claimSource !== "priority" && (includePriorityQueue || includePersonalQueue)) {
+      // Keep room for an urgent claim within the four-product reservation limit.
+      if (reservedProducts.current.length >= 4) await releaseReservation(reservedProducts.current.pop()!);
+      const { product } = await api<{ product: CollectorProduct | null }>("claim", reservationPayload(true));
+      if (product) return product;
+      const favoriteIndex = reservedProducts.current.findIndex((product) => product.claimSource === "personal");
+      if (favoriteIndex >= 0) return reservedProducts.current.splice(favoriteIndex, 1)[0];
+    }
+    if (first) return reservedProducts.current.shift()!;
+    const { product } = await api<{ product: CollectorProduct | null }>("claim", reservationPayload());
+    return product;
+  }
+
   async function runCollection() {
     let consecutiveFailures = 0;
     let consecutiveClaimErrors = 0;
     while (!stopped.current && !stopRequested.current) {
       const today = manilaDate();
       if (today !== runManilaDate.current) {
+        await clearReservations();
         runManilaDate.current = today;
         resetDailyRunCounters();
         applySummary(await api<CollectorSummary & { ok: boolean }>("summary"));
@@ -613,28 +695,16 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
         // backlog association until its outcome has been recorded.
         const batchEnabled = localStorage.getItem(finishDueProductsStorageKey) === "true";
         if (batchEnabled && includeNormalQueue && !backlogId.current) {
+          await clearReservations();
           const { backlog: saved } = await api<{ backlog: CollectorBacklog | null }>("backlog-begin");
           if (!saved) throw new Error("Unable to start Batch; retrying selection.");
           backlogId.current = saved.id;
           setBacklog(saved);
-        } else if (!batchEnabled) {
+        } else if (!batchEnabled && backlogId.current) {
+          await clearReservations();
           backlogId.current = null;
         }
-        claim = await api<{ product: CollectorProduct | null }>("claim", {
-        attemptedProductIds: [...attemptedProductIds.current],
-        attemptedQueueRequestIds: [...attemptedQueueRequestIds.current],
-        attemptedStoreRequestIds: [...attemptedStoreRequestIds.current],
-        lastShopId: lastClaimedShopId.current,
-        includeStoreImports: includeStoreImports,
-        skipUnchangedDay,
-        backlogId: backlogId.current,
-        includeNormalQueue,
-        includePriorityQueue,
-        includePersonalQueue,
-        skipSoldOut,
-        preferredSource: nextNonPrioritySource(nonPriorityCadence.current),
-        nqCycleMode: backlogId.current ? null : nqCycleMode(nqCycle.current),
-        });
+        claim = { product: await takeReservedProduct() };
         consecutiveClaimErrors = 0;
       } catch (cause) {
         if ((cause as { code?: string })?.code === "AUTH_EXPIRED") throw cause;
@@ -648,6 +718,10 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
         if (retryProduct) claim = await api<{ product: CollectorProduct | null }>("reclaim", { product: retryProduct });
       }
       const product = claim.product;
+      if (stopped.current || stopRequested.current) {
+        if (product) await releaseReservation(product);
+        break;
+      }
       if (!product) {
         if (backlogId.current) {
           const { backlog: progress } = await api<{ backlog: CollectorBacklog | null }>("backlog-status");
@@ -663,6 +737,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
       if (product.queueRequestId !== null && product.claimSource === "priority") attemptedQueueRequestIds.current.add(product.queueRequestId);
       if (product.queueRequestId !== null && product.claimSource === "store") attemptedStoreRequestIds.current.add(product.queueRequestId);
       activeProduct.current = product;
+      refillReservations();
       currentPageOutcome.current = null;
       setCurrentProduct(product);
       setMessage(`Opening ${product.shopId}.${product.externalProductId}`);
@@ -873,9 +948,11 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
       if (cause instanceof Error && (cause as Error & { code?: string }).code === "AUTH_EXPIRED") {
         stopped.current = true;
         setRunning(false);
+        await clearReservations();
         return;
       }
       stopped.current = true;
+      await clearReservations();
       setRunning(false);
       const errorMessage = cause instanceof Error ? cause.message : "Collector stopped.";
       checkpointRun("pending_finalization", "api_failure", "api_failure");
@@ -893,12 +970,16 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
       } catch {
         setMessage(`${errorMessage} Run finalization will retry when this page opens again.`);
       }
+    } finally {
+      stopped.current = true;
+      await clearReservations();
     }
   }
 
   async function stopCollection() {
     if (activeProduct.current) {
       stopRequested.current = true;
+      void clearReservations();
       stopRequestedAt.current = Date.now();
       setMessage("Stopping after the current product finishes");
       return;
