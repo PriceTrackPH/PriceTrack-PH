@@ -23,7 +23,16 @@ const AdminHealth = lazy(() => import("./AdminHealth"));
 const AdminCollector = lazy(() => import("./AdminCollector"));
 const AdminStoreScanner = lazy(() => import("./AdminStoreScanner"));
 
-type Product = Tables<"products"> & { collector_page_outcome?: string | null };
+type Product = Tables<"products"> & { collector_page_outcome?: string | null; total_sold?: number | null; review_count?: number | null; rating?: number | null };
+function RecordedProductMetrics({ product }: { product: Product | null }) {
+  const count = (value: number | null | undefined) => typeof value === "number" && Number.isFinite(value) && value >= 0;
+  return <>
+    {count(product?.total_sold) && <span className="report-product-metric"> · {product!.total_sold!.toLocaleString("en-PH")} sold</span>}
+    {count(product?.review_count) && <span className="report-product-metric"> · {product!.review_count!.toLocaleString("en-PH")} reviews</span>}
+    {typeof product?.rating === "number" && Number.isFinite(product.rating) && product.rating > 0 && product.rating <= 5 && <span className="report-product-metric" aria-label={`Rating ${product.rating} out of 5`}> · <span aria-hidden="true">★</span> {Number(product.rating.toFixed(2))} / 5</span>}
+  </>;
+}
+
 type Variation = Tables<"product_variations">;
 type Observation = Tables<"price_observations">;
 type RangeKey = "7D" | "30D" | "90D" | "ALL";
@@ -1056,11 +1065,11 @@ function ReportApp() {
                             </div>
                           )}
                         </div>
-                        <span ref={variationPriceRef}><span aria-hidden="true" style={{ display: variationPriceWrapped ? "none" : undefined }}>· </span>Public listed price</span>
+                        <span ref={variationPriceRef} className="report-price-context"><span aria-hidden="true" style={{ display: variationPriceWrapped ? "none" : undefined }}>· </span>Public listed price<RecordedProductMetrics product={product} /></span>
                       </div>
                     ) : (
                       <div className="variation-control single-listing-price">
-                        <span>Public listed price</span>
+                        <span className="report-price-context">Public listed price<RecordedProductMetrics product={product} /></span>
                       </div>
                     )}
 
