@@ -1155,8 +1155,8 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
       <section className="admin-collector-panel">
         <div className="admin-collector-actions">
           <button type="button" onClick={() => void startCollection("normal")} disabled={running || cooldownSeconds > 0 || !summaryFresh}>Start collection</button>
-          <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
           <button type="button" onClick={toggleCollectionPause} disabled={!running} aria-pressed={pauseRequested}>{pauseRequested ? "Resume Collection" : "Pause Collection"}</button>
+          <button type="button" onClick={() => void stopCollection()} disabled={!running}>Stop collection</button>
           <button type="button" onClick={() => void startCollection("unlimited")} disabled={running || !summaryFresh}>Start unlimited collection</button>
         </div>
         <div className="admin-collector-queue-options" role="group" aria-label="Collection options">
