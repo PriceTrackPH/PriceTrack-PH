@@ -50,6 +50,8 @@ type CollectorProduct = {
   leaseUntil: string;
   nqCycleMode?: "low" | "unavailable";
   nqCycleFallback?: boolean;
+  storeRoundReset?: boolean;
+  storeRoundNumber?: number;
 };
 
 type CollectorRun = {
@@ -179,6 +181,8 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
   const stopRequestedAt = useRef<number | null>(null);
   const productTab = useRef<Window | null>(null);
   const activeProduct = useRef<CollectorProduct | null>(null);
+  const normalRoundShops = useRef<Set<string>>(new Set());
+  const normalRoundNumber = useRef(0);
   const reservedProducts = useRef<CollectorProduct[]>([]);
   const reservationFill = useRef<Promise<void> | null>(null);
   const reservationGeneration = useRef(0);
@@ -628,6 +632,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
         attemptedQueueRequestIds: [...attemptedQueueRequestIds.current, ...queued.flatMap((p) => p.claimSource === "priority" && p.queueRequestId ? [p.queueRequestId] : [])],
         attemptedStoreRequestIds: [...attemptedStoreRequestIds.current, ...queued.flatMap((p) => p.claimSource === "store" && p.queueRequestId ? [p.queueRequestId] : [])],
         lastShopId: queued.at(-1)?.shopId || lastClaimedShopId.current,
+        excludedShopIds: [...normalRoundShops.current],
         includeStoreImports: !urgentOnly && includeStoreImports,
         skipUnchangedDay,
         backlogId: urgentOnly ? null : backlogId.current,
@@ -641,6 +646,9 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
   }
 
   async function releaseReservation(product: CollectorProduct) {
+    if (product.claimSource === "random" && product.storeRoundNumber === normalRoundNumber.current) {
+      normalRoundShops.current.delete(product.shopId);
+    }
     await api("release", {
       claimSource: product.claimSource, queueRequestId: product.queueRequestId,
       productId: product.productId, leaseUntil: product.leaseUntil,
@@ -654,13 +662,26 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
     await reservationFill.current;
   }
 
+  async function claimWithStoreRotation(urgentOnly = false) {
+    const result = await api<{ product: CollectorProduct | null }>("claim", reservationPayload(urgentOnly));
+    if (result.product?.claimSource === "random") {
+      if (result.product.storeRoundReset) {
+        normalRoundShops.current.clear();
+        normalRoundNumber.current += 1;
+      }
+      result.product.storeRoundNumber = normalRoundNumber.current;
+      normalRoundShops.current.add(result.product.shopId);
+    }
+    return result;
+  }
+
   function refillReservations() {
     if (reservationFill.current || stopped.current || stopRequested.current || pauseCollectionRequested.current) return;
     const generation = reservationGeneration.current;
     reservationFill.current = (async () => {
       while (!stopped.current && !stopRequested.current && !pauseCollectionRequested.current && generation === reservationGeneration.current
         && reservedProducts.current.length + (activeProduct.current ? 1 : 0) < 4) {
-        const { product } = await api<{ product: CollectorProduct | null }>("claim", reservationPayload());
+        const { product } = await claimWithStoreRotation();
         if (!product) break;
         if (stopped.current || stopRequested.current || pauseCollectionRequested.current || generation !== reservationGeneration.current) {
           await releaseReservation(product);
@@ -684,13 +705,13 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
     if (first && first.claimSource !== "priority" && (includePriorityQueue || includePersonalQueue)) {
       // Keep room for an urgent claim within the four-product reservation limit.
       if (reservedProducts.current.length >= 4) await releaseReservation(reservedProducts.current.pop()!);
-      const { product } = await api<{ product: CollectorProduct | null }>("claim", reservationPayload(true));
+      const { product } = await claimWithStoreRotation(true);
       if (product) return product;
       const favoriteIndex = reservedProducts.current.findIndex((product) => product.claimSource === "personal");
       if (favoriteIndex >= 0) return reservedProducts.current.splice(favoriteIndex, 1)[0];
     }
     if (first) return reservedProducts.current.shift()!;
-    const { product } = await api<{ product: CollectorProduct | null }>("claim", reservationPayload());
+    const { product } = await claimWithStoreRotation();
     return product;
   }
 
@@ -952,6 +973,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
     attemptedQueueRequestIds.current.clear();
     attemptedStoreRequestIds.current.clear();
     lastClaimedShopId.current = null;
+    normalRoundShops.current.clear();
     verificationAlertedFor.current.clear();
     pageErrorRetries.current = [];
     succeededCount.current = 0; failedCount.current = 0;

@@ -147,9 +147,10 @@ export async function claimPriorityProduct(supabaseUrl, secret, excludedRequestI
   };
 }
 
-export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds = [], skipSoldOut = true, lastShopId = null, nqCycleMode = null) {
+export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds = [], skipSoldOut = true, lastShopId = null, nqCycleMode = null, excludedShopIds = []) {
   if (nqCycleMode) {
-    const rows = await rpc(supabaseUrl, secret, "claim_nq_cycle_product", {
+    const rows = await rpc(supabaseUrl, secret, "claim_nq_cycle_product_rotation", {
+      p_excluded_shop_ids: excludedShopIds,
       p_mode: nqCycleMode, p_excluded_product_ids: excludedProductIds, p_last_shop_id: lastShopId,
     });
     const product = rows?.[0];
@@ -158,13 +159,13 @@ export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds
       shopId: String(product.shop_id), externalProductId: String(product.external_product_id),
       productUrl: product.product_url, leaseUntil: product.lease_until, nqCycleMode,
     };
-    const fallback = await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut, lastShopId);
+    const fallback = await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut, lastShopId, null, excludedShopIds);
     return fallback ? { ...fallback, nqCycleMode, nqCycleFallback: true } : null;
   }
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_random_available_product_check_v2`, {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_random_available_product_check_v2_rotation`, {
     method: "POST",
     headers: adminHeaders(secret, { "Content-Type": "application/json" }),
-    body: JSON.stringify({ p_excluded_product_ids: excludedProductIds, p_skip_sold_out: skipSoldOut, p_last_shop_id: lastShopId }),
+    body: JSON.stringify({ p_excluded_product_ids: excludedProductIds, p_skip_sold_out: skipSoldOut, p_last_shop_id: lastShopId, p_excluded_shop_ids: excludedShopIds }),
   });
   if (!response.ok) throw new Error(`random_claim_${response.status}`);
   const [product] = await response.json();
@@ -188,8 +189,9 @@ export async function claimRandomProduct(supabaseUrl, secret, excludedProductIds
   };
 }
 
-async function claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay, lastShopId = null, excludedProductIds = []) {
-  const rows = await rpc(supabaseUrl, secret, "claim_collector_backlog_product_v4", {
+async function claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay, lastShopId = null, excludedProductIds = [], excludedShopIds = []) {
+  const rows = await rpc(supabaseUrl, secret, "claim_collector_backlog_product_v4_rotation", {
+    p_excluded_shop_ids: excludedShopIds,
     p_backlog_id: backlogId, p_skip_sold_out: skipSoldOut, p_skip_unchanged_day: skipUnchangedDay, p_last_shop_id: lastShopId, p_exclude_product_ids: excludedProductIds,
   });
   const product = rows?.[0];
@@ -261,7 +263,7 @@ async function advancePersonalProduct(supabaseUrl, secret, productId, days = 3) 
   if (!response.ok) throw new Error(`personal_advance_${response.status}`);
 }
 
-export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null, backlogId = null, skipUnchangedDay = true, nqCycleMode = null) {
+export async function claimNextProduct(supabaseUrl, secret, excludedProductIds = [], excludedRequestIds = [], leaseUntil, excludedStoreRequestIds = [], includeStoreImports = false, skipSoldOut = true, preferredSource = "store", includeNormalQueue = true, includePersonalQueue = false, includePriorityQueue = true, lastShopId = null, backlogId = null, skipUnchangedDay = true, nqCycleMode = null, excludedShopIds = []) {
   if (includePriorityQueue) {
     const priority = await claimPriorityProduct(supabaseUrl, secret, excludedRequestIds, leaseUntil);
     // Priority requests can be due even if they were not in the saved Normal Queue batch.
@@ -291,10 +293,16 @@ export async function claimNextProduct(supabaseUrl, secret, excludedProductIds =
       await releaseStoreProduct(supabaseUrl, secret, store.queueRequestId, store.leaseUntil);
     }
   }
-  const normal = includeNormalQueue
-    ? backlogId ? await claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay, lastShopId, excludedProductIds)
-      : await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut, lastShopId, nqCycleMode)
+  let normal = includeNormalQueue
+    ? backlogId ? await claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay, lastShopId, excludedProductIds, excludedShopIds)
+      : await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut, lastShopId, nqCycleMode, excludedShopIds)
     : null;
+  if (!normal && includeNormalQueue && excludedShopIds.length) {
+    normal = backlogId
+      ? await claimBacklogProduct(supabaseUrl, secret, backlogId, skipSoldOut, skipUnchangedDay, lastShopId, excludedProductIds, [])
+      : await claimRandomProduct(supabaseUrl, secret, excludedProductIds, skipSoldOut, lastShopId, nqCycleMode, []);
+    if (normal) normal.storeRoundReset = true;
+  }
   if (normal || !includeStoreImports || preferredSource === "store") return normal;
   return backlogId ? null : claimStoreProduct(supabaseUrl, secret, excludedStoreRequestIds, leaseUntil);
 }
@@ -791,6 +799,7 @@ export default async function handler(req, res) {
         backlogId,
         req.body?.skipUnchangedDay !== false,
         ["low", "unavailable"].includes(req.body?.nqCycleMode) ? req.body.nqCycleMode : null,
+        Array.isArray(req.body?.excludedShopIds) ? [...new Set(req.body.excludedShopIds.map(String).filter((id) => /^\d+$/.test(id)))].slice(0, 50000) : [],
       );
       return send(res, 200, { ok: true, product });
     }

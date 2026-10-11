@@ -7,7 +7,7 @@ const methods = source.slice(source.indexOf('  function reservationPayload('), s
 function setup(api) {
   const ref = (current) => ({ current });
   const context = {
-    reservedProducts: ref([]), reservationFill: ref(null), reservationGeneration: ref(0),
+    normalRoundNumber: ref(0), normalRoundShops: ref(new Set()), reservedProducts: ref([]), reservationFill: ref(null), reservationGeneration: ref(0),
     activeProduct: ref(null), stopped: ref(false), stopRequested: ref(false), pauseCollectionRequested: ref(false),
     nqCycle: ref({ recorded: 0, lowDone: false }), backlogId: ref(null),
     attemptedProductIds: ref(new Set()), attemptedQueueRequestIds: ref(new Set()), attemptedStoreRequestIds: ref(new Set()),
@@ -80,4 +80,25 @@ test('pause releases an in-flight reservation and prevents refill', async () => 
   assert.equal(calls, 1);
   assert.deepEqual(released, [3]);
   assert.equal(s.reservedProducts.current.length, 0);
+});
+
+test('normal reservations exclude earlier stores and reset only on a new round', async () => {
+  const payloads=[];
+  let n=0;
+  const s=setup(async (action, body)=>{
+    if(action==='release') return {};
+    payloads.push(body.excludedShopIds);
+    const items=[product(1),product(2),{...product(3),shopId:'1',storeRoundReset:true},product(4)];
+    return {product:items[n++]};
+  });
+  s.refillReservations();await s.reservationFill.current;
+  assert.deepEqual(payloads,[[],['1'],['1','2'],['1']]);
+});
+
+test('priority claims do not consume normal store turns', async()=>{
+  const payloads=[];
+  const s=setup(async(_action,body)=>{payloads.push(body.excludedShopIds);return {product:product(7,'priority')};});
+  s.refillReservations();await s.reservationFill.current;
+  assert.deepEqual(payloads,[[],[],[],[]]);
+  assert.equal(s.normalRoundShops.current.size,0);
 });
