@@ -25,12 +25,38 @@ const AdminStoreScanner = lazy(() => import("./AdminStoreScanner"));
 
 type Product = Tables<"products"> & { collector_page_outcome?: string | null; total_sold?: number | null; review_count?: number | null; rating?: number | null };
 function RecordedProductMetrics({ product }: { product: Product | null }) {
+  const metricsRef = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const root = metricsRef.current;
+    if (!root?.parentElement) return;
+    const update = () => {
+      const mobile = window.matchMedia("(max-width: 680px)").matches;
+      const metrics = Array.from(root.querySelectorAll<HTMLElement>(".report-product-metric"));
+      metrics.forEach(metric => metric.classList.remove("metric-new-line"));
+      if (!mobile) return;
+      for (const metric of metrics) {
+        const range = document.createRange();
+        range.setStart(root.parentElement!, 0);
+        range.setEndBefore(metric);
+        const rects = Array.from(range.getClientRects()).filter(rect => rect.width > 0 && rect.height > 0);
+        const previous = rects.at(-1);
+        if (previous && metric.getBoundingClientRect().top > previous.top + 4) metric.classList.add("metric-new-line");
+      }
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(root.parentElement);
+    document.fonts?.ready.then(update);
+    return () => observer.disconnect();
+  }, [product]);
   const count = (value: number | null | undefined) => typeof value === "number" && Number.isFinite(value) && value >= 0;
-  return <>
-    {count(product?.total_sold) && <span className="report-product-metric">{"\u00a0· "}{product!.total_sold!.toLocaleString("en-PH")} sold</span>}
-    {count(product?.review_count) && <span className="report-product-metric">{"\u00a0· "}{product!.review_count!.toLocaleString("en-PH")} reviews</span>}
-    {typeof product?.rating === "number" && Number.isFinite(product.rating) && product.rating > 0 && product.rating <= 5 && <span className="report-product-metric" aria-label={`Rating ${product.rating} out of 5`}>{"\u00a0· "}<span aria-hidden="true">★</span> {Number(product.rating.toFixed(2))} / 5</span>}
-  </>;
+  const metadata = product?.metadata;
+  const approximateSold = metadata && typeof metadata === "object" && !Array.isArray(metadata) && metadata.sold_count_approximate === true;
+  return <span ref={metricsRef}>
+    {count(product?.total_sold) && <span className="report-product-metric"><span className="metric-separator">{"\u00a0· "}</span>{product!.total_sold!.toLocaleString("en-PH")}{approximateSold ? "+" : ""} sold</span>}
+    {count(product?.review_count) && <span className="report-product-metric"><span className="metric-separator">{"\u00a0· "}</span>{product!.review_count!.toLocaleString("en-PH")} reviews</span>}
+    {typeof product?.rating === "number" && Number.isFinite(product.rating) && product.rating > 0 && product.rating <= 5 && <span className="report-product-metric" aria-label={`Rating ${product.rating} out of 5`}><span className="metric-separator">{"\u00a0· "}</span><span aria-hidden="true">★</span> {Number(product.rating.toFixed(2))} / 5</span>}
+  </span>;
 }
 
 type Variation = Tables<"product_variations">;

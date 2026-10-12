@@ -51,3 +51,14 @@
     white-space: normal;
   }
 }
+
+@media (max-width: 680px) {
+  .report-card .product-summary { display: grid !important; grid-template-columns: auto minmax(0, 1fr); gap: 12px 14px !important; align-items: start; }
+  .report-card .product-details { display: contents; }
+  .report-card .product-summary > .product-image,
+  .report-card .product-summary > .product-image-fallback { grid-column: 1; grid-row: 1 / span 2; }
+  .report-card .product-details > .market-line { grid-column: 2; }
+  .report-card .product-details > h2 { grid-column: 2; margin: 0; display: block !important; overflow: visible !important; -webkit-line-clamp: unset !important; }
+  .report-card .product-details > :not(h2):not(.market-line) { grid-column: 1 / -1; }
+  .report-product-metric.metric-new-line > .metric-separator { display: none; }
+}

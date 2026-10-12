@@ -15,6 +15,8 @@ function fitTitleToAvailableLines(title: HTMLElement) {
   title.style.removeProperty("-webkit-box-orient");
   title.style.removeProperty("overflow");
 
+  if (mobile) return; // Mobile shows the complete title at its normal CSS size.
+
   const baseSize = Number.parseFloat(window.getComputedStyle(title).fontSize) || 22;
   let fontSize = baseSize;
 
