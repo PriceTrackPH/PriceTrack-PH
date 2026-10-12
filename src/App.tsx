@@ -27,9 +27,9 @@ type Product = Tables<"products"> & { collector_page_outcome?: string | null; to
 function RecordedProductMetrics({ product }: { product: Product | null }) {
   const count = (value: number | null | undefined) => typeof value === "number" && Number.isFinite(value) && value >= 0;
   return <>
-    {count(product?.total_sold) && <span className="report-product-metric"> · {product!.total_sold!.toLocaleString("en-PH")} sold</span>}
-    {count(product?.review_count) && <span className="report-product-metric"> · {product!.review_count!.toLocaleString("en-PH")} reviews</span>}
-    {typeof product?.rating === "number" && Number.isFinite(product.rating) && product.rating > 0 && product.rating <= 5 && <span className="report-product-metric" aria-label={`Rating ${product.rating} out of 5`}> · <span aria-hidden="true">★</span> {Number(product.rating.toFixed(2))} / 5</span>}
+    {count(product?.total_sold) && <span className="report-product-metric">{"\u00a0· "}{product!.total_sold!.toLocaleString("en-PH")} sold</span>}
+    {count(product?.review_count) && <span className="report-product-metric">{"\u00a0· "}{product!.review_count!.toLocaleString("en-PH")} reviews</span>}
+    {typeof product?.rating === "number" && Number.isFinite(product.rating) && product.rating > 0 && product.rating <= 5 && <span className="report-product-metric" aria-label={`Rating ${product.rating} out of 5`}>{"\u00a0· "}<span aria-hidden="true">★</span> {Number(product.rating.toFixed(2))} / 5</span>}
   </>;
 }
 

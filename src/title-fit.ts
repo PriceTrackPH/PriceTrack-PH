@@ -4,9 +4,9 @@ const FONT_STEP = 0.5;
 
 let scheduledFrame: number | null = null;
 
-function fitTitleToTwoLines(title: HTMLElement) {
+function fitTitleToAvailableLines(title: HTMLElement) {
   const mobile = window.matchMedia("(max-width: 680px)").matches;
-  const maxLines = mobile ? 4 : 2;
+  const maxLines = mobile ? 4 : 3;
   const minimumSize = mobile ? 14 : MIN_FONT_SIZE;
   // Start from the normal CSS size each time, then shrink only when needed.
   title.style.removeProperty("font-size");
@@ -37,7 +37,7 @@ function fitTitleToTwoLines(title: HTMLElement) {
 }
 
 function fitAllProductTitles() {
-  document.querySelectorAll<HTMLElement>(TITLE_SELECTOR).forEach(fitTitleToTwoLines);
+  document.querySelectorAll<HTMLElement>(TITLE_SELECTOR).forEach(fitTitleToAvailableLines);
 }
 
 function scheduleTitleFit() {
