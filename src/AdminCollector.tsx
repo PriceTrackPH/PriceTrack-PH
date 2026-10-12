@@ -446,18 +446,22 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
             if (disposed) return;
             setSummary((previous) => {
               if (!previous) return previous;
-              const updated = { ...previous, totalDue: next.totalDue };
+              const updated = { ...previous, totalDue: next.totalDue, priorityPending: next.priorityPending };
               sessionStorage.setItem(summaryCacheKey, JSON.stringify(updated));
               return updated;
             });
           }),
       ]).finally(() => { inFlight = false; });
     };
+    const priorityRealtime = supabase?.channel("admin-priority-queue")
+      .on("broadcast", { event: "priority-changed" }, refreshBatch)
+      .subscribe((status) => { if (status === "SUBSCRIBED") refreshBatch(); });
     const timer = window.setInterval(refreshBatch, 5_000);
     window.addEventListener("focus", refreshBatch);
     document.addEventListener("visibilitychange", refreshBatch);
     return () => {
       disposed = true;
+      if (priorityRealtime && supabase) void supabase.removeChannel(priorityRealtime);
       window.clearInterval(timer);
       window.removeEventListener("focus", refreshBatch);
       document.removeEventListener("visibilitychange", refreshBatch);
