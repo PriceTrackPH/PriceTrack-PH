@@ -53,7 +53,7 @@ function RecordedProductMetrics({ product }: { product: Product | null }) {
   const metadata = product?.metadata;
   const approximateSold = metadata && typeof metadata === "object" && !Array.isArray(metadata) && metadata.sold_count_approximate === true;
   return <span ref={metricsRef}>
-    {count(product?.total_sold) && <span className="report-product-metric"><span className="metric-separator">{"\u00a0· "}</span>{product!.total_sold!.toLocaleString("en-PH")}{approximateSold ? "+" : ""} sold</span>}
+    {count(product?.total_sold) && <span className="report-product-metric"><span className="metric-separator">{"\u00a0· "}</span>{approximateSold ? `${new Intl.NumberFormat("en-PH", { notation: "compact", maximumFractionDigits: 2 }).format(product!.total_sold!)}+` : product!.total_sold!.toLocaleString("en-PH")} sold</span>}
     {count(product?.review_count) && <span className="report-product-metric"><span className="metric-separator">{"\u00a0· "}</span>{product!.review_count!.toLocaleString("en-PH")} reviews</span>}
     {typeof product?.rating === "number" && Number.isFinite(product.rating) && product.rating > 0 && product.rating <= 5 && <span className="report-product-metric" aria-label={`Rating ${product.rating} out of 5`}><span className="metric-separator">{"\u00a0· "}</span><span aria-hidden="true">★</span> {Number(product.rating.toFixed(2))} / 5</span>}
   </span>;
