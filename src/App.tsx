@@ -1065,11 +1065,11 @@ function ReportApp() {
                             </div>
                           )}
                         </div>
-                        <span ref={variationPriceRef} className="report-price-context"><span aria-hidden="true" style={{ display: variationPriceWrapped ? "none" : undefined }}>· </span>Public listed price<RecordedProductMetrics product={product} /></span>
+                        <span ref={variationPriceRef} className="report-price-context"><span aria-hidden="true" style={{ display: variationPriceWrapped ? "none" : undefined }}>· </span>Public listed price</span>
                       </div>
                     ) : (
                       <div className="variation-control single-listing-price">
-                        <span className="report-price-context">Public listed price<RecordedProductMetrics product={product} /></span>
+                        <span className="report-price-context">Public listed price</span>
                       </div>
                     )}
 
@@ -1082,6 +1082,7 @@ function ReportApp() {
                     <p>
                       {priceChanges} recorded price change{priceChanges === 1 ? "" : "s"}
                       {lastCheckedLabel ? ` · Last checked ${lastCheckedLabel}` : ""}
+                      <RecordedProductMetrics product={product} />
                     </p>
                   </div>
                 </div>

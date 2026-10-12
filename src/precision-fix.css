@@ -679,7 +679,5 @@ html:not([data-theme="dark"]) .health-event-type.variation_count_changed { color
 .admin-collector-elapsed::before { content: ""; width: 12px; height: 12px; border: 2px solid currentColor; border-radius: 50%; background: linear-gradient(currentColor, currentColor) 5px 2px / 1px 4px no-repeat, linear-gradient(currentColor, currentColor) 5px 5px / 3px 1px no-repeat; }
 html:not([data-theme="dark"]) .admin-collector-elapsed { background: #171b1a; color: #e6e6fa; border-color: #e6e6fa; }
 
-/* Recorded product metrics share the existing listed-price line. */
-.report-card .variation-control > .report-price-context { white-space: normal; }
-.report-product-metric { display: inline-block; white-space: nowrap; color: #514783; }
-html[data-theme="dark"] .report-product-metric { color: #e6e6fa; }
+/* Recorded product metrics share the last-checked line and its theme color. */
+.report-product-metric { display: inline-block; white-space: nowrap; color: inherit; }
