@@ -29,12 +29,13 @@
     const favorites = header.match(/\bFavorite\s*\(\s*(\d+(?:[.,]\d+)?\s*[KM]?\+?)\s*\)/i);
     const result = {
       totalSold: visibleCount(sold?.[1]),
+      approximateTotalSold: sold != null && /[KM+]/i.test(sold[1]),
       // A ratings count is not necessarily the number of written reviews.
       // Keep it separate until the product schema has a ratings-count field.
       favoriteCount: visibleCount(favorites?.[1]),
       ratingCount: visibleCount(ratings?.[1]),
     };
-    return Object.values(result).some(value => value !== null) ? result : null;
+    return [result.totalSold, result.favoriteCount, result.ratingCount].some(value => value !== null) ? result : null;
   }
 
   function mergeProductActivity(apiActivity, visibleActivity) {
@@ -46,7 +47,7 @@
       ratingCount: apiActivity?.ratingCount ?? visibleActivity?.ratingCount ?? null,
       ratingCountsByStar: apiActivity?.ratingCountsByStar ?? null,
       approximateRatingCount: apiActivity?.ratingCount == null && visibleActivity?.ratingCount != null,
-      approximateTotalSold: apiActivity?.totalSold == null && visibleActivity?.totalSold != null,
+      approximateTotalSold: apiActivity?.totalSold == null && visibleActivity?.approximateTotalSold === true,
       approximateFavoriteCount: apiActivity?.favoriteCount == null && visibleActivity?.favoriteCount != null,
     };
   }

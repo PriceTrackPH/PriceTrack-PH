@@ -51,7 +51,7 @@ function RecordedProductMetrics({ product }: { product: Product | null }) {
   }, [product]);
   const count = (value: number | null | undefined) => typeof value === "number" && Number.isFinite(value) && value >= 0;
   const metadata = product?.metadata;
-  const approximateSold = metadata && typeof metadata === "object" && !Array.isArray(metadata) && metadata.sold_count_approximate === true;
+  const approximateSold = metadata && typeof metadata === "object" && !Array.isArray(metadata) && metadata.sold_count_approximate === true && (product?.total_sold ?? 0) >= 1000 && (product?.total_sold ?? 0) % 1000 === 0;
   return <span ref={metricsRef}>
     {count(product?.total_sold) && <span className="report-product-metric"><span className="metric-separator">{"\u00a0· "}</span>{approximateSold ? `${new Intl.NumberFormat("en-PH", { notation: "compact", maximumFractionDigits: 2 }).format(product!.total_sold!)}+` : product!.total_sold!.toLocaleString("en-PH")} sold</span>}
     {count(product?.review_count) && <span className="report-product-metric"><span className="metric-separator">{"\u00a0· "}</span>{product!.review_count!.toLocaleString("en-PH")} reviews</span>}
