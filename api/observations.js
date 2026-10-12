@@ -31,6 +31,7 @@ export default async function handler(req, res) {
         apikey: publishableKey,
         authorization: `Bearer ${publishableKey}`,
         "content-type": "application/json",
+        "user-agent": String(req.headers?.["user-agent"] || ""),
       },
       body: JSON.stringify(req.body || {}),
     });
