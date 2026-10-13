@@ -18,6 +18,8 @@ import { consumeAdminTabLogin, prepareAdminTabLogin } from "./admin-tab-login";
 import ProductSearch, { type SearchSuggestion } from "./ProductSearch";
 import { isMobileVisitor, requestTrackedProductRecheck, requestUntrackedProduct } from "./public-collection-request";
 
+const AdminArticles = lazy(() => import("./AdminArticles"));
+const Articles = lazy(() => import("./Articles"));
 const Watchlist = lazy(() => import("./Watchlist"));
 const AdminHealth = lazy(() => import("./AdminHealth"));
 const AdminCollector = lazy(() => import("./AdminCollector"));
@@ -1296,7 +1298,7 @@ function ReportApp() {
 
 const adminPaths = new Set([
   "/admin", "/admin/health", "/admin/affiliate", "/admin/settings",
-  "/admin/ads", "/admin/collector", "/admin/store-scanner",
+  "/admin/ads", "/admin/collector", "/admin/store-scanner", "/admin/articles",
 ]);
 const normalizedPath = () => window.location.pathname.replace(/\/$/, "") || "/";
 
@@ -1341,7 +1343,10 @@ function App() {
   }, []);
   useEffect(() => {
     if (adminPaths.has(pathname)) document.body.classList.add("admin-page-active");
+    const link = document.querySelector<HTMLAnchorElement>("[data-articles-link]");
+    if (link) link.href = adminPaths.has(pathname) ? "/admin/articles" : "/articles";
   }, [pathname]);
+  if (pathname === "/articles" || pathname.startsWith("/articles/")) return <Suspense fallback={<main>Loading articles…</main>}><Articles slug={pathname === "/articles" ? undefined : pathname.slice(10)} /></Suspense>;
   if (pathname === "/watchlist") return <Suspense fallback={<main>Loading Watchlist…</main>}><Watchlist /></Suspense>;
   if (adminPaths.has(pathname)) {
     const collectorVisible = pathname === "/admin/collector";
@@ -1353,7 +1358,7 @@ function App() {
         </Suspense>
       </div>
       <Suspense fallback={fallback}>
-        {pathname === "/admin/store-scanner" ? <AdminStoreScanner /> :
+        {pathname === "/admin/articles" ? <AdminArticles /> : pathname === "/admin/store-scanner" ? <AdminStoreScanner /> :
           !collectorVisible ? <AdminHealth view={pathname === "/admin" ? "login" : pathname === "/admin/affiliate" ? "affiliate" : pathname === "/admin/settings" || pathname === "/admin/ads" ? "settings" : "health"} /> : null}
       </Suspense>
     </>;

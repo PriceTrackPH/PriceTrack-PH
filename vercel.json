@@ -79,6 +79,18 @@
     {
       "source": "/watchlist/",
       "destination": "/"
+    },
+    {
+      "source": "/admin/articles",
+      "destination": "/"
+    },
+    {
+      "source": "/articles",
+      "destination": "/"
+    },
+    {
+      "source": "/articles/:slug",
+      "destination": "/"
     }
   ]
 }
