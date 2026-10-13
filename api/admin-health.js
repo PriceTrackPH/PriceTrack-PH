@@ -31,6 +31,14 @@ async function fetchCount(baseUrl, headers, eventType) {
 }
 
 export default async function handler(req, res) {
+  if (req.query?.articleRoute === "public") {
+    const { default: articlesHandler } = await import("../server/article-public-handler.js");
+    return articlesHandler(req, res);
+  }
+  if (req.query?.articleRoute === "admin") {
+    const { default: articlesHandler } = await import("../server/article-admin-handler.js");
+    return articlesHandler(req, res);
+  }
   if (req.query?.backup === "1") return backupHandler(req, res);
   if (req.query.push) return priorityPushHandler(req, res);
   if (req.method !== "GET") return send(res, 405, { error: "Method not allowed" });

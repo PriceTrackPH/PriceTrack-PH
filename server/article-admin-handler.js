@@ -6,8 +6,7 @@ import {
   articleConfig,
   articleHeaders,
   ARTICLE_BUCKET,
-} from "../server/articles.js";
-export const config = { api: { bodyParser: { sizeLimit: "3mb" } } };
+} from "./articles.js";
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (!authorizeArticles(req))

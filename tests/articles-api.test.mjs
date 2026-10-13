@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import admin from "../api/admin-articles.js";
-import publicHandler from "../api/articles.js";
+import admin from "../server/article-admin-handler.js";
+import publicHandler from "../server/article-public-handler.js";
 import { safeArticleHtml, validateArticle } from "../server/articles.js";
 const invoke = async (handler, req) => {
   const result = {};

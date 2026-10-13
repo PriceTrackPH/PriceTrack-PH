@@ -21,6 +21,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/articles",
+      "destination": "/api/admin-health?articleRoute=public"
+    },
+    {
+      "source": "/api/admin-articles",
+      "destination": "/api/admin-health?articleRoute=admin"
+    },
+    {
       "source": "/sitemap.xml",
       "destination": "/api/sitemap"
     },
