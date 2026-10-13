@@ -202,7 +202,7 @@ export default function AdminStoreScanner() {
   }, [query, status]);
 
   useEffect(() => {
-    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a"));
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a:not([data-articles-link])"));
     if (links.length < 2) return;
     const [healthLink, affiliateLink] = links;
     const settingsLink = document.createElement("a");

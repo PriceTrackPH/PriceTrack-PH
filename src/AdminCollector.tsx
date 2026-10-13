@@ -559,7 +559,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
 
   useEffect(() => {
     if (!visible) return;
-    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a"));
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a:not([data-articles-link])"));
     if (links.length < 2) return;
     const [healthLink, affiliateLink] = links;
     const settingsLink = document.createElement("a");

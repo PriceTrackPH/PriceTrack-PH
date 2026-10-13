@@ -1344,7 +1344,12 @@ function App() {
   useEffect(() => {
     if (adminPaths.has(pathname)) document.body.classList.add("admin-page-active");
     const link = document.querySelector<HTMLAnchorElement>("[data-articles-link]");
-    if (link) link.href = adminPaths.has(pathname) ? "/admin/articles" : "/articles";
+    if (link) {
+      const admin = adminPaths.has(pathname);
+      link.href = admin ? "/admin/articles" : "/articles";
+      link.style.display = admin ? "" : "none";
+      if (admin) document.querySelector(".site-nav a:not([data-articles-link])")?.after(link);
+    }
   }, [pathname]);
   if (pathname === "/articles" || pathname.startsWith("/articles/")) return <Suspense fallback={<main>Loading articles…</main>}><Articles slug={pathname === "/articles" ? undefined : pathname.slice(10)} /></Suspense>;
   if (pathname === "/watchlist") return <Suspense fallback={<main>Loading Watchlist…</main>}><Watchlist /></Suspense>;
