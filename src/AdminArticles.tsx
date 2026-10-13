@@ -290,26 +290,25 @@ export default function AdminArticles() {
   }
   if (!token)
     return (
-      <main className="articles-shell">
-        <h1>Articles admin</h1>
+      <main className="health-page"><div className="health-shell articles-admin articles-shell">
+        <div className="health-heading"><div><span className="health-kicker">PRIVATE ADMIN</span><h1>PriceTrack PH articles</h1></div></div>
         <p>Sign in with your existing admin password to manage articles.</p>
         <a href="/admin">Open admin sign-in</a>
-      </main>
+      </div></main>
     );
   return (
-    <main className="articles-admin articles-shell">
-      <nav aria-label="Admin articles navigation">
-        <a href="/admin/health">Health</a> ·{" "}
-        <a href="/admin/collector">Collector</a> ·{" "}
-        <a href="/articles">Public articles</a>
-      </nav>
-      <h1>Articles</h1>
-      <p>
-        Write, save a draft, preview, then publish. Saved draft edits stay
-        separate from the published article.
-      </p>
+    <main className="health-page">
+      <div className="health-shell articles-admin articles-shell">
+      <div className="health-heading">
+        <div>
+          <span className="health-kicker">PRIVATE ADMIN</span>
+          <h1>PriceTrack PH articles</h1>
+          <p>Write, save a draft, preview, then publish.</p>
+        </div>
+        <a href="/articles">View public articles ↗</a>
+      </div>
       <div className="article-admin-grid">
-        <aside>
+        <aside className="health-events article-drafts-panel">
           <button disabled={busy} onClick={() => choose(empty())}>
             New article
           </button>
@@ -328,7 +327,7 @@ export default function AdminArticles() {
             </button>
           ))}
         </aside>
-        <section>
+        <section className="health-events article-editor-panel">
           <div className="article-actions">
             <button disabled={busy} onClick={() => void run("save")}>
               Save draft
@@ -562,6 +561,7 @@ export default function AdminArticles() {
           if (e.target.files?.[0]) void upload(e.target.files[0]);
         }}
       />
+      </div>
     </main>
   );
 }

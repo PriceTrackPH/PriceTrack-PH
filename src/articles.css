@@ -259,3 +259,52 @@ html[data-theme="dark"] .article-error {
     padding: 16px;
   }
 }
+
+/* Articles uses the existing admin page background, heading and card layout. */
+.health-page .articles-admin.articles-shell {
+  --article-surface: #171d1b;
+  --article-ink: #f5f2ea;
+  --article-line: #303936;
+  max-width: 1120px;
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  color: inherit;
+}
+.articles-admin .health-heading h1 {
+  margin: 7px 0 8px;
+  font-size: clamp(32px, 5vw, 56px);
+  letter-spacing: -.04em;
+}
+.articles-admin .health-heading a { color: #11d4aa; }
+.articles-admin .article-admin-grid { align-items: start; }
+.articles-admin .article-admin-grid > aside { padding: 24px; border: 1px solid var(--article-line); }
+.articles-admin .article-admin-grid > section { min-width: 0; }
+.articles-admin .article-actions button,
+.articles-admin .article-drafts-panel > button:first-child {
+  background: #00f8b9;
+  color: #1b1844;
+  border-color: #00f8b9;
+  font-weight: 800;
+  padding: 13px 18px;
+  border-radius: 10px;
+}
+.articles-admin .article-draft-link { background: #1b1844; color: #e6e6fa; }
+.articles-admin .article-draft-link.active { box-shadow: inset 0 0 0 2px #00f8b9; }
+.articles-admin .article-toolbar { background: rgba(230,230,250,.06); }
+.articles-admin .article-editor { background: var(--article-surface); }
+html:not([data-theme="dark"]) .health-page .articles-admin.articles-shell {
+  --article-surface: #fff;
+  --article-ink: #17201d;
+  --article-line: #d9e0dd;
+}
+html:not([data-theme="dark"]) .articles-admin .health-heading a { color: #087e68; }
+html:not([data-theme="dark"]) .articles-admin .article-draft-link { background: #e6e6fa; color: #1b1844; }
+html:not([data-theme="dark"]) .articles-admin .article-toolbar { background: rgba(230,230,250,.5); }
+@media (max-width: 680px) {
+  .health-page .articles-admin.articles-shell { margin: 0 auto; padding: 0; }
+  .articles-admin .article-admin-grid > aside,
+  .articles-admin .article-admin-grid > section { padding: 18px; }
+}
