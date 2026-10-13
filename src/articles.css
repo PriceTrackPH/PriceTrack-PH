@@ -348,8 +348,8 @@ html:not([data-theme="dark"]) .articles-admin .article-toolbar {
 }
 /* Approved editor redesign; scoped to Articles admin. */
 .health-page.article-admin-page .articles-admin.articles-shell {
-  max-width: 1440px;
-  width: min(1440px, 100%);
+  max-width: 1120px;
+  width: min(1120px, 100%);
 }
 .articles-admin .article-admin-grid {
   grid-template-columns: 320px minmax(0, 1fr);
@@ -655,13 +655,13 @@ html:not([data-theme="dark"]) .articles-admin .article-toolbar {
 }
 
 html[data-theme="dark"] .article-admin-page .articles-admin.articles-shell {
-  --article-surface: #141929;
+  --article-surface: #000;
   --article-ink: #e6e6fa;
   --article-line: #343951;
 }
 html[data-theme="dark"] .articles-admin .article-drafts-panel,
 html[data-theme="dark"] .articles-admin .article-editor-panel {
-  background: linear-gradient(120deg, #161a2c, #131827);
+  background: #000;
   border-color: var(--article-line);
 }
 html[data-theme="dark"] .articles-admin .health-heading p {
