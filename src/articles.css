@@ -354,6 +354,11 @@ html:not([data-theme="dark"]) .articles-admin .article-toolbar {
 .articles-admin .article-admin-grid {
   grid-template-columns: 320px minmax(0, 1fr);
   gap: 20px;
+  padding: 20px;
+  border: 1px solid var(--article-line);
+  border-radius: 18px;
+  background: var(--article-surface);
+  min-width: 0;
 }
 .articles-admin .article-drafts-heading {
   display: flex;
@@ -702,6 +707,10 @@ html:not([data-theme="dark"]) .articles-admin .article-editor-panel {
   }
 }
 @media (max-width: 680px) {
+  .articles-admin .article-admin-grid {
+    padding: 12px;
+    gap: 12px;
+  }
   .articles-admin .article-admin-grid > .article-editor-panel {
     padding: 0;
   }
