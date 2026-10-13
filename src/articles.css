@@ -744,3 +744,6 @@ html:not([data-theme="dark"]) .articles-admin .article-editor-panel {
     padding: 18px;
   }
 }
+.articles-admin .article-input-retention { margin:12px 18px 0; font-size:12px; line-height:1.6; opacity:.8; }
+.articles-admin .article-input-retention[role="alert"] { color:#b52745; opacity:1; }
+html[data-theme="dark"] .articles-admin .article-input-retention[role="alert"] { color:#ffa6b6; }

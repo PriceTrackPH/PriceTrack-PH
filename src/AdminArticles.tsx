@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import ArticleView, { type Article } from "./ArticleView";
 import DOMPurify from "dompurify";
 import ArticleStyleMenu from "./ArticleStyleMenu";
+import {
+  clearArticleInputs,
+  readArticleInputs,
+  writeArticleInputs,
+  nextArticleInputReset,
+} from "./article-input-recovery";
 import "./articles.css";
 const empty = (): Article => ({
   title: "",
@@ -52,17 +58,29 @@ function EditorIcon({ name }: { name: string }) {
   );
 }
 export default function AdminArticles() {
+  const [recoveredInputs] = useState(() => {
+    try {
+      return readArticleInputs(window.localStorage);
+    } catch {
+      return null;
+    }
+  });
+  const [recoveryWarning, setRecoveryWarning] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("p");
   const [selectedSize, setSelectedSize] = useState("17");
   const [token, setToken] = useState(
     () => sessionStorage.getItem(tokenKey) || "",
   );
-  const [draft, setDraft] = useState<Article>(empty),
+  const [draft, setDraft] = useState<Article>(
+      () => recoveredInputs?.draft || empty(),
+    ),
     [list, setList] = useState<Article[]>([]),
     [busy, setBusy] = useState(false),
-    [message, setMessage] = useState(""),
+    [message, setMessage] = useState(
+      recoveredInputs ? "Unsaved inputs restored from this browser." : "",
+    ),
     [error, setError] = useState(""),
-    [dirty, setDirty] = useState(false),
+    [dirty, setDirty] = useState(!!recoveredInputs),
     [preview, setPreview] = useState(false),
     [mobilePreview, setMobilePreview] = useState(false),
     [loading, setLoading] = useState(false);
@@ -116,6 +134,76 @@ export default function AdminArticles() {
       });
     };
   }, []);
+  const inputExpiry = useRef(recoveredInputs?.expiresAt || 0);
+  const savedBaseline = useRef<Article | null>(
+    recoveredInputs?.baseline || null,
+  );
+  function clearTemporaryInputs() {
+    try {
+      clearArticleInputs(window.localStorage);
+    } catch {
+      /* Disabled storage. */
+    }
+    inputExpiry.current = 0;
+  }
+  function expireTemporaryInputs() {
+    const saved = savedBaseline.current || empty();
+    clearTemporaryInputs();
+    setDraft(saved);
+    setDirty(false);
+    setPreview(false);
+    setSelectedStyle("p");
+    setSelectedSize("17");
+    setRecoveryWarning("");
+    if (editor.current)
+      editor.current.innerHTML = DOMPurify.sanitize(saved.content);
+    setMessage("Temporary inputs cleared at 12:01 AM Philippine time.");
+  }
+  useEffect(() => {
+    if (!token) return;
+    if (!dirty) {
+      clearTemporaryInputs();
+      setRecoveryWarning("");
+      return;
+    }
+    if (!inputExpiry.current) inputExpiry.current = nextArticleInputReset();
+    if (Date.now() >= inputExpiry.current) return;
+    let kept = false;
+    try {
+      kept = writeArticleInputs(window.localStorage, {
+        version: 1,
+        draft,
+        baseline: savedBaseline.current,
+        expiresAt: inputExpiry.current,
+      });
+    } catch {
+      /* Disabled storage. */
+    }
+    setRecoveryWarning(
+      kept
+        ? ""
+        : "This browser could not keep your inputs. Use Save draft before leaving.",
+    );
+  }, [draft, dirty, token]);
+  useEffect(() => {
+    if (!token || !dirty || busy) return;
+    const checkExpiry = () => {
+      if (inputExpiry.current && Date.now() >= inputExpiry.current)
+        expireTemporaryInputs();
+    };
+    const timer = window.setTimeout(
+      checkExpiry,
+      Math.max(0, inputExpiry.current - Date.now()),
+    );
+    window.addEventListener("focus", checkExpiry);
+    document.addEventListener("visibilitychange", checkExpiry);
+    checkExpiry();
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", checkExpiry);
+      document.removeEventListener("visibilitychange", checkExpiry);
+    };
+  }, [dirty, busy, token]);
   async function request(body?: object) {
     const response = await fetch("/api/admin-articles", {
       method: body ? "POST" : "GET",
@@ -184,7 +272,9 @@ export default function AdminArticles() {
         url.origin === location.origin &&
         url.pathname.startsWith("/admin") &&
         url.pathname !== location.pathname &&
-        !window.confirm("Discard unsaved article edits?")
+        !window.confirm(
+          "Leave this editor? Unsaved inputs stay in this browser until 12:01 AM Philippine time.",
+        )
       ) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -200,6 +290,8 @@ export default function AdminArticles() {
   }
   function choose(article: Article) {
     if (dirty && !window.confirm("Discard unsaved edits?")) return;
+    clearTemporaryInputs();
+    savedBaseline.current = article.id ? article : null;
     setDraft(article);
     setDirty(false);
     setPreview(false);
@@ -265,6 +357,8 @@ export default function AdminArticles() {
       published_at: draft.published_at,
       published_slug: draft.published_slug,
     };
+    clearTemporaryInputs();
+    savedBaseline.current = saved;
     setDraft(saved);
     setDirty(false);
     setList((rows) => [saved, ...rows.filter((a) => a.id !== saved.id)]);
@@ -289,7 +383,13 @@ export default function AdminArticles() {
     try {
       if (action === "unpublish") {
         await request({ action, id: draft.id });
-        setDraft((d) => ({ ...d, published_at: null }));
+        if (savedBaseline.current)
+          savedBaseline.current = {
+            ...savedBaseline.current,
+            published_at: null,
+            published_slug: null,
+          };
+        setDraft((d) => ({ ...d, published_at: null, published_slug: null }));
         setList((rows) =>
           rows.map((a) =>
             a.id === draft.id ? { ...a, published_at: null } : a,
@@ -309,6 +409,7 @@ export default function AdminArticles() {
             published_at: result.article.published_at,
             published_slug: result.article.slug,
           };
+          savedBaseline.current = updated;
           setDraft(updated);
           setList((rows) => rows.map((a) => (a.id === saved.id ? updated : a)));
           setMessage("Article published.");
@@ -460,6 +561,13 @@ export default function AdminArticles() {
                 </>
               )}
             </div>
+            <p
+              className="article-input-retention"
+              role={recoveryWarning ? "alert" : undefined}
+            >
+              {recoveryWarning ||
+                "Unsaved inputs stay in this browser until 12:01 AM Philippine time. Use Save draft to keep them for later."}
+            </p>
             {error && (
               <p className="article-error" role="alert">
                 {error}
