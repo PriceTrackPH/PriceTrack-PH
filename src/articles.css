@@ -653,17 +653,7 @@ html:not([data-theme="dark"]) .articles-admin .article-toolbar {
   white-space: nowrap;
   border: 0;
 }
-html[data-theme="dark"] .health-page.article-admin-page {
-  background-color: #0f1420;
-  background-image:
-    radial-gradient(
-      ellipse 30% 90% at 85% 0%,
-      rgba(0, 248, 185, 0.12),
-      transparent
-    ),
-    linear-gradient(90deg, #101423, #101621);
-  color: #e6e6fa;
-}
+
 html[data-theme="dark"] .article-admin-page .articles-admin.articles-shell {
   --article-surface: #141929;
   --article-ink: #e6e6fa;
