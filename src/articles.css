@@ -655,13 +655,13 @@ html:not([data-theme="dark"]) .articles-admin .article-toolbar {
 }
 
 html[data-theme="dark"] .article-admin-page .articles-admin.articles-shell {
-  --article-surface: #000;
+  --article-surface: #171d1b;
   --article-ink: #e6e6fa;
   --article-line: #343951;
 }
 html[data-theme="dark"] .articles-admin .article-drafts-panel,
 html[data-theme="dark"] .articles-admin .article-editor-panel {
-  background: #000;
+  background: #171d1b;
   border-color: var(--article-line);
 }
 html[data-theme="dark"] .articles-admin .health-heading p {
