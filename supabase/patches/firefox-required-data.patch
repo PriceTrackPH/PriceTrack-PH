@@ -1,0 +1,106 @@
+--- a/index.ts
++++ b/index.ts
+@@ -168,6 +168,7 @@
+ 
+     const requestedSource = body.source === "scheduled_collector" ? "scheduled_collector" : "extension";
+     const recordedExtension = recordingExtension(body.extensionId);
++    const protectFirefox = requestedSource === "extension" && recordedExtension === "firefox";
+     const internalToken = request.headers.get("x-pricetrack-internal-token") || "";
+     const internalRequest = requestedSource === "scheduled_collector" && internalToken === await digest(secret);
+     if (requestedSource === "scheduled_collector" && !internalRequest) {
+@@ -191,6 +192,9 @@
+     const imageUrl = validImageUrl(body.imageUrl?.trim().slice(0, 2000) || null);
+ 
+     const now = new Date();
++    if (protectFirefox && (!body.observedAt || Number.isNaN(Date.parse(body.observedAt)))) {
++      return reply({ error: "Firefox recording requires a valid observation timestamp" }, 400);
++    }
+     const observedAt = body.observedAt && !Number.isNaN(Date.parse(body.observedAt)) ? new Date(body.observedAt) : now;
+     const observationAge = now.getTime() - observedAt.getTime();
+     if (observationAge > MAX_OBSERVATION_AGE_MS || observationAge < -MAX_FUTURE_SKEW_MS) {
+@@ -276,8 +280,8 @@
+     const submitted: VariationObservation[] = Array.isArray(body.variations) && body.variations.length
+       ? body.variations
+       : [{
+-          variationId: body.variationId || "default",
+-          variationName: body.variationName || "Default",
++          variationId: protectFirefox ? body.variationId : body.variationId || "default",
++          variationName: protectFirefox ? body.variationName : body.variationName || "Default",
+           price: body.price,
+           originalPrice: body.originalPrice,
+           isInStock: true,
+@@ -292,8 +296,14 @@
+       const price = Number(item.price);
+       const originalPrice = item.originalPrice == null ? null : Number(item.originalPrice);
+       const isInStock = item.isInStock !== false;
+-      if (!variationId || !variationName || !validPrice(price)) continue;
+-      if (originalPrice != null && (!Number.isFinite(originalPrice) || originalPrice < 0 || originalPrice > 10_000_000)) continue;
++      if (!variationId || !variationName || !validPrice(price)) {
++        if (protectFirefox) return reply({ error: "Firefox recording contains incomplete or invalid variation data" }, 400);
++        continue;
++      }
++      if (originalPrice != null && (!Number.isFinite(originalPrice) || originalPrice < 0 || originalPrice > 10_000_000)) {
++        if (protectFirefox) return reply({ error: "Firefox recording contains invalid original price" }, 400);
++        continue;
++      }
+       deduped.set(variationId, {
+         variationId,
+         variationName,
+@@ -322,6 +332,7 @@
+       limit: "1",
+     });
+     const existingProductResponse = await fetch(`${supabaseUrl}/rest/v1/products?${existingProductQuery}`, { headers });
++    if (protectFirefox && !existingProductResponse.ok) throw new Error("Firefox existing product lookup failed");
+     if (existingProductResponse.ok) {
+       const [existingProduct] = await existingProductResponse.json() as Array<{ metadata?: Record<string, unknown>; shop_name?: string; image_url?: string }>;
+       existingStoreName = existingProduct?.shop_name || null;
+@@ -372,7 +383,7 @@
+         image_url: imageUrl || existingImageUrl,
+         currency: "PHP",
+         all_variations_sold_out: productCheckMetadata.all_variations_sold_out,
+-        last_seen_at: observedAt.toISOString(),
++        ...(protectFirefox ? {} : { last_seen_at: observedAt.toISOString() }),
+         updated_at: now.toISOString(),
+         metadata: {
+           ...existingProductMetadata,
+@@ -423,8 +434,8 @@
+       external_variation_id: item.variationId,
+       name: item.variationName,
+       sku: item.sku || null,
+-      is_active: item.isInStock,
+-      last_seen_at: observedAt.toISOString(),
++      ...(protectFirefox ? {} : { is_active: item.isInStock }),
++      ...(protectFirefox ? {} : { last_seen_at: observedAt.toISOString() }),
+       updated_at: nowIso,
+       metadata: safeMetadata(item.metadata),
+     }));
+@@ -592,7 +603,9 @@
+     await Promise.all(diagnosticEvents.map((event) => recordDiagnostic(supabaseUrl, secret, event)));
+ 
+     const checkStatus = failedCount === 0 ? "success" : failedCount === variations.length ? "failure" : "partial";
+-    const markCheckResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/mark_product_check`, {
++    const markCheckResponse = protectFirefox && checkStatus !== "success"
++      ? new Response(null, { status: 409 })
++      : await fetch(`${supabaseUrl}/rest/v1/rpc/mark_product_check`, {
+       method: "POST",
+       headers: adminHeaders(secret, { "content-type": "application/json" }),
+       body: JSON.stringify({
+@@ -610,6 +623,18 @@
+     });
+     if (!markCheckResponse.ok) {
+       console.error("Daily check update failed", await markCheckResponse.text());
++    }
++    if (protectFirefox && checkStatus === "success" && markCheckResponse.ok) {
++      const productSeen = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${product.id}`, {
++        method: "PATCH", headers: adminHeaders(secret, { "content-type": "application/json" }),
++        body: JSON.stringify({ last_seen_at: observedAt.toISOString() })
++      });
++      if (!productSeen.ok) throw new Error("Firefox recording timestamp update failed");
++      const variationSeen = await fetch(`${supabaseUrl}/rest/v1/product_variations?id=in.(${variationIds.join(",")})`, {
++        method: "PATCH", headers: adminHeaders(secret, { "content-type": "application/json" }),
++        body: JSON.stringify({ last_seen_at: observedAt.toISOString() }),
++      });
++      if (!variationSeen.ok) throw new Error("Firefox variation timestamp update failed");
+     }
+     if (shouldCompleteQueue(checkStatus, markCheckResponse.ok)) {
+       if (shouldQueueFirefoxRecording(request.headers.get("user-agent") || "", requestedSource, body.isAdminCollector === true, recordedExtension)) {
