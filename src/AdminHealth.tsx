@@ -50,6 +50,7 @@ type AffiliateImportResult = {
 type AdSettings = {
   linkClickCounts?: { shopee: number; affiliate: number };
   adsEnabled: boolean;
+  vacationMode: boolean;
   requestedEnabled: boolean;
   shopeeLinkEnabled: boolean;
   affiliateLinkEnabled: boolean;
@@ -95,6 +96,8 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
   const [driveArchiveMessage, setDriveArchiveMessage] = useState("");
   const [adSettings, setAdSettings] = useState<AdSettings | null>(null);
   const [adsBusy, setAdsBusy] = useState(false);
+  const [vacationBusy, setVacationBusy] = useState(false);
+  const [vacationMessage, setVacationMessage] = useState("");
   const [linkBusy, setLinkBusy] = useState<"shopeeLinkEnabled" | "affiliateLinkEnabled" | null>(null);
   const [linkMessage, setLinkMessage] = useState("");
   const [clickRefreshBusy, setClickRefreshBusy] = useState(false);
@@ -477,6 +480,24 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     }
   }
 
+  async function updateVacation(enabled: boolean) {
+    setVacationBusy(true);
+    setVacationMessage("");
+    try {
+      const response = await fetch("/api/site-settings", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ vacationMode: enabled }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Unable to update vacation mode.");
+      setAdSettings(payload as AdSettings);
+      setVacationMessage(`Vacation notice is now ${enabled ? "ON" : "OFF"}.`);
+    } catch (cause) {
+      setVacationMessage(cause instanceof Error ? cause.message : "Unable to update vacation mode.");
+    } finally { setVacationBusy(false); }
+  }
+
   async function updateAds(enabled: boolean) {
     setAdsBusy(true);
     setAdsMessage("");
@@ -616,6 +637,22 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
                 ))}
               </div>
               {linkMessage && <p className="health-ads-message" role="status">{linkMessage}</p>}
+            </section>}
+
+            {isSettings && <section className="health-ads" aria-labelledby="vacation-heading">
+              <div>
+                <span className="health-kicker">COLLECTION NOTICE</span>
+                <h2 id="vacation-heading">Vacation mode</h2>
+                <p>Show a vacation notice in accepted collection-request messages. Recording, requests, queues, and collection continue normally.</p>
+              </div>
+              <div className="health-ads-control">
+                <button type="button" disabled={vacationBusy || !adSettings}
+                  aria-pressed={adSettings?.vacationMode === true}
+                  onClick={() => void updateVacation(!adSettings?.vacationMode)}>
+                  {vacationBusy ? "Saving…" : `Vacation ${adSettings?.vacationMode ? "ON" : "OFF"}`}
+                </button>
+              </div>
+              {vacationMessage && <p className="health-ads-message" role="status">{vacationMessage}</p>}
             </section>}
 
             {isSettings && <section className="health-ads" aria-labelledby="ads-heading">

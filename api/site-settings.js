@@ -58,6 +58,7 @@ export default async function handler(req, res) {
 
     const settingKeys = {
       adsEnabled: "ads_enabled",
+      vacationMode: "vacation_mode",
       shopeeLinkEnabled: "shopee_link_enabled",
       affiliateLinkEnabled: "affiliate_link_enabled",
     };
@@ -80,7 +81,7 @@ export default async function handler(req, res) {
       if (!updateResponse.ok) throw new Error(`settings_update_${updateResponse.status}`);
     }
 
-    const response = await fetch(`${supabaseUrl}/rest/v1/site_settings?key=in.(ads_enabled,shopee_link_enabled,affiliate_link_enabled)&select=key,boolean_value,updated_at`, { headers });
+    const response = await fetch(`${supabaseUrl}/rest/v1/site_settings?key=in.(ads_enabled,shopee_link_enabled,affiliate_link_enabled,vacation_mode)&select=key,boolean_value,updated_at`, { headers });
     if (!response.ok) throw new Error(`settings_read_${response.status}`);
     const rows = await response.json();
     const byKey = Object.fromEntries(rows.map((row) => [row.key, row]));
@@ -98,6 +99,7 @@ export default async function handler(req, res) {
     return send(res, 200, {
       ...(linkClickCounts ? { linkClickCounts } : {}),
       adsEnabled: requestedEnabled && configured,
+      vacationMode: byKey.vacation_mode?.boolean_value === true,
       requestedEnabled,
       shopeeLinkEnabled: byKey.shopee_link_enabled?.boolean_value !== false,
       affiliateLinkEnabled: byKey.affiliate_link_enabled?.boolean_value !== false,

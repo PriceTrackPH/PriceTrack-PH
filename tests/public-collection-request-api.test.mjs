@@ -60,6 +60,7 @@ test("lets a desktop visitor recheck a tracked product without creating a duplic
   const calls = [];
   global.fetch = async (url) => {
     calls.push(url);
+    if (url.includes("/rest/v1/site_settings?")) return { ok: true, json: async () => [] };
     if (url.includes("/rest/v1/products?")) return { ok: true, json: async () => [{ id: 42 }] };
     if (url.includes("/rpc/enqueue_public_collection_request")) return { ok: true, json: async () => ({ status: "queued" }) };
     throw new Error("Unexpected endpoint");
@@ -68,7 +69,7 @@ test("lets a desktop visitor recheck a tracked product without creating a duplic
   await handler(request({ "user-agent": "Chrome desktop" }, { ...validBody, recheckTracked: true }), res);
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.message, "Added to Priority Queue for another price check.");
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
 });
 
 test("does not let a desktop visitor enqueue an untracked product as a recheck", async () => {
@@ -82,6 +83,7 @@ test("does not let a desktop visitor enqueue an untracked product as a recheck",
 
 test("queues a validated mobile request with only a hashed device id", async () => {
   global.fetch = async (url, options) => {
+    if (url.includes("/rest/v1/site_settings?")) return { ok: true, json: async () => [] };
     assert.equal(url, "https://example.supabase.co/rest/v1/rpc/enqueue_public_collection_request");
     assert.equal(options.headers.apikey, "service-secret");
     const payload = JSON.parse(options.body);
@@ -118,7 +120,7 @@ test("explains when a priority product has already been checked today", async ()
   await handler(request({ "user-agent": "Mozilla/5.0 (iPhone) Mobile" }), res);
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.status, "checked_today");
-  assert.equal(res.body.message, "This product was already checked today. You can request another check tomorrow.");
+  assert.equal(res.body.message, "This product’s price was already checked today. You can request another check tomorrow.");
 });
 
 test("rejects invalid device or mismatched Shopee identity", async () => {

@@ -10,6 +10,18 @@ const pendingMessage = "This product is already in Priority Queue for another pr
 const checkedTodayMessage = "This product’s price was already checked today. You can request another check tomorrow.";
 const limitMessage = "You've reached today's 100-product request limit. You can request more products tomorrow.";
 
+async function vacationNotice(supabaseUrl, secret) {
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/site_settings?key=eq.vacation_mode&select=boolean_value&limit=1`, {
+      headers: serviceHeaders(secret), signal: AbortSignal.timeout(2000),
+    });
+    if (!response.ok) return "";
+    const rows = await response.json();
+    return Array.isArray(rows) && rows[0]?.boolean_value === true
+      ? " We’re currently on vacation, so price updates may take longer than usual." : "";
+  } catch { return ""; }
+}
+
 function send(res, status, body) {
   return res.status(status).setHeader("Cache-Control", "no-store").json(body);
 }
@@ -97,9 +109,10 @@ export default async function handler(req, res) {
     const result = await response.json();
     const status = Array.isArray(result) ? result[0]?.status : result?.status;
     if (status === "queued" || status === "duplicate" || status === "checked_today") {
-      return send(res, 200, { status, message: body.recheckTracked
+      const notice = status === "checked_today" ? "" : await vacationNotice(supabaseUrl, secret);
+      return send(res, 200, { status, message: (body.recheckTracked
         ? status === "duplicate" ? pendingMessage : status === "checked_today" ? checkedTodayMessage : recheckMessage
-        : status === "checked_today" ? checkedTodayMessage : queuedMessage });
+        : status === "checked_today" ? checkedTodayMessage : queuedMessage) + notice });
     }
     if (status === "limit_reached") {
       return send(res, 429, { status, error: limitMessage });
