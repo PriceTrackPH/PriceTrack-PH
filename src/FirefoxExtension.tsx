@@ -11,17 +11,16 @@ export default function FirefoxExtension() {
   return (
     <main className="health-page firefox-page">
       <div className="health-shell firefox-setup">
-      <a className="firefox-back" href="/">← Back to PriceTrack PH</a>
       <header className="health-heading firefox-heading">
         <div>
           <span className="health-kicker">FIREFOX EXTENSION</span>
-          <h1 id="firefox-heading">Track Shopee prices with Firefox.</h1>
-          <p>Record public product prices while browsing Shopee, then open the recorded price history with PriceTrack PH.</p>
+          <h1 id="firefox-heading">Track Shopee prices with Firefox for Android</h1>
+          <p>Record public product prices while browsing Shopee on your Android phone using Firefox with Desktop site enabled, or on your computer. Then view the recorded price history with PriceTrack PH.</p>
         </div>
       </header>
       <section className="firefox-setup-card firefox-install-panel" aria-label="Install the Firefox extension">
         <a className="firefox-install-button" href="https://addons.mozilla.org/firefox/addon/pricetrackph/" target="_blank" rel="noreferrer">Install from Firefox Add-ons <span aria-hidden="true">↗</span></a>
-        <p className="firefox-install-note">Open the install link in Firefox. It takes you to the official Mozilla add-on page.</p>
+        <p className="firefox-install-note">Open the install link in Firefox on your Android phone or computer. It takes you to the official Mozilla add-on page.</p>
       </section>
       <section className="firefox-setup-card" aria-labelledby="firefox-android-heading">
         <h2 id="firefox-android-heading">Set up on Android</h2>

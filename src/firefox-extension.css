@@ -1,6 +1,5 @@
 .firefox-page { box-sizing: border-box; }
 .firefox-setup { color: var(--text); }
-.firefox-back { display: inline-block; margin-bottom: 20px; color: var(--text); }
 .firefox-setup-card { padding: 28px; margin-bottom: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }
 .firefox-setup .firefox-eyebrow { color: var(--text); font-size: 12px; font-weight: 800; letter-spacing: .12em; }
 .firefox-setup h1 { margin: 7px 0 8px; font-size: clamp(32px, 5vw, 56px); letter-spacing: -.04em; line-height: 1.15; }
