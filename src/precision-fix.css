@@ -63,12 +63,12 @@ html {
   height: 50px !important;
   min-height: 50px !important;
   box-sizing: border-box !important;
-  color: #ffffff !important;
+  color: #1b1844 !important;
   box-shadow: 0 8px 18px rgba(0, 0, 0, .22) !important;
 }
 
 .extension-section .chrome-install span {
-  color: #ffffff !important;
+  color: #1b1844 !important;
 }
 
 /* Extension preview brand-color cleanup. */
