@@ -247,7 +247,11 @@ function SiteSections() {
                 <li><span>2</span>Saves each day&apos;s first price and any later changes</li>
                 <li><span>3</span>Opens the full report from one button</li>
               </ol>
-              <a className="chrome-install" href={chromeWebStoreUrl} target="_blank" rel="noreferrer">Add to Chrome <span>↗</span></a>
+              <div className="extension-install-actions">
+                <a className="chrome-install" href={chromeWebStoreUrl} target="_blank" rel="noreferrer">Add to Chrome <span aria-hidden="true">↗</span></a>
+                <a className="chrome-install" href="https://addons.mozilla.org/firefox/addon/pricetrackph/" target="_blank" rel="noreferrer" aria-describedby="firefox-android-note">Add to Firefox <span aria-hidden="true">↗</span></a>
+              </div>
+              <p className="firefox-android-note" id="firefox-android-note"><strong>Also available on Firefox for Android.</strong> Install the extension, open Shopee in Firefox, enable Desktop site, then reload the product page to record prices.</p>
             </div>
             <div className="extension-preview" aria-label="PriceTrack extension preview">
               <div className="browser-dots"><span /><span /><span /></div>
