@@ -15,12 +15,13 @@ export default function FirefoxExtension() {
         <div>
           <span className="health-kicker">FIREFOX EXTENSION</span>
           <h1 id="firefox-heading">Track Shopee prices with Firefox for Android</h1>
-          <p>Record public product prices while browsing Shopee on your Android phone using Firefox with Desktop site enabled, or on your computer. Then view the recorded price history with PriceTrack PH.</p>
+          <p>Record public product prices while browsing Shopee on your Android phone using Firefox with Desktop site enabled. Then view the recorded price history with PriceTrack PH.</p>
         </div>
       </header>
       <section className="firefox-setup-card firefox-install-panel" aria-label="Install the Firefox extension">
         <a className="firefox-install-button" href="https://addons.mozilla.org/firefox/addon/pricetrackph/" target="_blank" rel="noreferrer">Install from Firefox Add-ons <span aria-hidden="true">↗</span></a>
-        <p className="firefox-install-note">Open the install link in Firefox on your Android phone or computer. It takes you to the official Mozilla add-on page.</p>
+        <p className="firefox-install-note">Open the install link in Firefox on your Android phone. It takes you to the official Mozilla add-on page.</p>
+        <p className="firefox-important"><strong>iPhone and iPad support is planned.</strong> We’re exploring a way to bring automatic price recording to iOS. It isn’t available yet, and there’s no confirmed release date. You can still use the PriceTrack PH website to view price history and save products to your Watchlist.</p>
       </section>
       <section className="firefox-setup-card" aria-labelledby="firefox-android-heading">
         <h2 id="firefox-android-heading">Set up on Android</h2>
@@ -36,8 +37,6 @@ export default function FirefoxExtension() {
       <section className="firefox-setup-card" aria-labelledby="firefox-help-heading">
         <h2 id="firefox-help-heading">If recording does not finish</h2>
         <p>Confirm Desktop site is enabled, check your internet connection, then reload the product page and try again. If Shopee asks for verification, complete it before reloading.</p>
-        <h2>Using Firefox on a computer?</h2>
-        <p>Install the same extension from Firefox Add-ons, then open a Shopee product page. You do not need to enable Desktop site on a computer.</p>
       </section>
       </div>
     </main>
