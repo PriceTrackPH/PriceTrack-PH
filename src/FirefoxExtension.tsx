@@ -9,12 +9,17 @@ export default function FirefoxExtension() {
   }, []);
 
   return (
-    <main className="firefox-setup">
+    <main className="health-page firefox-page">
+      <div className="health-shell firefox-setup">
       <a className="firefox-back" href="/">← Back to PriceTrack PH</a>
-      <section className="firefox-setup-card" aria-labelledby="firefox-heading">
-        <p className="firefox-eyebrow">FIREFOX EXTENSION</p>
-        <h1 id="firefox-heading">Track Shopee prices with Firefox.</h1>
-        <p>Record public product prices while browsing Shopee, then open the recorded price history with PriceTrack PH.</p>
+      <header className="health-heading firefox-heading">
+        <div>
+          <span className="health-kicker">FIREFOX EXTENSION</span>
+          <h1 id="firefox-heading">Track Shopee prices with Firefox.</h1>
+          <p>Record public product prices while browsing Shopee, then open the recorded price history with PriceTrack PH.</p>
+        </div>
+      </header>
+      <section className="firefox-setup-card firefox-install-panel" aria-label="Install the Firefox extension">
         <a className="firefox-install-button" href="https://addons.mozilla.org/firefox/addon/pricetrackph/" target="_blank" rel="noreferrer">Install from Firefox Add-ons <span aria-hidden="true">↗</span></a>
         <p className="firefox-install-note">Open the install link in Firefox. It takes you to the official Mozilla add-on page.</p>
       </section>
@@ -35,6 +40,7 @@ export default function FirefoxExtension() {
         <h2>Using Firefox on a computer?</h2>
         <p>Install the same extension from Firefox Add-ons, then open a Shopee product page. You do not need to enable Desktop site on a computer.</p>
       </section>
+      </div>
     </main>
   );
 }

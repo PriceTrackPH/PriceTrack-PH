@@ -1,8 +1,9 @@
-.firefox-setup { width: min(910px, calc(100% - 40px)); margin: 36px auto 56px; color: var(--text); }
+.firefox-page { box-sizing: border-box; }
+.firefox-setup { color: var(--text); }
 .firefox-back { display: inline-block; margin-bottom: 20px; color: var(--text); }
-.firefox-setup-card { padding: 28px; margin-bottom: 18px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.firefox-setup-card { padding: 28px; margin-bottom: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }
 .firefox-setup .firefox-eyebrow { color: var(--text); font-size: 12px; font-weight: 800; letter-spacing: .12em; }
-.firefox-setup h1 { margin: 12px 0 18px; font-size: clamp(28px, 5vw, 42px); line-height: 1.15; }
+.firefox-setup h1 { margin: 7px 0 8px; font-size: clamp(32px, 5vw, 56px); letter-spacing: -.04em; line-height: 1.15; }
 .firefox-setup h2 { font-size: 23px; line-height: 1.3; }
 .firefox-setup p, .firefox-setup li { line-height: 1.7; }
 .firefox-setup p { color: var(--muted); }
@@ -11,4 +12,11 @@
 .firefox-setup-steps { display: grid; gap: 18px; padding-left: 24px; }
 .firefox-setup .firefox-important { padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-muted); color: var(--text); }
 .firefox-setup a:focus-visible { outline: 3px solid var(--text); outline-offset: 4px; }
-@media (max-width: 600px) { .firefox-setup { width: calc(100% - 32px); margin-top: 24px; } .firefox-setup-card { padding: 20px; } .firefox-install-button { width: 100%; } }
+@media (max-width: 600px) { .firefox-setup { width: 100%; } .firefox-setup-card { padding: 20px; } .firefox-install-button { width: 100%; } }
+
+.firefox-install-panel { border-left: 5px solid #00f8b9; }
+.firefox-setup .firefox-heading { margin-bottom: 32px; }
+.firefox-setup .health-kicker { color: #08775d; }
+html[data-theme="dark"] .firefox-setup .health-kicker { color: #00f8b9; }
+html[data-theme="dark"] .firefox-setup-card { background: #171d1b; border-color: #303936; }
+html[data-theme="dark"] .firefox-install-panel { border-left-color: #00f8b9; }
