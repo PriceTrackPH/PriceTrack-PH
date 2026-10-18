@@ -57,7 +57,7 @@ const footerModalContent: Record<FooterModalKey, { label: string; title: string;
 function SiteSections() {
   const chromeWebStoreUrl = "https://chromewebstore.google.com/detail/ilabeaeblpcleaipmnppibbfhjknlmeo";
   const isAdminPage = ["/admin/articles", "/admin/articles/", "/admin", "/admin/", "/admin/health", "/admin/health/", "/admin/affiliate", "/admin/affiliate/", "/admin/settings", "/admin/settings/", "/admin/ads", "/admin/ads/", "/admin/collector", "/admin/collector/", "/admin/store-scanner", "/admin/store-scanner/", "/admin/monitoring", "/admin/monitoring/"].includes(window.location.pathname);
-  const isWatchlistPage = /^\/watchlist\/?$/.test(window.location.pathname) || /^\/articles(?:\/|$)/.test(window.location.pathname);
+  const isWatchlistPage = /^\/(?:watchlist|firefox)\/?$/.test(window.location.pathname) || /^\/articles(?:\/|$)/.test(window.location.pathname);
   useEffect(() => {
     if (window.location.hash === "#extension") {
       document.getElementById("extension")?.scrollIntoView({ block: "start" });
@@ -249,7 +249,7 @@ function SiteSections() {
               </ol>
               <div className="extension-install-actions">
                 <a className="chrome-install" href={chromeWebStoreUrl} target="_blank" rel="noreferrer">Add to Chrome <span aria-hidden="true">↗</span></a>
-                <a className="chrome-install" href="https://addons.mozilla.org/firefox/addon/pricetrackph/" target="_blank" rel="noreferrer" aria-describedby="firefox-android-note">Add to Firefox <span aria-hidden="true">↗</span></a>
+                <a className="chrome-install" href="/firefox" aria-describedby="firefox-android-note">Add to Firefox <span aria-hidden="true">→</span></a>
               </div>
               <p className="firefox-android-note" id="firefox-android-note"><strong>Also available on Firefox for Android.</strong> Install the extension, open Shopee in Firefox, enable Desktop site, then reload the product page to record prices.</p>
             </div>

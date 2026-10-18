@@ -21,6 +21,14 @@
   ],
   "rewrites": [
     {
+      "source": "/firefox",
+      "destination": "/"
+    },
+    {
+      "source": "/firefox/",
+      "destination": "/"
+    },
+    {
       "source": "/api/articles",
       "destination": "/api/admin-health?articleRoute=public"
     },

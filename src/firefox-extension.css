@@ -1,0 +1,14 @@
+.firefox-setup { width: min(910px, calc(100% - 40px)); margin: 36px auto 56px; color: var(--text); }
+.firefox-back { display: inline-block; margin-bottom: 20px; color: var(--text); }
+.firefox-setup-card { padding: 28px; margin-bottom: 18px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.firefox-setup .firefox-eyebrow { color: var(--text); font-size: 12px; font-weight: 800; letter-spacing: .12em; }
+.firefox-setup h1 { margin: 12px 0 18px; font-size: clamp(28px, 5vw, 42px); line-height: 1.15; }
+.firefox-setup h2 { font-size: 23px; line-height: 1.3; }
+.firefox-setup p, .firefox-setup li { line-height: 1.7; }
+.firefox-setup p { color: var(--muted); }
+.firefox-install-button { display: inline-flex; align-items: center; justify-content: center; gap: 18px; box-sizing: border-box; max-width: 100%; margin-top: 12px; padding: 14px 20px; border-radius: 8px; background: #00f8b9; color: #1b1844; font-weight: 800; text-decoration: none; }
+.firefox-setup .firefox-install-note { font-size: 14px; }
+.firefox-setup-steps { display: grid; gap: 18px; padding-left: 24px; }
+.firefox-setup .firefox-important { padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-muted); color: var(--text); }
+.firefox-setup a:focus-visible { outline: 3px solid var(--text); outline-offset: 4px; }
+@media (max-width: 600px) { .firefox-setup { width: calc(100% - 32px); margin-top: 24px; } .firefox-setup-card { padding: 20px; } .firefox-install-button { width: 100%; } }

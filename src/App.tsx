@@ -20,6 +20,7 @@ import { isMobileVisitor, requestTrackedProductRecheck, requestUntrackedProduct 
 
 const AdminArticles = lazy(() => import("./AdminArticles"));
 const Articles = lazy(() => import("./Articles"));
+const FirefoxExtension = lazy(() => import("./FirefoxExtension"));
 const Watchlist = lazy(() => import("./Watchlist"));
 const AdminHealth = lazy(() => import("./AdminHealth"));
 const AdminCollector = lazy(() => import("./AdminCollector"));
@@ -1352,6 +1353,7 @@ function App() {
     }
   }, [pathname]);
   if (pathname === "/articles" || pathname.startsWith("/articles/")) return <Suspense fallback={<main>Loading articles…</main>}><Articles slug={pathname === "/articles" ? undefined : pathname.slice(10)} /></Suspense>;
+  if (pathname === "/firefox") return <Suspense fallback={<main>Loading Firefox setup…</main>}><FirefoxExtension /></Suspense>;
   if (pathname === "/watchlist") return <Suspense fallback={<main>Loading Watchlist…</main>}><Watchlist /></Suspense>;
   if (adminPaths.has(pathname)) {
     const collectorVisible = pathname === "/admin/collector";
