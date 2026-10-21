@@ -746,3 +746,18 @@ html:not([data-theme="dark"]) .articles-admin .article-editor-panel {
 .articles-admin .article-input-retention { margin:12px 18px 0; font-size:12px; line-height:1.6; opacity:.8; }
 .articles-admin .article-input-retention[role="alert"] { color:#b52745; opacity:1; }
 html[data-theme="dark"] .articles-admin .article-input-retention[role="alert"] { color:#ffa6b6; }
+
+/* Public Articles uses the same open heading and card surfaces as Health. */
+.public-articles-page{min-height:60vh;padding:48px 20px;background:radial-gradient(ellipse at 90% 0%,rgba(0,248,185,.14),transparent 58%);color:#1b1844}
+.public-articles-page .public-articles-shell{box-sizing:border-box;width:min(1120px,100%);max-width:1120px;margin:0 auto;padding:0;background:transparent;border-radius:0;--article-surface:#f5f3ff;--article-ink:#1b1844;--article-line:#d5d0e7}
+.public-articles-heading{margin-bottom:40px}
+.public-articles-heading>span{font-size:13px;font-weight:800;letter-spacing:.12em;color:#007f65}
+.public-articles-heading h1{margin:8px 0 16px;font-size:clamp(32px,5vw,56px);line-height:1.15;letter-spacing:-.04em}
+.public-articles-heading p{color:#66736d;line-height:1.6;margin:0}
+.public-articles-page .article-card{background:var(--article-surface);border-radius:18px}
+.public-articles-page .article-card p,.public-articles-page .article-card span{color:#66736d}
+html[data-theme="dark"] .public-articles-page{background:radial-gradient(ellipse at 90% 0%,rgba(0,248,185,.23),transparent 58%);color:#f5f2ea}
+html[data-theme="dark"] .public-articles-page .public-articles-shell{--article-surface:#171d1b;--article-ink:#f5f2ea;--article-line:#303936;background:transparent}
+html[data-theme="dark"] .public-articles-heading>span{color:#00f8b9}
+html[data-theme="dark"] .public-articles-heading p,html[data-theme="dark"] .public-articles-page .article-card p,html[data-theme="dark"] .public-articles-page .article-card span{color:#aeb6b2}
+@media(max-width:680px){.public-articles-page{padding:28px 14px}.public-articles-heading{margin-bottom:28px}.public-articles-page .article-card{padding:16px}}
