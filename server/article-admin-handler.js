@@ -124,6 +124,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ article: rows[0] });
     }
     if (!id) return res.status(400).json({ error: "Save the draft first." });
+    if (action === "delete") {
+      if (!Number.isInteger(revision) || revision < 1)
+        return res.status(400).json({ error: "Invalid draft revision." });
+      const rows = await articleRequest(`articles?id=eq.${id}&revision=eq.${revision}`, {
+        method: "DELETE", headers: { Prefer: "return=representation" },
+      });
+      if (!rows?.length) return res.status(409).json({ error: "This article changed or was already deleted. Reload before deleting." });
+      return res.status(200).json({ ok: true });
+    }
     if (action === "publish") {
       if (!Number.isInteger(revision) || revision < 1)
         return res.status(400).json({ error: "Invalid draft revision." });

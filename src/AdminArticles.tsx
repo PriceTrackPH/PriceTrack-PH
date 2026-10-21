@@ -364,7 +364,7 @@ export default function AdminArticles() {
     setList((rows) => [saved, ...rows.filter((a) => a.id !== saved.id)]);
     return saved;
   }
-  async function run(action: "save" | "publish" | "unpublish") {
+  async function run(action: "save" | "publish" | "unpublish" | "delete") {
     if (
       action === "publish" &&
       !window.confirm("Publish this article for everyone to read?")
@@ -377,11 +377,22 @@ export default function AdminArticles() {
       )
     )
       return;
+    if (action === "delete" && !window.confirm(`Permanently delete "${draft.title || 'Untitled article'}" and its published version, if any? This cannot be undone.`)) return;
     setBusy(true);
     setError("");
     setMessage("");
     try {
-      if (action === "unpublish") {
+      if (action === "delete") {
+        await request({ action, id: draft.id, revision: draft.revision });
+        clearTemporaryInputs();
+        savedBaseline.current = null;
+        setList(rows => rows.filter(a => a.id !== draft.id));
+        setDraft(empty());
+        setDirty(false);
+        setPreview(false);
+        if (editor.current) editor.current.innerHTML = "";
+        setMessage("Article deleted.");
+      } else if (action === "unpublish") {
         await request({ action, id: draft.id });
         if (savedBaseline.current)
           savedBaseline.current = {
@@ -560,6 +571,7 @@ export default function AdminArticles() {
                   </a>
                 </>
               )}
+              {draft.id && <button className="article-delete" disabled={busy} onClick={() => void run("delete")}>Delete article</button>}
             </div>
             <p
               className="article-input-retention"

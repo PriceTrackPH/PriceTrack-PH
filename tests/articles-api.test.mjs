@@ -139,3 +139,11 @@ test("uploads reject disguised files and oversize images", async () => {
       status,
     );
 });
+test('delete requires admin, an article ID, and the current revision',async()=>{
+ const id='12345678-1234-1234-1234-123456789abc';const req={method:'POST',headers,body:{action:'delete',id,revision:2}};
+ assert.equal((await invoke(admin,{...req,headers:{}})).status,401);
+ assert.equal((await invoke(admin,{...req,body:{action:'delete',id}})).status,400);
+ const old=global.fetch;let found=true;
+ global.fetch=async(url,opts)=>{assert.equal(opts.method,'DELETE');assert.equal(new URL(url).searchParams.get('id'),`eq.${id}`);assert.equal(new URL(url).searchParams.get('revision'),'eq.2');return Response.json(found?[{id}]:[]);};
+ try{assert.equal((await invoke(admin,req)).status,200);found=false;assert.equal((await invoke(admin,req)).status,409);}finally{global.fetch=old;}
+});
