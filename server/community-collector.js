@@ -1,0 +1,70 @@
+import crypto from 'node:crypto';
+import { claimRandomProduct } from '../api/admin-pc-collector.js';
+const sign = (value, secret) => crypto.createHmac('sha256', secret).update(value).digest('base64url');
+export function encodeClaim(claim, secret) {
+  const value = Buffer.from(JSON.stringify(claim)).toString('base64url');
+  return `${value}.${sign(value, secret)}`;
+}
+export function decodeClaim(token, secret) {
+  const [value, signature] = String(token || '').split('.');
+  const expected = sign(value || '', secret);
+  if (!signature || signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) throw Error('Invalid collection claim');
+  const claim = JSON.parse(Buffer.from(value, 'base64url'));
+  if (claim.expires < Date.now()) throw Error('Collection claim expired');
+  return claim;
+}
+export default async function communityCollector(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  const origin = req.headers.origin;
+  if (!origin || !['https://pricetrackph.com', 'https://www.pricetrackph.com', `https://${req.headers.host}`].includes(origin)) return res.status(403).json({error:'Open the collector on PriceTrack PH.'});
+  const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
+  const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !secret) return res.status(503).json({error:'Collector is not configured.'});
+  const headers = {apikey:secret,'Content-Type':'application/json', ...(secret.startsWith('ey') ? {Authorization:`Bearer ${secret}`} : {})};
+  async function rest(path, options = {}) {
+    const response = await fetch(`${url}/rest/v1/${path}`, {signal:AbortSignal.timeout(15000), ...options, headers:{...headers,...options.headers}});
+    if (!response.ok) throw Error('Unable to contact the collection service.');
+    return response.status===204 ? [] : response.json();
+  }
+  try {
+    const body=req.body || {};
+    if (body.action==='claim') {
+      const ids = value => Array.isArray(value) ? [...new Set(value.map(Number).filter(n=>Number.isSafeInteger(n)&&n>0))].slice(0,2000) : [];
+      const excluded=ids(body.excluded);
+      const watchlist=ids(body.watchlist).filter(id=>!excluded.includes(id));
+      let product;
+      const now=new Date().toISOString();
+      const midnight=new Date(new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'})+'T00:00:00+08:00').toISOString();
+      if (watchlist.length) {
+        const candidates=await rest(`products?select=id,external_shop_id,external_product_id,name,image_url,last_checked_at&id=in.(${watchlist.join(',')})&platform=eq.shopee&is_active=eq.true&tracking_enabled=eq.true&or=(next_check_at.is.null,next_check_at.lte.${now})&and=(or(check_lease_until.is.null,check_lease_until.lt.${now}))&limit=50`);
+        for (const candidate of candidates) {
+          if(candidate.last_checked_at && candidate.last_checked_at>=midnight)continue;
+          const lease=new Date(Date.now()+120000).toISOString();
+          const rows=await rest(`products?id=eq.${candidate.id}&or=(check_lease_until.is.null,check_lease_until.lt.${now})`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({check_lease_until:lease})});
+          if(rows.length) {product={productId:candidate.id,shopId:candidate.external_shop_id,externalProductId:candidate.external_product_id,leaseUntil:lease};break;}
+        }
+      }
+      const source=product?'Watchlist':'Normal Queue';
+      if (!product) {
+        const lastShop=/^\d+$/.test(String(body.lastShopId))?String(body.lastShopId):null;
+        const shops=ids(body.excludedShops).map(String);
+        product=await claimRandomProduct(url,secret,excluded,true,lastShop,null,shops);
+        if(!product && shops.length)product=await claimRandomProduct(url,secret,excluded,true,lastShop);
+      }
+      if (!product) return res.status(200).json({product:null});
+      const [row]=await rest(`products?id=eq.${product.productId}&select=name,image_url,last_checked_at`);
+      const claim={id:product.productId,lease:product.leaseUntil,baseline:row?.last_checked_at,expires:Date.now()+180000};
+      return res.status(200).json({product:{id:product.productId,shopId:product.shopId,externalProductId:product.externalProductId,name:row?.name || 'Shopee product',image:row?.image_url,source,url:`https://shopee.ph/product/${product.shopId}/${product.externalProductId}`,token:encodeClaim(claim,secret)}});
+    }
+    const claim=decodeClaim(body.token,secret);
+    if(body.action==='release') {
+      await rest(`products?id=eq.${claim.id}&check_lease_until=eq.${encodeURIComponent(claim.lease)}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({check_lease_until:null})});
+      return res.status(200).json({ok:true});
+    }
+    if(body.action==='status') {
+      const [row]=await rest(`products?id=eq.${claim.id}&select=last_checked_at`);
+      return res.status(200).json({completed:Boolean(row?.last_checked_at && row.last_checked_at!==claim.baseline)});
+    }
+    return res.status(400).json({error:'Invalid collection action.'});
+  }catch(error){return res.status(400).json({error:error.message});}
+}

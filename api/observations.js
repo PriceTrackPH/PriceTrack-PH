@@ -1,3 +1,4 @@
+import communityCollector from "../server/community-collector.js";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "content-type",
@@ -23,6 +24,8 @@ export default async function handler(req, res) {
   if (!supabaseUrl || !publishableKey) {
     return res.status(503).json({ error: "Collector is not configured" });
   }
+
+  if (req.body?.communityCollector === true) return communityCollector(req, res);
 
   try {
     const response = await fetch(`${supabaseUrl}/functions/v1/record-price`, {

@@ -102,7 +102,7 @@ function storageSet(key, value) {
 // Stop the collector on an account restriction, including non-product redirects.
 let collectorRestrictionReported = false;
 function reportCollectorAccountRestriction() {
-  if (collectorRestrictionReported || window.name !== "ptph-admin-collector" || !window.opener) return;
+  if (collectorRestrictionReported || !(window.name === "ptph-admin-collector" || window.name.startsWith("ptph-community-")) || !window.opener) return;
   const text = String(document.body?.innerText || "").replace(/\s+/g, " ").toLowerCase();
   if (!/your account has been (?:temporarily )?restricted due to automated tools detected/.test(text)) return;
   collectorRestrictionReported = true;
@@ -111,13 +111,13 @@ function reportCollectorAccountRestriction() {
     outcome: "account_restricted",
   }, PRICETRACK_SITE);
 }
-if (window.name === "ptph-admin-collector") {
+if (window.name === "ptph-admin-collector" || window.name.startsWith("ptph-community-")) {
   new MutationObserver(reportCollectorAccountRestriction).observe(document, { childList: true, subtree: true, characterData: true });
   reportCollectorAccountRestriction();
 }
 
 function reportCollectorPageOutcome(outcome, ids) {
-  if (!outcome || window.name !== "ptph-admin-collector" || !window.opener) return;
+  if (!outcome || !(window.name === "ptph-admin-collector" || window.name.startsWith("ptph-community-")) || !window.opener) return;
   window.opener.postMessage({
     source: "pricetrack-ph-collector-product",
     type: "product-outcome",
@@ -141,7 +141,7 @@ async function terminalPageOutcome(ids, statusKey) {
 }
 
 async function waitForCollectorTerminalPage(ids, statusKey) {
-  if (window.name !== "ptph-admin-collector") return null;
+  if (!(window.name === "ptph-admin-collector" || window.name.startsWith("ptph-community-"))) return null;
   // A cached PDP response can arrive before Shopee renders its terminal page.
   // Give the visible page time to settle before submitting a price observation.
   for (let attempt = 0; attempt < 12; attempt += 1) {
