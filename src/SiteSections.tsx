@@ -57,7 +57,7 @@ const footerModalContent: Record<FooterModalKey, { label: string; title: string;
 function SiteSections() {
   const chromeWebStoreUrl = "https://chromewebstore.google.com/detail/ilabeaeblpcleaipmnppibbfhjknlmeo";
   const isAdminPage = ["/admin/articles", "/admin/articles/", "/admin", "/admin/", "/admin/health", "/admin/health/", "/admin/affiliate", "/admin/affiliate/", "/admin/settings", "/admin/settings/", "/admin/ads", "/admin/ads/", "/admin/collector", "/admin/collector/", "/admin/store-scanner", "/admin/store-scanner/", "/admin/monitoring", "/admin/monitoring/"].includes(window.location.pathname);
-  const isWatchlistPage = /^\/(?:watchlist|firefox)\/?$/.test(window.location.pathname) || /^\/articles(?:\/|$)/.test(window.location.pathname);
+  const isWatchlistPage = /^\/(?:watchlist|firefox|collector)\/?$/.test(window.location.pathname) || /^\/articles(?:\/|$)/.test(window.location.pathname);
   useEffect(() => {
     if (window.location.hash === "#extension") {
       document.getElementById("extension")?.scrollIntoView({ block: "start" });

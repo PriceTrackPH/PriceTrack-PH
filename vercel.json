@@ -107,6 +107,14 @@
     {
       "source": "/articles/:slug",
       "destination": "/"
+    },
+    {
+      "source": "/collector",
+      "destination": "/"
+    },
+    {
+      "source": "/collector/",
+      "destination": "/"
     }
   ]
 }

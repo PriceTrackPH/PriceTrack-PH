@@ -67,6 +67,7 @@
       <div class="site-header-inner">
         <a class="brand" href="/" data-scroll-target="top">PriceTrack <span>PH</span></a>
         <nav class="site-nav" id="primary-navigation" aria-label="Primary navigation">
+          <a href="/collector" id="community-collector-link" style="display:none">Collector</a>
           <a href="/watchlist">Watchlist</a>
           <a href="/#extension" data-scroll-target="extension">Extension</a>
           <a href="/articles" data-articles-link style="display:none">Articles</a>
@@ -87,6 +88,8 @@
     <script type="module" src="/src/main.tsx"></script>
     <script>
       (() => {
+        const collectorLink = document.getElementById("community-collector-link");
+        if (/^\/watchlist\/?$/.test(window.location.pathname)) collectorLink.style.display = "";
         const toggle = document.getElementById("theme-toggle");
         if (toggle) {
           const apply = (theme) => {
