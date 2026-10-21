@@ -1349,7 +1349,7 @@ function App() {
     if (link) {
       const admin = adminPaths.has(pathname);
       link.href = admin ? "/admin/articles" : "/articles";
-      link.style.display = admin ? "" : "none";
+      link.style.display = "";
       if (admin) document.querySelector(".site-nav a:not([data-articles-link])")?.after(link);
     }
   }, [pathname]);
