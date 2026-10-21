@@ -36,11 +36,11 @@ export default async function communityCollector(req, res) {
       const now=new Date().toISOString();
       const midnight=new Date(new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'})+'T00:00:00+08:00').toISOString();
       if (watchlist.length) {
-        const candidates=await rest(`products?select=id,external_shop_id,external_product_id,name,image_url,last_checked_at&id=in.(${watchlist.join(',')})&platform=eq.shopee&is_active=eq.true&tracking_enabled=eq.true&or=(next_check_at.is.null,next_check_at.lte.${now})&and=(or(check_lease_until.is.null,check_lease_until.lt.${now}))&limit=50`);
+        const candidates=await rest(`products?select=id,external_shop_id,external_product_id,name,image_url,last_checked_at&id=in.(${watchlist.join(',')})&platform=eq.shopee&or=(last_checked_at.is.null,last_checked_at.lt.${midnight})&and=(or(check_lease_until.is.null,check_lease_until.lt.${now}))&limit=50`);
         for (const candidate of candidates) {
           if(candidate.last_checked_at && candidate.last_checked_at>=midnight)continue;
           const lease=new Date(Date.now()+120000).toISOString();
-          const rows=await rest(`products?id=eq.${candidate.id}&or=(check_lease_until.is.null,check_lease_until.lt.${now})`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({check_lease_until:lease})});
+          const rows=await rest(`products?id=eq.${candidate.id}&or=(check_lease_until.is.null,check_lease_until.lt.${now})&and=(or(last_checked_at.is.null,last_checked_at.lt.${midnight}))`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({check_lease_until:lease})});
           if(rows.length) {product={productId:candidate.id,shopId:candidate.external_shop_id,externalProductId:candidate.external_product_id,leaseUntil:lease};break;}
         }
       }
