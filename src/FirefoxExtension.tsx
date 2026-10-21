@@ -22,13 +22,16 @@ export default function FirefoxExtension() {
         <h2>Firefox for Android</h2>
         <a className="firefox-install-button" href="https://addons.mozilla.org/firefox/addon/pricetrackph/" target="_blank" rel="noreferrer">Install from Firefox Add-ons <span aria-hidden="true">↗</span></a>
         <p className="firefox-install-note">Open the install link in Firefox on your Android phone. It takes you to the official Mozilla add-on page.</p>
-        <p className="firefox-important"><strong>iPhone and iPad support is planned.</strong> We’re exploring a way to bring automatic price recording to iOS. It isn’t available yet, and there’s no confirmed release date. You can still use the PriceTrack PH website to view price history and save products to your Watchlist.</p>
+
       </section>
-      <section className="firefox-setup-card" aria-labelledby="edge-android-heading">
+      <section className="firefox-setup-card firefox-install-panel" aria-labelledby="edge-android-heading">
         <h2 id="edge-android-heading">Microsoft Edge for Android</h2>
         <p>Use the PriceTrack PH Edge extension in Microsoft Edge on your Android phone. Open Shopee in Edge, enable Desktop site, and reload the product page to record public prices.</p>
         <a className="firefox-install-button" href="https://microsoftedge.microsoft.com/addons/detail/pricetrack-ph/aiohoonljnggfafpfgcmeagggbjeebnk" target="_blank" rel="noreferrer">Install from Microsoft Edge Add-ons <span aria-hidden="true">↗</span></a>
         <p className="firefox-install-note">Open the install link in Microsoft Edge on your Android phone. It takes you to the official Microsoft Edge add-on page.</p>
+      </section>
+      <section className="firefox-setup-card" aria-label="iPhone and iPad support">
+        <p ><strong>iPhone and iPad support is planned.</strong> We’re exploring a way to bring automatic price recording to iOS. It isn’t available yet, and there’s no confirmed release date. You can still use the PriceTrack PH website to view price history and save products to your Watchlist.</p>
       </section>
       <section className="firefox-setup-card" aria-labelledby="firefox-android-heading">
         <h2 id="firefox-android-heading">Set up on Android</h2>
