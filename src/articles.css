@@ -761,3 +761,7 @@ html[data-theme="dark"] .public-articles-page .public-articles-shell{--article-s
 html[data-theme="dark"] .public-articles-heading>span{color:#00f8b9}
 html[data-theme="dark"] .public-articles-heading p,html[data-theme="dark"] .public-articles-page .article-card p,html[data-theme="dark"] .public-articles-page .article-card span{color:#aeb6b2}
 @media(max-width:680px){.public-articles-page{padding:28px 14px}.public-articles-heading{margin-bottom:28px}.public-articles-page .article-card{padding:16px}}
+
+/* Keep the public article list closer to the following trust section. */
+.public-articles-page{padding-bottom:16px}
+body:has(.public-articles-page) .trust-section{padding-top:28px !important}
