@@ -61,9 +61,7 @@ export default function CommunityCollector({watchlist}:{watchlist:{id:string|num
   }
  }
  const busy=['Collecting','Paused','Stopping'].includes(status);
- return <section className="community-collector" aria-labelledby="community-title">
-  <span className="watchlist-kicker">COMMUNITY CONTRIBUTIONS</span><h2 id="community-title">Community Collector</h2>
-  <p>Help update public Shopee prices. Your eligible Watchlist products come first, followed by Normal Queue products.</p>
+ return <section className="community-collector" aria-label="Collection controls and history">
   <div className="community-buttons"><button disabled={busy} onClick={()=>void start()}>▶ Start collection</button><button disabled={!busy||status==='Stopping'} onClick={()=>{paused.current=!paused.current;setStatus(paused.current?'Paused':'Collecting');if(!paused.current)setMessage('');}}>{status==='Paused'?'▶ Resume':'Ⅱ Pause collection'}</button><button disabled={!busy||status==='Stopping'} onClick={stop}>■ Stop collection</button></div>
   <div className="community-stats" aria-live="polite"><div>Collected<strong>{collected}</strong></div><div>Failed<strong>{failed}</strong></div><div>Running time<strong>{Math.floor(seconds/60)}m {seconds%60}s</strong></div><div>Status<strong>{status}</strong></div></div>
   {product&&<div className="community-current">{product.image&&<img src={product.image} alt=""/>}<div><small>{product.source} · Checking product prices…</small><strong>{product.name}</strong></div></div>}
