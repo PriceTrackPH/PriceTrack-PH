@@ -11,3 +11,5 @@ html[data-theme="dark"] .community-heading,html[data-theme="dark"] .community-gu
 html[data-theme="dark"] .community-heading p,html[data-theme="dark"] .community-guide p,html[data-theme="dark"] .community-guide li{color:#aeb6b2}
 html[data-theme="dark"] .community-guide{background:#171d1b;border-color:#303936}
 @media(max-width:650px){.community-heading,.community-guide{width:calc(100% - 28px)}.community-guide{padding:16px}}
+
+.community-buttons button{display:inline-flex;align-items:center;justify-content:center;gap:7px}.community-button-icon{width:14px;height:14px;flex:0 0 14px}.community-buttons button>span{float:none}
