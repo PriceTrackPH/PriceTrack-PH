@@ -153,3 +153,5 @@ html:not([data-theme="dark"]) .watchlist-tools input:not([type="file"]){backgrou
   .watchlist-details>.watchlist-price-row{flex:1 1 22px;align-self:stretch;height:auto;min-height:22px;align-items:center}
   .watchlist-details>small{margin-top:0;align-self:stretch;flex-shrink:0;line-height:11px}
 }
+
+.watchlist-collector-link{display:inline-flex;align-items:center;gap:10px;margin:4px 0 16px;padding:12px 18px;border:1px solid #00f8b9;border-radius:9px;background:#00f8b9;color:#1b1844;text-decoration:none;font-size:14px;font-weight:700}
