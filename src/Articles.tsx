@@ -39,11 +39,7 @@ export default function Articles({ slug }: { slug?: string }) {
   return (
     <main className="public-articles-page"><div className="articles-shell public-articles-shell">
 
-      {slug && (
-        <a className="articles-back" href="/articles">
-          All articles
-        </a>
-      )}
+      <header className="public-articles-heading"><span>PRICETRACK PH ARTICLES</span>{slug ? <h2>Articles</h2> : <h1>Articles</h1>}</header>
       {loading ? (
         <p role="status">Loading articles…</p>
       ) : error ? (
@@ -52,7 +48,6 @@ export default function Articles({ slug }: { slug?: string }) {
         articles[0] && <ArticleView article={articles[0]} />
       ) : (
         <>
-          <header className="public-articles-heading"><span>PRICETRACK PH ARTICLES</span><h1>Articles</h1><p>News, guides and updates from PriceTrack PH.</p></header>
           <div className="articles-list">
             {articles.map((a) => (
               <a

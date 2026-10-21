@@ -752,7 +752,7 @@ html[data-theme="dark"] .articles-admin .article-input-retention[role="alert"] {
 .public-articles-page .public-articles-shell{box-sizing:border-box;width:min(1120px,100%);max-width:1120px;margin:0 auto;padding:0;background:transparent;border-radius:0;--article-surface:#f5f3ff;--article-ink:#1b1844;--article-line:#d5d0e7}
 .public-articles-heading{margin-bottom:40px}
 .public-articles-heading>span{font-size:13px;font-weight:800;letter-spacing:.12em;color:#007f65}
-.public-articles-heading h1{margin:8px 0 16px;font-size:clamp(32px,5vw,56px);line-height:1.15;letter-spacing:-.04em}
+.public-articles-heading h1,.public-articles-heading h2{margin:8px 0 16px;font-size:clamp(32px,5vw,56px);line-height:1.15;letter-spacing:-.04em}
 .public-articles-heading p{color:#66736d;line-height:1.6;margin:0}
 .public-articles-page .article-card{background:var(--article-surface);border-radius:18px}
 .public-articles-page .article-card p,.public-articles-page .article-card span{color:#66736d}
@@ -768,7 +768,7 @@ body:has(.public-articles-page) .trust-section{padding-top:28px !important}
 
 /* Public article reading layout; the admin editor preview keeps its own styles. */
 .public-articles-page .articles-back{float:none;display:inline-flex;align-items:center;min-height:40px;margin:0 0 20px;padding:8px 14px;border:1px solid var(--article-line);border-radius:10px;background:var(--article-surface);color:var(--article-ink);text-decoration:none;font-weight:650}
-.public-articles-page .article-paper{box-sizing:border-box;max-width:900px;margin:0 auto;padding:clamp(20px,4vw,40px);border:1px solid var(--article-line);border-radius:18px;background:var(--article-surface)}
+.public-articles-page .article-paper{box-sizing:border-box;width:100%;max-width:1120px;margin:0 auto;padding:clamp(20px,4vw,40px);border:1px solid var(--article-line);border-radius:18px;background:var(--article-surface)}
 .public-articles-page .article-paper h1{margin:0 0 18px;font-size:clamp(28px,4vw,44px);line-height:1.18;letter-spacing:-.025em}
 .public-articles-page .article-excerpt{margin:0 0 16px;font-size:clamp(16px,2vw,19px);line-height:1.65}
 .public-articles-page .article-date{margin:0 0 24px;color:#66736d}
