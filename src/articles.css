@@ -765,3 +765,18 @@ html[data-theme="dark"] .public-articles-heading p,html[data-theme="dark"] .publ
 /* Keep the public article list closer to the following trust section. */
 .public-articles-page{padding-bottom:16px}
 body:has(.public-articles-page) .trust-section{padding-top:28px !important}
+
+/* Public article reading layout; the admin editor preview keeps its own styles. */
+.public-articles-page .articles-back{float:none;display:inline-flex;align-items:center;min-height:40px;margin:0 0 20px;padding:8px 14px;border:1px solid var(--article-line);border-radius:10px;background:var(--article-surface);color:var(--article-ink);text-decoration:none;font-weight:650}
+.public-articles-page .article-paper{box-sizing:border-box;max-width:900px;margin:0 auto;padding:clamp(20px,4vw,40px);border:1px solid var(--article-line);border-radius:18px;background:var(--article-surface)}
+.public-articles-page .article-paper h1{margin:0 0 18px;font-size:clamp(28px,4vw,44px);line-height:1.18;letter-spacing:-.025em}
+.public-articles-page .article-excerpt{margin:0 0 16px;font-size:clamp(16px,2vw,19px);line-height:1.65}
+.public-articles-page .article-date{margin:0 0 24px;color:#66736d}
+.public-articles-page .article-cover{display:block;width:auto;max-width:100%;height:auto;max-height:520px;margin:24px auto;border-radius:10px}
+.public-articles-page .article-content{font-size:17px;line-height:1.8}
+.public-articles-page .article-content> :first-child{margin-top:0}
+.public-articles-page .article-content> :last-child{margin-bottom:0}
+.public-articles-page .article-content p{margin:0 0 20px}
+.public-articles-page .article-content h2,.public-articles-page .article-content h3{margin:28px 0 12px}
+html[data-theme="dark"] .public-articles-page .article-date{color:#aeb6b2}
+@media(max-width:680px){.public-articles-page .article-paper{padding:20px 16px}.public-articles-page .article-content{font-size:16px}.public-articles-page .article-cover{max-height:none}}
