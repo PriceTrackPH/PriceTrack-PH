@@ -17,15 +17,25 @@
       "source": "/admin/monitoring",
       "destination": "/admin/health",
       "permanent": true
+    },
+    {
+      "source": "/firefox",
+      "destination": "/mobile-extensions",
+      "permanent": true
+    },
+    {
+      "source": "/firefox/",
+      "destination": "/mobile-extensions",
+      "permanent": true
     }
   ],
   "rewrites": [
     {
-      "source": "/firefox",
+      "source": "/mobile-extensions",
       "destination": "/"
     },
     {
-      "source": "/firefox/",
+      "source": "/mobile-extensions/",
       "destination": "/"
     },
     {

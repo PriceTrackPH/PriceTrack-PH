@@ -1354,7 +1354,7 @@ function App() {
     }
   }, [pathname]);
   if (pathname === "/articles" || pathname.startsWith("/articles/")) return <Suspense fallback={<main>Loading articles…</main>}><Articles slug={pathname === "/articles" ? undefined : pathname.slice(10)} /></Suspense>;
-  if (pathname === "/firefox") return <Suspense fallback={<main>Loading Firefox setup…</main>}><FirefoxExtension /></Suspense>;
+  if (pathname === "/mobile-extensions" || pathname === "/firefox") return <Suspense fallback={<main>Loading mobile extension setup…</main>}><FirefoxExtension /></Suspense>;
   if (pathname === "/collector") return <Suspense fallback={<main>Loading collector…</main>}><CommunityCollectorPage /></Suspense>;
   if (pathname === "/watchlist") return <Suspense fallback={<main>Loading Watchlist…</main>}><Watchlist /></Suspense>;
   if (adminPaths.has(pathname)) {
