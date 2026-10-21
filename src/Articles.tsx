@@ -39,7 +39,7 @@ export default function Articles({ slug }: { slug?: string }) {
   return (
     <main className="public-articles-page"><div className="articles-shell public-articles-shell">
 
-      <header className="public-articles-heading"><span>PRICETRACK PH ARTICLES</span>{slug ? <h2>Articles</h2> : <h1>Articles</h1>}</header>
+      <header className="public-articles-heading"><span>PRICETRACK PH ARTICLES</span>{slug ? <h2>Articles</h2> : <h1>Articles</h1>}{!slug && <p>News, guides and updates</p>}</header>
       {loading ? (
         <p role="status">Loading articles…</p>
       ) : error ? (
