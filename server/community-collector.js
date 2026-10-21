@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { claimRandomProduct } from '../api/admin-pc-collector.js';
+import { claimRandomProduct, markCollectorProductOutcome } from '../api/admin-pc-collector.js';
 const sign = (value, secret) => crypto.createHmac('sha256', secret).update(value).digest('base64url');
 export function encodeClaim(claim, secret) {
   const value = Buffer.from(JSON.stringify(claim)).toString('base64url');
@@ -36,9 +36,10 @@ export default async function communityCollector(req, res) {
       const now=new Date().toISOString();
       const midnight=new Date(new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'})+'T00:00:00+08:00').toISOString();
       if (watchlist.length) {
-        const candidates=await rest(`products?select=id,external_shop_id,external_product_id,name,image_url,last_checked_at&id=in.(${watchlist.join(',')})&platform=eq.shopee&or=(last_checked_at.is.null,last_checked_at.lt.${midnight})&and=(or(check_lease_until.is.null,check_lease_until.lt.${now}))&limit=50`);
+        const candidates=await rest(`products?select=id,external_shop_id,external_product_id,name,image_url,last_checked_at,last_check_attempt_at,collector_page_outcome&id=in.(${watchlist.join(',')})&platform=eq.shopee&or=(last_checked_at.is.null,last_checked_at.lt.${midnight})&and=(or(check_lease_until.is.null,check_lease_until.lt.${now}))&limit=2000`);
         for (const candidate of candidates) {
-          if(candidate.last_checked_at && candidate.last_checked_at>=midnight)continue;
+          if(candidate.last_checked_at && Date.parse(candidate.last_checked_at)>=Date.parse(midnight))continue;
+          if(candidate.collector_page_outcome && candidate.last_check_attempt_at && Date.parse(candidate.last_check_attempt_at)>=Date.parse(midnight))continue;
           const lease=new Date(Date.now()+120000).toISOString();
           const rows=await rest(`products?id=eq.${candidate.id}&or=(check_lease_until.is.null,check_lease_until.lt.${now})&and=(or(last_checked_at.is.null,last_checked_at.lt.${midnight}))`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({check_lease_until:lease})});
           if(rows.length) {product={productId:candidate.id,shopId:candidate.external_shop_id,externalProductId:candidate.external_product_id,leaseUntil:lease};break;}
@@ -53,17 +54,32 @@ export default async function communityCollector(req, res) {
       }
       if (!product) return res.status(200).json({product:null});
       const [row]=await rest(`products?id=eq.${product.productId}&select=name,image_url,last_checked_at`);
-      const claim={id:product.productId,lease:product.leaseUntil,baseline:row?.last_checked_at,expires:Date.now()+180000};
+      const claim={id:product.productId,lease:product.leaseUntil,baseline:row?.last_checked_at,shopId:product.shopId,externalProductId:product.externalProductId,started:now,expires:Date.now()+180000};
       return res.status(200).json({product:{id:product.productId,shopId:product.shopId,externalProductId:product.externalProductId,name:row?.name || 'Shopee product',image:row?.image_url,source,url:`https://shopee.ph/product/${product.shopId}/${product.externalProductId}`,token:encodeClaim(claim,secret)}});
     }
     const claim=decodeClaim(body.token,secret);
+    if(body.action==='outcome') {
+      if(!['sold_out','does_not_exist','unlisted','page_error'].includes(body.outcome)) throw Error('Invalid product outcome.');
+      // Claim the exact signed lease before changing any product status. Replays
+      // cannot increment unavailable/error counters or affect a newer reservation.
+      const processingLease=new Date(Date.now()+30000).toISOString();
+      const rows=await rest(`products?id=eq.${claim.id}&check_lease_until=eq.${encodeURIComponent(claim.lease)}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({check_lease_until:processingLease})});
+      if(!rows.length) return res.status(200).json({ok:true,alreadyFinished:true});
+      try {
+        const result=await markCollectorProductOutcome(url,secret,{claimSource:'random',productId:claim.id,shopId:claim.shopId,externalProductId:claim.externalProductId,outcome:body.outcome});
+        return res.status(200).json({ok:true,result});
+      }catch(error){
+        await rest(`products?id=eq.${claim.id}&check_lease_until=eq.${encodeURIComponent(processingLease)}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({check_lease_until:claim.lease})});
+        throw error;
+      }
+    }
     if(body.action==='release') {
       await rest(`products?id=eq.${claim.id}&check_lease_until=eq.${encodeURIComponent(claim.lease)}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({check_lease_until:null})});
       return res.status(200).json({ok:true});
     }
     if(body.action==='status') {
       const [row]=await rest(`products?id=eq.${claim.id}&select=last_checked_at`);
-      return res.status(200).json({completed:Boolean(row?.last_checked_at && row.last_checked_at!==claim.baseline)});
+      return res.status(200).json({completed:Boolean(row?.last_checked_at && Date.parse(row.last_checked_at)>Date.parse(claim.baseline||'1970-01-01'))});
     }
     return res.status(400).json({error:'Invalid collection action.'});
   }catch(error){return res.status(400).json({error:error.message});}
