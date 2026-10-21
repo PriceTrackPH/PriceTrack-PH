@@ -32,6 +32,7 @@ export default function FirefoxExtension() {
       <section className="firefox-setup-card" aria-label="iPhone and iPad support">
         <h2>Using an iPhone or iPad?</h2>
         <p>Automatic price recording is not available on iOS yet. We’re exploring support, but there’s no release date. You can still visit PriceTrack PH to view recorded prices and save products to your Watchlist.</p>
+        <p>You can also paste a supported product link into PriceTrack PH and tap <strong>Check price</strong> in your iPhone or iPad browser—no extension needed. If the product hasn’t been recorded yet, it is submitted to the collection queue. If it’s already recorded, you’ll see its saved price history, and any new collection request follows the existing queue eligibility rules. Submitting a link requests collection; it does not immediately record prices from your iOS browser.</p>
       </section>
       <section className="firefox-setup-card" aria-labelledby="firefox-android-heading">
         <h2 id="firefox-android-heading">How to record prices</h2>
