@@ -88,6 +88,11 @@
     <script type="module" src="/src/main.tsx"></script>
     <script>
       (() => {
+        const currentPage = window.location.pathname.replace(/\/$/, "");
+        if (currentPage === "/watchlist" || currentPage === "/collector") {
+          const currentLink = document.querySelector(`.site-nav a[href="${currentPage}"]`);
+          if (currentLink) currentLink.style.display = "none";
+        }
         const toggle = document.getElementById("theme-toggle");
         if (toggle) {
           const apply = (theme) => {
