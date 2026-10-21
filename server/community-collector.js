@@ -28,6 +28,14 @@ export default async function communityCollector(req, res) {
   }
   try {
     const body=req.body || {};
+    if(body.action==='remaining') {
+      const ids=Array.isArray(body.watchlist)?[...new Set(body.watchlist.map(Number).filter(n=>Number.isSafeInteger(n)&&n>0))].slice(0,2000):[];
+      if(!ids.length)return res.status(200).json({remaining:0});
+      const midnight=new Date(new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'})+'T00:00:00+08:00').toISOString();
+      const rows=await rest(`products?select=id,last_checked_at,last_check_attempt_at,collector_page_outcome&id=in.(${ids.join(',')})&platform=eq.shopee&limit=2000`);
+      const remaining=rows.filter(row=>!(row.last_checked_at&&Date.parse(row.last_checked_at)>=Date.parse(midnight))&&!(row.collector_page_outcome&&row.last_check_attempt_at&&Date.parse(row.last_check_attempt_at)>=Date.parse(midnight))).length;
+      return res.status(200).json({remaining});
+    }
     if (body.action==='claim') {
       const ids = value => Array.isArray(value) ? [...new Set(value.map(Number).filter(n=>Number.isSafeInteger(n)&&n>0))].slice(0,2000) : [];
       const excluded=ids(body.excluded);

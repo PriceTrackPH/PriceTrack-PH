@@ -6,10 +6,18 @@ type Run={started:string;seconds:number;collected:number;failed:number;unavailab
 const key='pricetrack-community-history-v1';
 function readHistory():Run[]{try{const rows=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(rows)?rows.filter(r=>r&&typeof r.started==='string'&&Number.isFinite(r.seconds)&&Number.isFinite(r.collected)&&Number.isFinite(r.failed)).slice(0,20):[];}catch{return [];}}
 export default function CommunityCollector({watchlist}:{watchlist:{id:string|number}[]}){
- const [history,setHistory]=useState(readHistory),[status,setStatus]=useState('Ready'),[collected,setCollected]=useState(0),[failed,setFailed]=useState(0),[unavailable,setUnavailable]=useState(0),[seconds,setSeconds]=useState(0),[product,setProduct]=useState<Product|null>(null),[message,setMessage]=useState('');
+ const [remaining,setRemaining]=useState<number|null>(null),[history,setHistory]=useState(readHistory),[status,setStatus]=useState('Ready'),[collected,setCollected]=useState(0),[failed,setFailed]=useState(0),[unavailable,setUnavailable]=useState(0),[seconds,setSeconds]=useState(0),[product,setProduct]=useState<Product|null>(null),[message,setMessage]=useState('');
  const running=useRef(false),paused=useRef(false),tab=useRef<Window|null>(null),active=useRef<Product|null>(null),outcome=useRef(''),started=useRef(''),counts=useRef({collected:0,failed:0,unavailable:0}),ready=useRef(false),verification=useRef(false),stopAt=useRef<number|null>(null),elapsed=useRef(0),saved=useRef(watchlist),abort=useRef<AbortController|null>(null);
  saved.current=watchlist;
  async function api(body:object){const controller=new AbortController();abort.current=controller;const timer=setTimeout(()=>controller.abort(),20000);try{const response=await fetch('/api/observations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({communityCollector:true,...body}),signal:controller.signal});const data=await response.json();if(!response.ok)throw Error(data.error||'Collection failed.');return data;}finally{clearTimeout(timer);}}
+ useEffect(()=>{
+  let cancelled=false;
+  const refresh=async()=>{try{const response=await fetch('/api/observations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({communityCollector:true,action:'remaining',watchlist:watchlist.map(p=>p.id)})});if(!response.ok)return;const data=await response.json();if(!cancelled&&Number.isInteger(data.remaining))setRemaining(data.remaining);}catch{/* Keep the last confirmed count. */}};
+  void refresh();window.addEventListener('focus',refresh);
+  const midnight=new Date(new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'})+'T00:00:00+08:00').getTime()+86400000;
+  const timer=setTimeout(()=>void refresh(),Math.max(1,midnight-Date.now()+1000));
+  return()=>{cancelled=true;clearTimeout(timer);window.removeEventListener('focus',refresh);};
+ },[watchlist,collected,unavailable,status]);
  async function release(p:Product){try{await api({action:'release',token:p.token});}catch{/* Reservation expires automatically. */}}
  function stop(){stopAt.current=Date.now();paused.current=false;setStatus('Stopping');}
  useEffect(()=>{const timer=setInterval(()=>{if(running.current&&!paused.current){elapsed.current++;setSeconds(elapsed.current);}},1000);return()=>clearInterval(timer);},[]);
@@ -75,7 +83,7 @@ export default function CommunityCollector({watchlist}:{watchlist:{id:string|num
  const busy=['Collecting','Paused','Stopping'].includes(status);
  return <section className="community-collector" aria-label="Collection controls and history">
   <div className="community-buttons"><button disabled={busy} onClick={()=>void start()}>▶ Start collection</button><button disabled={!busy||status==='Stopping'} onClick={()=>{paused.current=!paused.current;setStatus(paused.current?'Paused':'Collecting');if(!paused.current){verification.current=false;setMessage('');}}}>{status==='Paused'?'▶ Resume':'Ⅱ Pause collection'}</button><button disabled={!busy||status==='Stopping'} onClick={stop}>■ Stop collection</button></div>
-  <div className="community-stats" aria-live="polite"><div>Watchlist<strong>{watchlist.length}</strong></div><div>Collected<strong>{collected}</strong></div><div>Unavailable<strong>{unavailable}</strong></div><div>Failed<strong>{failed}</strong></div><div>Running time<strong>{Math.floor(seconds/60)}m {seconds%60}s</strong></div><div>Status<strong>{status}</strong></div></div>
+  <div className="community-stats" aria-live="polite"><div>Watchlist remaining today<strong>{remaining??'…'}</strong></div><div>Collected<strong>{collected}</strong></div><div>Unavailable<strong>{unavailable}</strong></div><div>Failed<strong>{failed}</strong></div><div>Running time<strong>{Math.floor(seconds/60)}m {seconds%60}s</strong></div><div>Status<strong>{status}</strong></div></div>
   {product&&<div className="community-current">{product.image&&<img src={product.image} alt=""/>}<div><small>{product.source} · Checking product prices…</small><strong>{product.name}</strong></div></div>}
   <p className="community-note">Requires the updated PriceTrack PH Web extension with Community Collector support. Keep this page and the Shopee tab open. Complete verification manually if prompted. Use one collection session per browser.</p>
   {message&&<p role="status">{message}</p>}

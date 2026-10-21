@@ -25,3 +25,8 @@ test('outcome uses signed identity and only a matching reservation can save it',
   calls=[];const invalid=response();await handler({...req,body:{...req.body,outcome:'verification'}},invalid);assert.equal(invalid.statusCode,400);assert.equal(calls.length,0);
  }finally{global.fetch=old;}
 });
+test('remaining counts unchecked watchlist products without changing saved products',async()=>{
+ const old=global.fetch;process.env.SUPABASE_URL='https://db.test';process.env.SUPABASE_SECRET_KEY=secret;const methods=[];
+ global.fetch=async(url,options)=>{methods.push(options.method);return {ok:true,status:200,json:async()=>[{id:1,last_checked_at:new Date().toISOString()},{id:2,last_checked_at:null},{id:3,last_checked_at:'2020-01-01T00:00:00Z'},{id:4,collector_page_outcome:'unlisted',last_check_attempt_at:new Date().toISOString()}]};};
+ try{const res=response();await handler({headers:{origin:'https://pricetrackph.com'},body:{action:'remaining',watchlist:[1,2,3,4]}},res);assert.equal(res.body.remaining,2);assert.deepEqual(methods,[undefined]);}finally{global.fetch=old;}
+});
