@@ -88,8 +88,6 @@
     <script type="module" src="/src/main.tsx"></script>
     <script>
       (() => {
-        const collectorLink = document.getElementById("community-collector-link");
-        if (/^\/watchlist\/?$/.test(window.location.pathname)) collectorLink.style.display = "";
         const toggle = document.getElementById("theme-toggle");
         if (toggle) {
           const apply = (theme) => {
