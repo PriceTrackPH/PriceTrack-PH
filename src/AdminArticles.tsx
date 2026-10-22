@@ -91,11 +91,14 @@ export default function AdminArticles() {
   useEffect(() => {
     const links = Array.from(
       document.querySelectorAll<HTMLAnchorElement>(
-        ".site-nav a:not([data-articles-link])",
+        '.site-nav a:not([data-articles-link]):not([href="/collector"])',
       ),
     );
     if (links.length < 2) return;
     const [health, affiliate] = links;
+    const publicCollector = document.querySelector<HTMLAnchorElement>('.site-nav a[href="/collector"]');
+    const collectorDisplay = publicCollector?.style.display ?? "";
+    if (publicCollector) publicCollector.style.display = "none";
     const originals = [health, affiliate].map((link) => ({
       text: link.textContent,
       href: link.getAttribute("href"),
@@ -122,6 +125,7 @@ export default function AdminArticles() {
     articles?.setAttribute("aria-current", "page");
     return () => {
       added.forEach((link) => link.remove());
+      if (publicCollector) publicCollector.style.display = collectorDisplay;
       articles?.removeAttribute("aria-current");
       [health, affiliate].forEach((link, index) => {
         const original = originals[index];
@@ -496,7 +500,6 @@ export default function AdminArticles() {
             <h1>PriceTrack PH articles</h1>
             <p>Write, save a draft, preview, then publish.</p>
           </div>
-          <a href="/articles">View public articles ↗</a>
         </div>
         <div className="article-admin-grid">
           <aside className="health-events article-drafts-panel">
