@@ -131,63 +131,6 @@ export default function AdminHealth({ view = "health" }: AdminHealthProps) {
     return () => document.body.classList.remove("admin-page-active");
   }, []);
 
-  useEffect(() => {
-    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a:not([data-articles-link])"));
-    if (links.length < 2) return;
-
-    const [healthLink, affiliateLink] = links;
-    const settingsLink = document.createElement("a");
-    const collectorLink = document.createElement("a");
-    const scannerLink = document.createElement("a");
-    affiliateLink.after(collectorLink, scannerLink, settingsLink);
-    const adminLinks = [healthLink, affiliateLink, settingsLink, collectorLink, scannerLink];
-    const original = [healthLink, affiliateLink].map((link) => ({
-      text: link.textContent || "",
-      href: link.getAttribute("href"),
-      target: link.getAttribute("target"),
-      rel: link.getAttribute("rel"),
-      scrollTarget: link.getAttribute("data-scroll-target"),
-      current: link.getAttribute("aria-current"),
-    }));
-
-    healthLink.textContent = "Health";
-    healthLink.href = "/admin/health";
-    healthLink.removeAttribute("data-scroll-target");
-    affiliateLink.textContent = "Affiliate";
-    affiliateLink.href = "/admin/affiliate";
-    affiliateLink.removeAttribute("target");
-    affiliateLink.removeAttribute("rel");
-    affiliateLink.removeAttribute("data-scroll-target");
-    healthLink.removeAttribute("aria-current");
-    affiliateLink.removeAttribute("aria-current");
-    settingsLink.textContent = "Settings";
-    settingsLink.href = "/admin/settings";
-    collectorLink.textContent = "Collector";
-    collectorLink.href = "/admin/collector";
-    scannerLink.textContent = "Store Scanner";
-    scannerLink.href = "/admin/store-scanner";
-    if (!isLogin) (view === "affiliate" ? affiliateLink : view === "settings" ? settingsLink : healthLink).setAttribute("aria-current", "page");
-
-    return () => {
-      settingsLink.remove();
-      collectorLink.remove();
-      scannerLink.remove();
-      adminLinks.slice(0, 2).forEach((link, index) => {
-        const saved = original[index];
-        link.textContent = saved.text;
-        for (const [name, value] of Object.entries({
-          href: saved.href,
-          target: saved.target,
-          rel: saved.rel,
-          "data-scroll-target": saved.scrollTarget,
-          "aria-current": saved.current,
-        })) {
-          if (value === null) link.removeAttribute(name);
-          else link.setAttribute(name, value);
-        }
-      });
-    };
-  }, [isLogin, view]);
 
   useEffect(() => {
     if (!isSettings || !token) return;

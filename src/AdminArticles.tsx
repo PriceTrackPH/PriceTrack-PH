@@ -88,56 +88,6 @@ export default function AdminArticles() {
     imageInput = useRef<HTMLInputElement>(null),
     imageTarget = useRef<"cover" | "inline">("cover"),
     selection = useRef<Range | null>(null);
-  useEffect(() => {
-    const links = Array.from(
-      document.querySelectorAll<HTMLAnchorElement>(
-        '.site-nav a:not([data-articles-link]):not([href="/collector"])',
-      ),
-    );
-    if (links.length < 2) return;
-    const [health, affiliate] = links;
-    const publicCollector = document.querySelector<HTMLAnchorElement>('.site-nav a[href="/collector"]');
-    const collectorDisplay = publicCollector?.style.display ?? "";
-    if (publicCollector) publicCollector.style.display = "none";
-    const originals = [health, affiliate].map((link) => ({
-      text: link.textContent,
-      href: link.getAttribute("href"),
-      scroll: link.getAttribute("data-scroll-target"),
-    }));
-    health.textContent = "Health";
-    health.href = "/admin/health";
-    health.removeAttribute("data-scroll-target");
-    affiliate.textContent = "Affiliate";
-    affiliate.href = "/admin/affiliate";
-    affiliate.removeAttribute("data-scroll-target");
-    const added = [
-      ["Collector", "/admin/collector"],
-      ["Store Scanner", "/admin/store-scanner"],
-      ["Settings", "/admin/settings"],
-    ].map(([title, href]) => {
-      const link = document.createElement("a");
-      link.textContent = title;
-      link.href = href;
-      return link;
-    });
-    affiliate.after(...added);
-    const articles = document.querySelector("[data-articles-link]");
-    articles?.setAttribute("aria-current", "page");
-    return () => {
-      added.forEach((link) => link.remove());
-      if (publicCollector) publicCollector.style.display = collectorDisplay;
-      articles?.removeAttribute("aria-current");
-      [health, affiliate].forEach((link, index) => {
-        const original = originals[index];
-        link.textContent = original.text;
-        if (original.href === null) link.removeAttribute("href");
-        else link.setAttribute("href", original.href);
-        if (original.scroll === null)
-          link.removeAttribute("data-scroll-target");
-        else link.setAttribute("data-scroll-target", original.scroll);
-      });
-    };
-  }, []);
   const inputExpiry = useRef(recoveredInputs?.expiresAt || 0);
   const savedBaseline = useRef<Article | null>(
     recoveredInputs?.baseline || null,

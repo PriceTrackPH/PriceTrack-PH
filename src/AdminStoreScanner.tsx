@@ -201,21 +201,6 @@ export default function AdminStoreScanner() {
     return () => realtime.unsubscribe();
   }, [query, status]);
 
-  useEffect(() => {
-    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav a:not([data-articles-link])"));
-    if (links.length < 2) return;
-    const [healthLink, affiliateLink] = links;
-    const settingsLink = document.createElement("a");
-    const collectorLink = document.createElement("a");
-    const scannerLink = document.createElement("a");
-    affiliateLink.after(collectorLink, scannerLink, settingsLink);
-    healthLink.textContent = "Health"; healthLink.href = "/admin/health"; healthLink.removeAttribute("data-scroll-target");
-    affiliateLink.textContent = "Affiliate"; affiliateLink.href = "/admin/affiliate"; affiliateLink.removeAttribute("data-scroll-target");
-    settingsLink.textContent = "Settings"; settingsLink.href = "/admin/settings";
-    collectorLink.textContent = "Collector"; collectorLink.href = "/admin/collector";
-    scannerLink.textContent = "Store Scanner"; scannerLink.href = "/admin/store-scanner"; scannerLink.setAttribute("aria-current", "page");
-    return () => { settingsLink.remove(); collectorLink.remove(); scannerLink.remove(); };
-  }, []);
 
   useEffect(() => {
     const onStoreScanMessage = (event: MessageEvent) => {

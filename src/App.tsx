@@ -1344,13 +1344,33 @@ function App() {
     };
   }, []);
   useEffect(() => {
-    if (adminPaths.has(pathname)) document.body.classList.add("admin-page-active");
+    if (adminPaths.has(pathname)) {
+      document.body.classList.add("admin-page-active");
+      const nav = document.querySelector(".site-nav");
+      if (!nav) return;
+      const publicLinks = Array.from(nav.childNodes);
+      const activePath = pathname === "/admin/ads" ? "/admin/settings" : pathname;
+      const links = [
+        ["Health", "/admin/health"],
+        ["Articles", "/admin/articles"],
+        ["Affiliate", "/admin/affiliate"],
+        ["Collector", "/admin/collector"],
+        ["Store Scanner", "/admin/store-scanner"],
+        ["Settings", "/admin/settings"],
+      ].map(([title, href]) => {
+        const link = document.createElement("a");
+        link.textContent = title;
+        link.href = href;
+        if (href === activePath) link.setAttribute("aria-current", "page");
+        return link;
+      });
+      nav.replaceChildren(...links);
+      return () => { nav.replaceChildren(...publicLinks); };
+    }
     const link = document.querySelector<HTMLAnchorElement>("[data-articles-link]");
     if (link) {
-      const admin = adminPaths.has(pathname);
-      link.href = admin ? "/admin/articles" : "/articles";
+      link.href = "/articles";
       link.style.display = "";
-      if (admin) document.querySelector(".site-nav a:not([data-articles-link])")?.after(link);
     }
   }, [pathname]);
   if (pathname === "/articles" || pathname.startsWith("/articles/")) return <Suspense fallback={<main>Loading articles…</main>}><Articles slug={pathname === "/articles" ? undefined : pathname.slice(10)} /></Suspense>;
