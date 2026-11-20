@@ -611,40 +611,52 @@ function ReportApp() {
   ) {
     if (!supabase) throw new Error("Supabase is not configured yet.");
 
-    const { data: found, error: productError } = await supabase
-      .from("products")
-      .select("*")
-      .eq("platform", "shopee")
-      .eq("external_shop_id", shopId)
-      .eq("external_product_id", productId)
-      .maybeSingle();
-
-    if (productError) throw productError;
-    if (!found) throw new UntrackedProductError();
-
-    const { data: models, error: variationError } = await supabase
-      .from("product_variations")
-      .select("*")
-      .eq("product_id", found.id)
-      .order("name");
-
-    if (variationError) throw variationError;
-    const allModelRows = models ?? [];
-    const realModelRows = allModelRows.filter(
-      (item) => String(item.external_variation_id ?? "").trim().toLowerCase() !== "default",
-    );
-    const modelRows = realModelRows.length ? realModelRows : allModelRows;
-    const ids = modelRows.map((item) => item.id);
-
+    let found: Product;
+    let modelRows: Tables<"product_variations">[];
     let history: Observation[] = [];
-    if (ids.length) {
-      const { data, error: observationError } = await supabase
-        .from("price_observations")
+    const pilot = import.meta.env.VITE_PRICETRACK_DB2_PILOT === "1"
+      && import.meta.env.VITE_VERCEL_ENV !== "production"
+      && (import.meta.env.VITE_PRICETRACK_DB2_PRODUCTS || "").split(",").includes(`${shopId}:${productId}`);
+    if (pilot) {
+      const response = await fetch(`/api/db2-pilot-history?${new URLSearchParams({ shopId, productId })}`);
+      if (!response.ok) throw new Error("Unable to load pilot price history.");
+      ({ product: found, variations: modelRows, observations: history } = await response.json());
+    } else {
+      const { data: existing, error: productError } = await supabase
+        .from("products")
         .select("*")
-        .in("variation_id", ids)
-        .order("observed_at", { ascending: true });
-      if (observationError) throw observationError;
-      history = data ?? [];
+        .eq("platform", "shopee")
+        .eq("external_shop_id", shopId)
+        .eq("external_product_id", productId)
+        .maybeSingle();
+
+      if (productError) throw productError;
+      if (!existing) throw new UntrackedProductError();
+      found = existing;
+
+      const { data: models, error: variationError } = await supabase
+        .from("product_variations")
+        .select("*")
+        .eq("product_id", found.id)
+        .order("name");
+
+      if (variationError) throw variationError;
+      const allModelRows = models ?? [];
+      const realModelRows = allModelRows.filter(
+        (item) => String(item.external_variation_id ?? "").trim().toLowerCase() !== "default",
+      );
+      modelRows = realModelRows.length ? realModelRows : allModelRows;
+      const ids = modelRows.map((item) => item.id);
+
+      if (ids.length) {
+        const { data, error: observationError } = await supabase
+          .from("price_observations")
+          .select("*")
+          .in("variation_id", ids)
+          .order("observed_at", { ascending: true });
+        if (observationError) throw observationError;
+        history = data ?? [];
+      }
     }
 
     if (requireHistory && (!modelRows.length || !history.length)) {

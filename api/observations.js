@@ -1,3 +1,4 @@
+import { pilotTarget } from "../server/db2-pilot.js";
 import communityCollector from "../server/community-collector.js";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,21 +19,26 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const supabaseUrl = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "").replace(/\/$/, "");
-  const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";
+  if (req.body?.communityCollector === true) return communityCollector(req, res);
+
+  const { shopId, productId, platform = "shopee" } = req.body || {};
+  const pilot = platform === "shopee" && pilotTarget(process.env, shopId, productId);
+  const supabaseUrl = (pilot ? process.env.SUPABASE_DB2_URL || "" : process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  const publishableKey = pilot ? process.env.SUPABASE_DB2_PUBLISHABLE_KEY : process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";
 
   if (!supabaseUrl || !publishableKey) {
     return res.status(503).json({ error: "Collector is not configured" });
   }
 
-  if (req.body?.communityCollector === true) return communityCollector(req, res);
+  if (pilot && !publishableKey.startsWith("eyJ")) return res.status(503).json({ error: "Pilot requires its legacy anon JWT" });
 
   try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/record-price`, {
+    const recorder = pilot ? "record-price-db2-pilot" : "record-price";
+    const response = await fetch(`${supabaseUrl}/functions/v1/${recorder}`, {
       method: "POST",
       headers: {
         apikey: publishableKey,
-        authorization: `Bearer ${publishableKey}`,
+        ...(!pilot || publishableKey.startsWith("eyJ") ? { authorization: `Bearer ${publishableKey}` } : {}),
         "content-type": "application/json",
         "user-agent": String(req.headers?.["user-agent"] || ""),
       },
