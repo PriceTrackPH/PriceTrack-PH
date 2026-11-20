@@ -1,3 +1,4 @@
+import pilotHistory from "../server/db2-pilot-history.js";
 import { pilotTarget } from "../server/db2-pilot.js";
 import communityCollector from "../server/community-collector.js";
 const corsHeaders = {
@@ -11,6 +12,7 @@ function setCors(res) {
 }
 
 export default async function handler(req, res) {
+  if (req.method === "GET" && req.query?.db2Pilot === "1") return pilotHistory(req, res);
   setCors(res);
 
   if (req.method === "OPTIONS") return res.status(204).end();

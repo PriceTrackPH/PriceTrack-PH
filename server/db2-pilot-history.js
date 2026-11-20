@@ -1,4 +1,4 @@
-import { pilotTarget } from "../server/db2-pilot.js";
+import { pilotTarget } from "./db2-pilot.js";
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");

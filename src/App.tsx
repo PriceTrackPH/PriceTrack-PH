@@ -618,7 +618,7 @@ function ReportApp() {
       && import.meta.env.VITE_VERCEL_ENV !== "production"
       && (import.meta.env.VITE_PRICETRACK_DB2_PRODUCTS || "").split(",").includes(`${shopId}:${productId}`);
     if (pilot) {
-      const response = await fetch(`/api/db2-pilot-history?${new URLSearchParams({ shopId, productId })}`);
+      const response = await fetch(`/api/observations?db2Pilot=1&${new URLSearchParams({ shopId, productId })}`);
       if (!response.ok) throw new Error("Unable to load pilot price history.");
       ({ product: found, variations: modelRows, observations: history } = await response.json());
     } else {

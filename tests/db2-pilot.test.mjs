@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import observations from "../api/observations.js";
-import history from "../api/db2-pilot-history.js";
+import history from "../server/db2-pilot-history.js";
 
 const env = {
   VERCEL_ENV: "preview", PRICETRACK_DB2_PILOT: "1",
