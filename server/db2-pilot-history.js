@@ -1,11 +1,13 @@
-import { pilotTarget } from "./db2-pilot.js";
+import { pilotReadsActive } from "./db2-pilot.js";
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
   const { shopId, productId } = req.query || {};
-  if (typeof shopId !== "string" || typeof productId !== "string" ||
-      !pilotTarget(process.env, shopId, productId)) return res.status(404).json({ error: "Not in pilot" });
+  try {
+    if (typeof shopId !== "string" || typeof productId !== "string" ||
+        !await pilotReadsActive(process.env, shopId, productId)) return res.status(404).json({ error: "Not in pilot" });
+  } catch { return res.status(503).json({error:"Unable to verify pilot routing"}); }
 
   const base = (process.env.SUPABASE_DB2_URL || "").replace(/\/$/, "");
   const key = process.env.SUPABASE_DB2_SECRET_KEY;

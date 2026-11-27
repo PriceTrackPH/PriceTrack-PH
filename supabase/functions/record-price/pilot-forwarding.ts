@@ -2,7 +2,7 @@ import { completeCollectionQueues } from "./queue-completion.ts";
 import { enqueueFirefoxRecording, shouldQueueFirefoxRecording } from "./firefox-priority.ts";
 
 const identities = new Set(["1408391598:29280298218", "276556301:19841104743", "70046721:45369645174"]);
-type Body = { shopId?: string; productId?: string; canonicalUrl?: string; pageOutcome?: string; isAdminCollector?: boolean; activity?: Record<string, unknown> };
+type Body = { platform?: string; shopId?: string; productId?: string; canonicalUrl?: string; pageOutcome?: string; isAdminCollector?: boolean; activity?: Record<string, unknown> };
 type Context = { url: string; secret: string; token: string; source: string; extension: string; clientHash: string | null };
 function headers(secret: string) {
   return { apikey: secret, ...(secret.startsWith("ey") ? { Authorization: `Bearer ${secret}` } : {}), "content-type": "application/json" };

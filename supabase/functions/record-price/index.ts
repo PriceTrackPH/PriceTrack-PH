@@ -319,7 +319,7 @@ Deno.serve(async (request: Request) => {
     const variations = Array.from(deduped.values());
     if (!variations.length) return reply({ error: "No valid variation prices were submitted" }, 400);
 
-    const pilot = await forwardPilotRecording(request, body, {
+    const pilot = await forwardPilotRecording(request, {...body,platform,shopId,productId}, {
       url: supabaseUrl, secret, token: await digest(secret), source: requestedSource,
       extension: recordedExtension, clientHash: internalRequest ? null : await digest(clientId),
     });
