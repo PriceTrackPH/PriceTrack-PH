@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./lib/supabase";
+import { routedHistory } from "./lib/routed-history";
 import "./watchlist.css";
 
 type SavedProduct = { id: string | number; name: string; image_url: string | null; external_shop_id: string; external_product_id: string; added_at: string };
@@ -134,6 +135,20 @@ export default function Watchlist() {
       if (active) setPricesLoading(true);
       const next: Record<string, PriceInfo> = {};
       await Promise.all(saved.map(async (p) => {
+        let routed;
+        try { routed = await routedHistory(p.external_shop_id, p.external_product_id); }
+        catch { return; }
+        if (routed) {
+          const rows = [...routed.observations].sort((a,b) => Date.parse(b.observed_at) - Date.parse(a.observed_at));
+          const candidates = routed.variations.map(model => rows.find(row => row.variation_id === model.id)).filter(row => row !== undefined);
+          const available = candidates.filter(row => row.is_in_stock);
+          const latest = (available.length ? available : candidates).sort((a,b) => Number(a.price) - Number(b.price))[0];
+          if (latest) {
+            const previous = rows.find(row => row.variation_id === latest.variation_id && row.observed_at < latest.observed_at);
+            next[String(p.id)] = {price:Number(latest.price),checked:latest.observed_at,previous:previous ? Number(previous.price) : null};
+          }
+          return;
+        }
         const { data: variations, error: variationError } = await client.from("product_variations").select("id,name,external_variation_id").eq("product_id", Number(p.id)).order("name");
         if (variationError) return;
         const all = variations || [];

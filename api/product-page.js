@@ -1,4 +1,13 @@
+import { pilotTarget } from "../server/db2-pilot.js";
 const SITE_ORIGIN = "https://pricetrackph.com";
+
+function productDatabase(shopId, productId) {
+  const pilot = pilotTarget(process.env, shopId, productId);
+  return {
+    url: (pilot ? process.env.SUPABASE_DB2_URL || "" : process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").replace(/\/$/, ""),
+    secret: pilot ? process.env.SUPABASE_DB2_SECRET_KEY || "" : process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+  };
+}
 
 function validId(value) {
   return /^\d+$/.test(String(value ?? ""));
@@ -29,8 +38,7 @@ function adminHeaders(secret) {
 }
 
 async function fetchProduct(shopId, productId) {
-  const supabaseUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
-  const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  const {url: supabaseUrl, secret} = productDatabase(shopId,productId);
   if (!supabaseUrl || !secret) throw new Error("product_page_not_configured");
 
   const params = new URLSearchParams({
@@ -49,9 +57,8 @@ async function fetchProduct(shopId, productId) {
   return Array.isArray(rows) ? rows[0] ?? null : null;
 }
 
-async function fetchOfferRows(productId) {
-  const supabaseUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
-  const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+async function fetchOfferRows(productId, shopId, externalProductId) {
+  const {url: supabaseUrl, secret} = productDatabase(shopId,externalProductId);
   if (!supabaseUrl || !secret) throw new Error("product_page_not_configured");
 
   const params = new URLSearchParams({
@@ -193,7 +200,7 @@ export default async function handler(req, res) {
       return res.status(404).setHeader("Content-Type", "text/html; charset=utf-8").send(notFound);
     }
 
-    const offerRows = await fetchOfferRows(product.id);
+    const offerRows = await fetchOfferRows(product.id, shopId, productId);
     const canonicalUrl = `${SITE_ORIGIN}/product/shopee/${shopId}/${productId}`;
     const html = renderProductPage(shell, product, canonicalUrl, buildOfferSummary(offerRows));
     res.setHeader("Content-Type", "text/html; charset=utf-8");

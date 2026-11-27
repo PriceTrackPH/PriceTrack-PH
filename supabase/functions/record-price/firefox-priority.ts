@@ -1,5 +1,5 @@
-export function shouldQueueFirefoxRecording(userAgent: string, source: string, isAdminCollector: boolean) {
-  return source === "extension" && !isAdminCollector && /(?:Firefox|FxiOS)\//i.test(userAgent);
+export function shouldQueueFirefoxRecording(userAgent: string, source: string, isAdminCollector: boolean, extensionId: string = "unknown") {
+  return source === "extension" && !isAdminCollector && (extensionId === "edge" || extensionId === "firefox" || /(?:Firefox|FxiOS)\//i.test(userAgent));
 }
 
 export async function enqueueFirefoxRecording(

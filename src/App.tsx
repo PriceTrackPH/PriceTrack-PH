@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import type { XAxisTickContentProps } from "recharts";
 import type { Tables } from "./database.types";
+import { routedHistory } from "./lib/routed-history";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import shopeeLogo from "./assets/shopee-logo.png";
 import ReportAd from "./ReportAd";
@@ -614,13 +615,9 @@ function ReportApp() {
     let found: Product;
     let modelRows: Tables<"product_variations">[];
     let history: Observation[] = [];
-    const pilot = import.meta.env.VITE_PRICETRACK_DB2_PILOT === "1"
-      && import.meta.env.VITE_VERCEL_ENV !== "production"
-      && (import.meta.env.VITE_PRICETRACK_DB2_PRODUCTS || "").split(",").includes(`${shopId}:${productId}`);
-    if (pilot) {
-      const response = await fetch(`/api/observations?db2Pilot=1&${new URLSearchParams({ shopId, productId })}`);
-      if (!response.ok) throw new Error("Unable to load pilot price history.");
-      ({ product: found, variations: modelRows, observations: history } = await response.json());
+    const routed = await routedHistory(shopId, productId);
+    if (routed) {
+      ({ product: found, variations: modelRows, observations: history } = routed);
     } else {
       const { data: existing, error: productError } = await supabase
         .from("products")

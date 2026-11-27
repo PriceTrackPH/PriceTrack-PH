@@ -5,6 +5,7 @@ import {
   shouldSkipObservation,
   variationStatesMatchPrevious,
 } from "./observation-policy.ts";
+import { recordingExtension } from "./recording-extension.ts";
 
 const cors = {
   "access-control-allow-origin": "*",
@@ -31,6 +32,7 @@ type VariationObservation = {
 
 type Observation = {
   platform?: string;
+  extensionId?: string;
   shopId?: string;
   productId?: string;
   canonicalUrl?: string;
@@ -61,6 +63,7 @@ type Observation = {
     rating?: number | null;
     discountPercent?: number | null;
   };
+  pageOutcome?: "sold_out" | "does_not_exist" | "unlisted" | "page_error";
 };
 
 type NormalizedVariation = Required<Pick<VariationObservation, "variationId" | "variationName" | "price" | "isInStock">> & VariationObservation;
@@ -161,6 +164,8 @@ Deno.serve(async (request: Request) => {
     if (!supabaseUrl || !secret) return reply({ error: "Collector is not configured" }, 503);
 
     const requestedSource = body.source === "scheduled_collector" ? "scheduled_collector" : "extension";
+    const recordedExtension = recordingExtension(body.extensionId);
+    const protectFirefox = requestedSource === "extension" && recordedExtension === "firefox";
     const internalToken = request.headers.get("x-pricetrack-internal-token") || "";
     const internalRequest = requestedSource === "scheduled_collector" && internalToken === await digest(secret);
     if (requestedSource === "scheduled_collector" && !internalRequest) {
@@ -175,15 +180,19 @@ Deno.serve(async (request: Request) => {
     const platform = (body.platform || "shopee").trim().toLowerCase();
     const shopId = body.shopId?.trim() || "";
     const productId = body.productId?.trim() || "";
-    if (!["1408391598:29280298218","276556301:19841104743","70046721:45369645174"].includes(`${shopId}:${productId}`)) {
-      return reply({ error: "Product is not part of the DB2 pilot" }, 403);
-    }
+    if (!["1408391598:29280298218", "276556301:19841104743", "70046721:45369645174"].includes(`${shopId}:${productId}`) || body.pageOutcome != null) return reply({ error: "Not a pilot price recording" }, 403);
     const title = body.title?.trim().slice(0, 500) || "";
+    if (body.pageOutcome == null && (!title || /^shopee(?:\s+philippines)?(?:\s*[|–-].*)?$/i.test(title))) {
+      return reply({ error: "Product details are still loading. Reload the Shopee page to retry." }, 422);
+    }
     const canonicalUrl = body.canonicalUrl?.trim() || "";
     const storeName = body.storeName?.trim().slice(0, 200) || null;
     const imageUrl = validImageUrl(body.imageUrl?.trim().slice(0, 2000) || null);
 
     const now = new Date();
+    if (protectFirefox && (!body.observedAt || Number.isNaN(Date.parse(body.observedAt)))) {
+      return reply({ error: "Firefox recording requires a valid observation timestamp" }, 400);
+    }
     const observedAt = body.observedAt && !Number.isNaN(Date.parse(body.observedAt)) ? new Date(body.observedAt) : now;
     const observationAge = now.getTime() - observedAt.getTime();
     if (observationAge > MAX_OBSERVATION_AGE_MS || observationAge < -MAX_FUTURE_SKEW_MS) {
@@ -215,11 +224,62 @@ Deno.serve(async (request: Request) => {
       return reply({ error: "Product URL does not match its identifiers" }, 400);
     }
 
+    // A terminal Shopee page may have no usable variation or price. Preserve
+    // its product identity and public metadata without inventing a price.
+    if (body.pageOutcome != null) {
+      if (!["sold_out", "does_not_exist", "unlisted", "page_error"].includes(body.pageOutcome)) {
+        return reply({ error: "Invalid product page outcome" }, 400);
+      }
+      const quotaRequest = buildIngestQuotaRequest(await digest(clientId), observedDate);
+      if (!internalRequest && quotaRequest) {
+        const quotaResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_ingest_quota`, {
+          method: "POST",
+          headers: adminHeaders(secret, { "content-type": "application/json" }),
+          body: JSON.stringify(quotaRequest),
+        });
+        if (!quotaResponse.ok) return reply({ error: "Unable to verify recording quota" }, 503);
+        if (await quotaResponse.json() == null) return reply({ error: "Daily recording limit reached" }, 429);
+      }
+      const productResponse = await fetch(`${supabaseUrl}/rest/v1/products?on_conflict=platform,external_shop_id,external_product_id`, {
+        method: "POST",
+        headers: adminHeaders(secret, { "content-type": "application/json", prefer: "resolution=merge-duplicates,return=representation" }),
+        body: JSON.stringify({
+          platform, external_shop_id: shopId, external_product_id: productId,
+          product_url: canonicalUrl, name: title, currency: "PHP",
+          ...(storeName ? { shop_name: storeName } : {}),
+          ...(imageUrl ? { image_url: imageUrl } : {}),
+          last_seen_at: observedAt.toISOString(), updated_at: now.toISOString(),
+        }),
+      });
+      if (!productResponse.ok) throw new Error(`Product outcome upsert failed: ${await productResponse.text()}`);
+      const [product] = await productResponse.json() as Array<{
+        id: number; collector_page_outcome?: string | null; last_check_attempt_at?: string | null;
+      }>;
+      if (!product?.id) throw new Error("Product outcome upsert returned no product ID");
+      if (product.collector_page_outcome === body.pageOutcome && product.last_check_attempt_at &&
+        new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
+        }).format(new Date(product.last_check_attempt_at)) === observedDate) {
+        return reply({ ok: true, outcome: body.pageOutcome, productId: product.id, alreadyRecorded: true });
+      }
+      const outcomeResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/mark_collector_product_outcome`, {
+        method: "POST",
+        headers: adminHeaders(secret, { "content-type": "application/json" }),
+        body: JSON.stringify({
+          p_claim_source: "random", p_queue_request_id: null, p_product_id: product.id,
+          p_external_shop_id: shopId, p_external_product_id: productId,
+          p_outcome: body.pageOutcome, p_checked_at: observedAt.toISOString(),
+        }),
+      });
+      if (!outcomeResponse.ok) throw new Error(`Product outcome update failed: ${await outcomeResponse.text()}`);
+      return reply({ ok: true, outcome: body.pageOutcome, productId: product.id });
+    }
+
     const submitted: VariationObservation[] = Array.isArray(body.variations) && body.variations.length
       ? body.variations
       : [{
-          variationId: body.variationId || "default",
-          variationName: body.variationName || "Default",
+          variationId: protectFirefox ? body.variationId : body.variationId || "default",
+          variationName: protectFirefox ? body.variationName : body.variationName || "Default",
           price: body.price,
           originalPrice: body.originalPrice,
           isInStock: true,
@@ -234,8 +294,14 @@ Deno.serve(async (request: Request) => {
       const price = Number(item.price);
       const originalPrice = item.originalPrice == null ? null : Number(item.originalPrice);
       const isInStock = item.isInStock !== false;
-      if (!variationId || !variationName || !validPrice(price)) continue;
-      if (originalPrice != null && (!Number.isFinite(originalPrice) || originalPrice < 0 || originalPrice > 10_000_000)) continue;
+      if (!variationId || !variationName || !validPrice(price)) {
+        if (protectFirefox) return reply({ error: "Firefox recording contains incomplete or invalid variation data" }, 400);
+        continue;
+      }
+      if (originalPrice != null && (!Number.isFinite(originalPrice) || originalPrice < 0 || originalPrice > 10_000_000)) {
+        if (protectFirefox) return reply({ error: "Firefox recording contains invalid original price" }, 400);
+        continue;
+      }
       deduped.set(variationId, {
         variationId,
         variationName,
@@ -253,17 +319,24 @@ Deno.serve(async (request: Request) => {
     const headers = adminHeaders(secret);
 
     let previousVariationCount: number | null = null;
+    let existedBeforeRecording = false;
     let existingProductMetadata: Record<string, unknown> = {};
+    let existingStoreName: string | null = null;
+    let existingImageUrl: string | null = null;
     const existingProductQuery = new URLSearchParams({
       platform: `eq.${platform}`,
       external_shop_id: `eq.${shopId}`,
       external_product_id: `eq.${productId}`,
-      select: "metadata",
+      select: "metadata,shop_name,image_url",
       limit: "1",
     });
     const existingProductResponse = await fetch(`${supabaseUrl}/rest/v1/products?${existingProductQuery}`, { headers });
+    if (protectFirefox && !existingProductResponse.ok) throw new Error("Firefox existing product lookup failed");
     if (existingProductResponse.ok) {
-      const [existingProduct] = await existingProductResponse.json() as Array<{ metadata?: Record<string, unknown> }>;
+      const [existingProduct] = await existingProductResponse.json() as Array<{ metadata?: Record<string, unknown>; shop_name?: string; image_url?: string }>;
+      existedBeforeRecording = Boolean(existingProduct);
+      existingStoreName = existingProduct?.shop_name || null;
+      existingImageUrl = existingProduct?.image_url || null;
       if (existingProduct?.metadata && typeof existingProduct.metadata === "object" && !Array.isArray(existingProduct.metadata)) {
         existingProductMetadata = existingProduct.metadata;
       }
@@ -306,14 +379,16 @@ Deno.serve(async (request: Request) => {
         external_product_id: productId,
         product_url: canonicalUrl,
         name: title,
-        shop_name: storeName,
-        image_url: imageUrl,
+        shop_name: storeName && !/^shopee(?: store)?$/i.test(storeName) ? storeName : existingStoreName,
+        image_url: imageUrl || existingImageUrl,
         currency: "PHP",
         all_variations_sold_out: productCheckMetadata.all_variations_sold_out,
-        last_seen_at: observedAt.toISOString(),
+        ...(protectFirefox ? {} : { last_seen_at: observedAt.toISOString() }),
         updated_at: now.toISOString(),
         metadata: {
           ...existingProductMetadata,
+          last_recorded_extension: recordedExtension,
+          last_recorded_extension_at: observedAt.toISOString(),
           submitted_variation_count: variations.length,
           collector_format: Array.isArray(body.variations) ? "bulk_models_v1" : "legacy_single_v1",
           ...(validRatingCount && !keepExactRatingCount
@@ -359,8 +434,8 @@ Deno.serve(async (request: Request) => {
       external_variation_id: item.variationId,
       name: item.variationName,
       sku: item.sku || null,
-      is_active: item.isInStock,
-      last_seen_at: observedAt.toISOString(),
+      ...(protectFirefox ? {} : { is_active: item.isInStock }),
+      ...(protectFirefox ? {} : { last_seen_at: observedAt.toISOString() }),
       updated_at: nowIso,
       metadata: safeMetadata(item.metadata),
     }));
@@ -442,6 +517,7 @@ Deno.serve(async (request: Request) => {
           source: requestedSource,
           metadata: {
             bulk_collection: Array.isArray(body.variations),
+            recorded_extension: recordedExtension,
             variation_name: item.variationName,
           },
         },
@@ -527,7 +603,9 @@ Deno.serve(async (request: Request) => {
     await Promise.all(diagnosticEvents.map((event) => recordDiagnostic(supabaseUrl, secret, event)));
 
     const checkStatus = failedCount === 0 ? "success" : failedCount === variations.length ? "failure" : "partial";
-    const markCheckResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/mark_product_check`, {
+    const markCheckResponse = protectFirefox && checkStatus !== "success"
+      ? new Response(null, { status: 409 })
+      : await fetch(`${supabaseUrl}/rest/v1/rpc/mark_product_check`, {
       method: "POST",
       headers: adminHeaders(secret, { "content-type": "application/json" }),
       body: JSON.stringify({
@@ -540,14 +618,27 @@ Deno.serve(async (request: Request) => {
         p_changed_count: insertedCount,
         p_unchanged_count: unchangedCount,
         p_failed_count: failedCount,
-        p_metadata: checkMetadata,
+        p_metadata: { ...checkMetadata, recorded_extension: recordedExtension },
       }),
     });
     if (!markCheckResponse.ok) {
       throw new Error("Pilot daily check update failed");
     }
+    if (protectFirefox && checkStatus === "success" && markCheckResponse.ok) {
+      const productSeen = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${product.id}`, {
+        method: "PATCH", headers: adminHeaders(secret, { "content-type": "application/json" }),
+        body: JSON.stringify({ last_seen_at: observedAt.toISOString() })
+      });
+      if (!productSeen.ok) throw new Error("Firefox recording timestamp update failed");
+      const variationSeen = await fetch(`${supabaseUrl}/rest/v1/product_variations?id=in.(${variationIds.join(",")})`, {
+        method: "PATCH", headers: adminHeaders(secret, { "content-type": "application/json" }),
+        body: JSON.stringify({ last_seen_at: observedAt.toISOString() }),
+      });
+      if (!variationSeen.ok) throw new Error("Firefox variation timestamp update failed");
+    }
 
     return reply({
+      pilotCheck: { status: checkStatus, date: observedDate, at: observedAt.toISOString(), metadata: checkMetadata, product, priceDropAt: hasPriceDrop ? observedAt.toISOString() : null },
       ok: failedCount < variations.length,
       changed: insertedCount > 0,
       shopId,
@@ -581,3 +672,4 @@ Deno.serve(async (request: Request) => {
     return reply({ error: "Unable to record this price" }, 500);
   }
 });
+
