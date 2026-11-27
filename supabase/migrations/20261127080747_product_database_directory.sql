@@ -3,6 +3,7 @@ create table public.product_databases (
   database_id text primary key check (database_id ~ '^db[1-9][0-9]{0,2}$'),
   accepts_new boolean not null default false,
   product_limit integer not null default 15000 check (product_limit between 1 and 15000),
+  reserved_slots integer not null default 0 check (reserved_slots between 0 and 15000),
   capacity_available boolean not null default false
 );
 -- Multiple configured destinations can be ready. The allocator fills them in
@@ -31,6 +32,19 @@ insert into public.product_database_directory(platform,external_shop_id,external
   select platform,external_shop_id,external_product_id,'db1',id
   from public.products where platform='shopee'
   on conflict (platform,external_shop_id,external_product_id) do nothing;
+
+-- Reserve IDs centrally even when a new product will be inserted into DB2/DB3.
+-- Sequence allocation is monotonic and independent of per-database capacity.
+do $$
+declare seq regclass; highest bigint; used bigint;
+begin
+  seq:=pg_catalog.pg_get_serial_sequence('public.products','id')::regclass;
+  if seq is null then raise exception 'Global product ID sequence is required'; end if;
+  select coalesce(max(internal_product_id),0) into highest from public.product_database_directory;
+  execute pg_catalog.format('select last_value from %s',seq) into used;
+  perform pg_catalog.setval(seq,greatest(highest,used,1),true);
+  execute pg_catalog.format('grant usage on sequence %s to service_role',seq);
+end $$;
 
 create function public.assign_product_database(p_platform text,p_shop_id text,p_product_id text)
 returns text language plpgsql security invoker set search_path = '' as $$
@@ -64,13 +78,14 @@ begin
     order by pg_catalog.substring(database_id,3)::integer for update
   loop
     select count(*) into assigned_count from public.product_database_directory where database_id=destination.database_id;
-    if assigned_count >= destination.product_limit then
+    if assigned_count + destination.reserved_slots >= destination.product_limit then
       update public.product_databases set accepts_new=false where database_id=destination.database_id;
       continue;
     end if;
-    insert into public.product_database_directory(platform,external_shop_id,external_product_id,database_id)
-      values(p_platform,p_shop_id,p_product_id,destination.database_id);
-    if assigned_count + 1 >= destination.product_limit then
+    insert into public.product_database_directory(platform,external_shop_id,external_product_id,database_id,internal_product_id)
+      values(p_platform,p_shop_id,p_product_id,destination.database_id,
+        pg_catalog.nextval(pg_catalog.pg_get_serial_sequence('public.products','id')::regclass));
+    if assigned_count + destination.reserved_slots + 1 >= destination.product_limit then
       update public.product_databases set accepts_new=false where database_id=destination.database_id;
     end if;
     return destination.database_id;
@@ -81,26 +96,47 @@ $$;
 revoke all on function public.assign_product_database(text,text,text) from public,anon,authenticated;
 grant execute on function public.assign_product_database(text,text,text) to service_role;
 
+create function public.list_product_database_owners()
+returns table(database_id text) language sql stable security invoker set search_path='' as $$
+  select distinct d.database_id from public.product_database_directory d where d.database_id<>'db1';
+$$;
+revoke all on function public.list_product_database_owners() from public,anon,authenticated;
+grant execute on function public.list_product_database_owners() to service_role;
+
 -- Legacy recorders must not recreate migrated identities in DB1. This guard is
 -- part of the staged rollout, not a substitute for routing those recorders.
 create function public.guard_primary_product_owner()
 returns trigger language plpgsql security invoker set search_path = '' as $$
 declare assigned public.product_database_directory%rowtype;
 begin
+  if not exists(select 1 from public.site_settings where key='database_routing_live' and boolean_value) then
+    if new.platform='shopee' then
+      if tg_op='INSERT' then perform pg_catalog.pg_advisory_xact_lock(873610209); end if;
+      insert into public.product_database_directory(platform,external_shop_id,external_product_id,database_id,internal_product_id)
+        values(new.platform,new.external_shop_id,new.external_product_id,'db1',new.id)
+        on conflict(platform,external_shop_id,external_product_id) do nothing;
+    end if;
+    select * into assigned from public.product_database_directory
+      where platform=new.platform and external_shop_id=new.external_shop_id and external_product_id=new.external_product_id for share;
+    if found and (assigned.database_id<>'db1' or assigned.migration_in_progress) then raise exception 'Product belongs to another database or is being migrated'; end if;
+    if found and tg_op='INSERT' and assigned.internal_product_id is not null then new.id:=assigned.internal_product_id; end if;
+    return new;
+  end if;
   if tg_op='UPDATE' and (old.id is distinct from new.id or old.platform is distinct from new.platform
     or old.external_shop_id is distinct from new.external_shop_id or old.external_product_id is distinct from new.external_product_id) then
     raise exception 'Product identity cannot change';
   end if;
   if new.platform <> 'shopee' then return new; end if;
-  perform pg_catalog.pg_advisory_xact_lock(873610209);
+  if tg_op='INSERT' then perform pg_catalog.pg_advisory_xact_lock(873610209); end if;
   select * into assigned from public.product_database_directory
-    where platform=new.platform and external_shop_id=new.external_shop_id and external_product_id=new.external_product_id;
+    where platform=new.platform and external_shop_id=new.external_shop_id and external_product_id=new.external_product_id for share;
   if not found then
     raise exception 'Product ownership must be assigned before a DB1 write';
   end if;
   if assigned.database_id <> 'db1' or assigned.migration_in_progress then
     raise exception 'Product belongs to another database or is being migrated';
   end if;
+  if tg_op='INSERT' then new.id:=assigned.internal_product_id; end if;
   insert into public.product_database_directory(platform,external_shop_id,external_product_id,database_id,internal_product_id)
     values(new.platform,new.external_shop_id,new.external_product_id,'db1',new.id)
     on conflict(platform,external_shop_id,external_product_id) do update

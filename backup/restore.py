@@ -44,6 +44,8 @@ def schema_commands(catalog):
                 definition += ' NOT NULL'
             cols.append(definition)
         pre.append(f"CREATE TABLE public.{q(t['name'])} ({', '.join(cols)})")
+    for inheritance in catalog.get('inheritance', []):
+        pre.append(f"ALTER TABLE public.{q(inheritance['child'])} INHERIT public.{q(inheritance['parent'])}")
     pre.extend(f['definition'] for f in catalog['functions'])
     for c in catalog['constraints']:
         command = f"ALTER TABLE public.{q(c['table'])} ADD CONSTRAINT {q(c['name'])} {c['definition']}"
@@ -90,12 +92,21 @@ def schema_commands(catalog):
     return pre, post
 
 
-def restore(archive, database_url):
+def restore(archive, database_url, database=None):
     with zipfile.ZipFile(archive) as z:
         manifest = json.loads(z.read('manifest.json'))
         if manifest.get('complete') is not True:
             raise ValueError('Backup is incomplete')
         catalog = json.loads(z.read('database/catalog.json'))
+        prefix = ''
+        if catalog.get('databases'):
+            if not database:
+                raise ValueError('This is a multiple-database backup. Choose --database db1, db2, or another included database, and restore each into its own empty target.')
+            match = next((item for item in catalog['databases'] if item['owner'] == database), None)
+            if not match:
+                raise ValueError('Selected database is not in this backup')
+            catalog = match['catalog']
+            prefix = database + '__'
         pre, post = schema_commands(catalog)
         with psycopg.connect(database_url) as connection:
             with connection.cursor() as cur:
@@ -111,11 +122,11 @@ def restore(archive, database_url):
                     cur.execute('TRUNCATE ptph_restore_rows')
                     count = 0
                     with cur.copy('COPY ptph_restore_rows (payload) FROM STDIN') as copy:
-                        with z.open('database/' + table['name'] + '.ndjson') as f:
+                        with z.open('database/' + prefix + table['name'] + '.ndjson') as f:
                             for line in f:
                                 copy.write_row((line.decode('utf-8').strip(),))
                                 count += 1
-                    if count != counts[table['name']]:
+                    if count != counts[prefix + table['name']]:
                         raise ValueError('Row count mismatch: ' + table['name'])
                     columns = [c['name'] for c in table['columns'] if not c['generated']]
                     names = sql.SQL(',').join(map(sql.Identifier, columns))
@@ -136,5 +147,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('archive')
     parser.add_argument('--database-url', required=True)
+    parser.add_argument('--database', help='Database owner in a multiple-database backup, such as db1 or db2')
     args = parser.parse_args()
-    restore(args.archive, args.database_url)
+    restore(args.archive, args.database_url, args.database)

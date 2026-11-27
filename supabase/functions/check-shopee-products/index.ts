@@ -151,7 +151,7 @@ async function markFailure(supabaseUrl: string, secret: string, product: DueProd
   const checkedDate = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(checkedAt);
-  await fetch(`${supabaseUrl}/rest/v1/rpc/mark_product_check`, {
+  await fetch(`${supabaseUrl}/rest/v1/rpc/mark_collector_check`, {
     method: "POST",
     headers: adminHeaders(secret, JSON_HEADERS),
     body: JSON.stringify({

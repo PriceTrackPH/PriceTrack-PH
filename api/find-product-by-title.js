@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     }
     const pattern = "%" + text.split(/\s+/).map(word => word.replace(/[\\%_]/g, "\\$&")).join("%") + "%";
     try {
-      return res.status(200).json(await searchCatalog(process.env, { nameFilter: `ilike.${pattern}`, limit: mode === "featured" ? 1 : mode === "discover" ? 6 : 5, mode }));
+      return res.status(200).json(await searchCatalog(process.env, { nameFilter: `ilike.${pattern}`, limit: mode === "featured" ? 1 : mode === "discover" ? 6 : 5, mode, recordedOnly:mode==='search' }));
     } catch { return res.status(502).json({ error: "Product search is unavailable" }); }
   }
 
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
   try {
     const searchProducts = async (nameFilter, limit) => {
-      if (process.env.PRICETRACK_DATABASE_ROUTING === "1") return searchCatalog(process.env, { nameFilter, limit });
+      if (process.env.PRICETRACK_DATABASE_ROUTING === "1") return searchCatalog(process.env, { nameFilter, limit,includeInactive:true });
       const endpoint = new URL('/rest/v1/products', supabaseUrl);
       endpoint.searchParams.set('select', 'external_shop_id,external_product_id,product_url,name');
       endpoint.searchParams.set('platform', 'eq.shopee');

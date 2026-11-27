@@ -1,4 +1,5 @@
 const SITE_ORIGIN = "https://pricetrackph.com";
+import { catalogTargets, ownedCatalogRows } from "../server/product-catalog.js";
 const PAGE_SIZE = 1000;
 const MAX_PRODUCT_URLS = 49998;
 
@@ -32,11 +33,13 @@ async function loadProducts() {
   if (!supabaseUrl || !secret) return [];
 
   const products = [];
-  const headers = adminHeaders(secret);
+  const targets = await catalogTargets(process.env);
+  for (const target of targets) {
+  const headers = adminHeaders(target.secret);
 
   for (let offset = 0; offset < MAX_PRODUCT_URLS; offset += PAGE_SIZE) {
     const params = new URLSearchParams({
-      select: "external_shop_id,external_product_id,updated_at",
+      select: "id,external_shop_id,external_product_id,updated_at",
       platform: "eq.shopee",
       is_active: "eq.true",
       // A recorded price drop establishes at least one actual price change.
@@ -47,7 +50,7 @@ async function loadProducts() {
       limit: String(Math.min(PAGE_SIZE, MAX_PRODUCT_URLS - offset)),
       offset: String(offset),
     });
-    const response = await fetch(`${supabaseUrl}/rest/v1/products?${params}`, {
+    const response = await fetch(`${target.url}/rest/v1/products?${params}`, {
       headers,
       signal: AbortSignal.timeout(8000),
     });
@@ -55,11 +58,14 @@ async function loadProducts() {
 
     const rows = await response.json();
     if (!Array.isArray(rows)) throw new Error("products_invalid_response");
-    products.push(...rows);
+    products.push(...await ownedCatalogRows(process.env,target,rows));
     if (rows.length < PAGE_SIZE) break;
   }
+  }
 
-  return products;
+  const unique=new Map();
+  for(const product of products)unique.set(`${product.external_shop_id}:${product.external_product_id}`,product);
+  return [...unique.values()].sort((a,b)=>(Date.parse(b.updated_at)||0)-(Date.parse(a.updated_at)||0)).slice(0,MAX_PRODUCT_URLS);
 }
 
 function sitemapXml(products) {

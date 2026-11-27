@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { forwardOwnedRecording } from "./owned-forwarding.ts";
 import {
   buildCheckMetadata,
   buildIngestQuotaRequest,
@@ -233,6 +234,8 @@ Deno.serve(async (request: Request) => {
       if (!["sold_out", "does_not_exist", "unlisted", "page_error"].includes(body.pageOutcome)) {
         return reply({ error: "Invalid product page outcome" }, 400);
       }
+      const owned=await forwardOwnedRecording(request,{...body,platform,shopId,productId,canonicalUrl,title},{url:supabaseUrl,secret,token:await digest(secret)});
+      if(owned)return reply(owned.body,owned.status);
       const quotaRequest = buildIngestQuotaRequest(await digest(clientId), observedDate);
       if (!internalRequest && quotaRequest) {
         const quotaResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_ingest_quota`, {
@@ -318,6 +321,10 @@ Deno.serve(async (request: Request) => {
 
     const variations = Array.from(deduped.values());
     if (!variations.length) return reply({ error: "No valid variation prices were submitted" }, 400);
+
+    const owned=await forwardOwnedRecording(request,{...body,platform,shopId,productId,canonicalUrl,title,
+      ...(Array.isArray(body.variations)?{variations}:{...variations[0]})},{url:supabaseUrl,secret,token:await digest(secret)});
+    if(owned)return reply(owned.body,owned.status);
 
     const pilot = await forwardPilotRecording(request, {...body,platform,shopId,productId}, {
       url: supabaseUrl, secret, token: await digest(secret), source: requestedSource,

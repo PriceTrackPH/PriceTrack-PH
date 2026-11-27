@@ -1,13 +1,14 @@
 // The directory assigns an identity once. Never discover ownership by trying
 // writes against each database: an outage must not create a second product.
-export function validRoutingSubmission(body) {
+export function validRoutingSubmission(body, {internal = false, clientId = ""} = {}) {
   if (!body || typeof body.title !== "string" || !body.title.trim() || body.title.length > 500 ||
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.installationId || "")) return false;
+      (!internal && !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId || body.installationId || ""))) return false;
   try {
     const url = new URL(body.canonicalUrl);
     const match = url.pathname.match(/-i\.(\d+)\.(\d+)/i) || url.pathname.match(/\/product\/(\d+)\/(\d+)/i);
     if (url.protocol !== "https:" || !/(^|\.)shopee\.ph$/i.test(url.hostname) || !match || match[1] !== body.shopId || match[2] !== body.productId) return false;
   } catch { return false; }
+  if (body.pageOutcome != null) return ["sold_out", "does_not_exist", "unlisted", "page_error"].includes(body.pageOutcome);
   const variations = Array.isArray(body.variations) && body.variations.length ? body.variations : [body];
   return variations.length <= 200 && variations.every(item => item &&
     typeof item.variationId === "string" && item.variationId.trim() &&
@@ -42,5 +43,5 @@ export async function recordingDestination(env, body, fetcher = fetch) {
     ? env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY
     : env[`SUPABASE_DB${number}_PUBLISHABLE_KEY`];
   if (!url || !publishableKey) throw new Error("Assigned product database is not configured");
-  return { owner, url, publishableKey, recorder: "record-price" };
+  return { owner, url, publishableKey, recorder: owner === "db1" ? "record-price" : "record-price-owned" };
 }

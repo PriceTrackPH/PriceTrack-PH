@@ -17,6 +17,21 @@ export function serviceHeaders(secret) {
   return { apikey: secret, ...(secret.startsWith("ey") ? { Authorization: `Bearer ${secret}` } : {}) };
 }
 
+export async function ownersByIds(env, ids, fetcher=fetch) {
+  const primary=databaseConfig(env,'db1');
+  const owners=new Map();
+  if(ids.some(id=>!Number.isSafeInteger(Number(id))||Number(id)<1))throw Error('Invalid saved product IDs');
+  for(let offset=0;offset<ids.length;offset+=200){
+    const params=new URLSearchParams({select:'database_id,internal_product_id,migration_in_progress',internal_product_id:`in.(${ids.slice(offset,offset+200).join(',')})`});
+    const response=await fetcher(`${primary.url}/rest/v1/product_database_directory?${params}`,{headers:serviceHeaders(primary.secret),signal:AbortSignal.timeout(8000)});
+    if(!response.ok)throw Error('Product directory is unavailable');
+    const rows=await response.json();
+    if(!Array.isArray(rows))throw Error('Invalid product directory response');
+    for(const row of rows)owners.set(String(row.internal_product_id),row);
+  }
+  return owners;
+}
+
 export async function productOwner(env, identity, fetcher = fetch) {
   if (env.PRICETRACK_DATABASE_ROUTING !== "1") return null;
   const params = new URLSearchParams({ select: "database_id,migration_in_progress,internal_product_id", limit: "2" });

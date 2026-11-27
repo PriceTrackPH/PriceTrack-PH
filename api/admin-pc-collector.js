@@ -1,7 +1,10 @@
 import crypto from "node:crypto";
 import { normalizeDiscoveredProducts, normalizeShopeeStoreUrl } from "../server/store-import-contract.js";
 import { skipNextDayForUnchangedPrice } from "../server/shopee-sale-window.js";
-import { collectorProductDatabase } from "../server/product-owner.js";
+import { collectorFetch } from "../server/collector-fetch.js";
+import { ownedProductRows } from "../server/owned-product-rows.js";
+import { recordOwnedOutcome } from "../server/owned-recording.js";
+const fetch = (input, options) => collectorFetch(input, options);
 
 const MAX_BODY_BYTES = 512_000;
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -400,7 +403,6 @@ export async function saveCollectorRun(supabaseUrl, secret, run) {
 }
 
 async function releaseProduct(supabaseUrl, secret, productId) {
-  ({ url: supabaseUrl, secret } = await collectorProductDatabase(process.env, supabaseUrl, secret, { id: productId }));
   const response = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${productId}`, {
     method: "PATCH",
     headers: adminHeaders(secret, {
@@ -443,7 +445,6 @@ async function applyUnchangedPriceSkip(supabaseUrl, secret, productId, check, me
 }
 
 async function productCheckStatus(supabaseUrl, secret, productId, skipUnchangedDay = false, skipSoldOut = true, checkedDate = null) {
-  ({ url: supabaseUrl, secret } = await collectorProductDatabase(process.env, supabaseUrl, secret, { id: productId }));
   const currentManilaDate = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date());
@@ -485,7 +486,6 @@ async function productCheckStatus(supabaseUrl, secret, productId, skipUnchangedD
 }
 
 export async function productCheckStatusByIdentity(supabaseUrl, secret, shopId, externalProductId, skipUnchangedDay = false, skipSoldOut = true, checkedDate = null) {
-  ({ url: supabaseUrl, secret } = await collectorProductDatabase(process.env, supabaseUrl, secret, { shopId, productId: externalProductId }));
   const params = new URLSearchParams({
     platform: "eq.shopee",
     external_shop_id: `eq.${shopId}`,
@@ -501,6 +501,10 @@ export async function productCheckStatusByIdentity(supabaseUrl, secret, shopId, 
 }
 
 export async function markCollectorProductOutcome(supabaseUrl, secret, payload) {
+  if (process.env.PRICETRACK_DATABASE_ROUTING === "1") {
+    const result = await recordOwnedOutcome(process.env, payload);
+    if (result) return result;
+  }
   return rpc(supabaseUrl, secret, "mark_collector_product_outcome", {
     p_claim_source: payload.claimSource,
     p_queue_request_id: payload.queueRequestId || null,
@@ -697,6 +701,7 @@ export default async function handler(req, res) {
         select: "product_id,added_at,next_check_at,products(product_url,external_shop_id,external_product_id,name,shop_name,last_checked_at,collector_page_outcome,all_variations_sold_out,next_check_at)",
         order: "added_at.desc,product_id.desc",
       });
+      if (process.env.PRICETRACK_DATABASE_ROUTING === "1") params.set("select", "product_id,added_at,next_check_at");
       if (paged) {
         params.set("limit", "10");
         params.set("offset", String((Math.min(page, 100_000) - 1) * 10));
@@ -706,6 +711,12 @@ export default async function handler(req, res) {
       });
       if (!response.ok) throw new Error(`personal_list_${response.status}`);
       const favorites = await response.json();
+      if (process.env.PRICETRACK_DATABASE_ROUTING === "1" && favorites.length) {
+        const products=[];
+        for(let offset=0;offset<favorites.length;offset+=200)products.push(...await ownedProductRows(process.env, `products?${new URLSearchParams({id:`in.(${favorites.slice(offset,offset+200).map(row=>row.product_id).join(",")})`,select:"id,product_url,external_shop_id,external_product_id,name,shop_name,last_checked_at,collector_page_outcome,all_variations_sold_out,next_check_at"})}`));
+        const byId = new Map(products.map(product=>[Number(product.id),product]));
+        for (const favorite of favorites) favorite.products=byId.get(Number(favorite.product_id)) || null;
+      }
       const count = response.headers?.get?.("content-range")?.match(/\/(\d+)$/);
       return send(res, 200, { ok: true, favorites, ...(paged ? { total: count ? Number(count[1]) : favorites.length } : {}) });
     }

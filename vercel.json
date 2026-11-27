@@ -4,8 +4,11 @@
       "regions": [
         "sin1"
       ],
+      "maxDuration": 60,
       "includeFiles": ".backup/website.zip"
     },
+    "api/observations.js": { "regions": ["sin1"], "maxDuration": 60 },
+    "api/admin-pc-collector.js": { "regions": ["sin1"], "maxDuration": 60 },
     "api/*.js": {
       "regions": [
         "sin1"

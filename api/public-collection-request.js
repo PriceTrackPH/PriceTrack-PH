@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { collectorFetch } from "../server/collector-fetch.js";
 
 const MAX_BODY_BYTES = 8_192;
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -87,7 +88,7 @@ export default async function handler(req, res) {
         select: "id", platform: "eq.shopee", external_shop_id: `eq.${body.shopId}`,
         external_product_id: `eq.${body.productId}`, limit: "1",
       });
-      const productResponse = await fetch(`${supabaseUrl}/rest/v1/products?${params}`, {
+      const productResponse = await collectorFetch(`${supabaseUrl}/rest/v1/products?${params}`, {
         headers: serviceHeaders(secret),
       });
       if (!productResponse.ok) throw new Error(`tracked_lookup_${productResponse.status}`);

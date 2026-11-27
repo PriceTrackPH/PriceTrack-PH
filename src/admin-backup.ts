@@ -1,7 +1,7 @@
 import { Zip, ZipDeflate, ZipPassThrough, strToU8 } from 'fflate';
 
 type Table = { name: string; rowCount: string; upperKey: Record<string,string> | null };
-type Catalog = { tables: Table[]; exportedAt: string; websiteCommit: string; projectRef: string; environmentVariableNames: string[] };
+type Catalog = { tables: Table[]; exportedAt: string; websiteCommit: string; projectRef: string; environmentVariableNames: string[]; databases?: {owner:string;catalog:unknown}[] };
 type WritableFile = { write(data: Uint8Array): Promise<void>; close(): Promise<void>; abort(): Promise<void> };
 type SaveWindow = Window & { showSaveFilePicker?: (options: object) => Promise<{ createWritable(): Promise<WritableFile> }> };
 
@@ -70,6 +70,7 @@ export async function downloadFullBackup(token: string, progress: (message: stri
     const catalog = await (await request('catalog')).json() as Catalog;
     const exported: { name:string; exportedRows:number }[] = [];
     await addText('database/catalog.json',JSON.stringify(catalog,null,2));
+    for(const database of catalog.databases||[])await addText(`database/${database.owner}/catalog.json`,JSON.stringify(database.catalog,null,2));
     progress('Backing up website code and assets…');
     const website = new Uint8Array(await (await request('website')).arrayBuffer());
     const websiteEntry = new ZipPassThrough('website.zip'); zip.add(websiteEntry); websiteEntry.push(website,true); await writes;

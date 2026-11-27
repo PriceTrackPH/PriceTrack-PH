@@ -36,6 +36,7 @@ test("a moved report loads complete paginated history without querying DB1 produ
   const fetcher = async url => {
     calls.push(url);
     if (url.includes("product_database_directory")) return Response.json([assigned]);
+    if (url.includes("/collector_products?")) return Response.json([{last_check_status:'success'}]);
     assert.ok(url.startsWith("https://db2.example/"));
     if (url.includes("/products?")) return Response.json([{ id: 142724, name: "Eden" }]);
     if (url.includes("/product_variations?")) return Response.json([{ id: 17, external_variation_id: "default" }, { id: 18, external_variation_id: "123" }]);
@@ -46,12 +47,12 @@ test("a moved report loads complete paginated history without querying DB1 produ
   assert.equal(result.product.id, 142724);
   assert.equal(result.variations.length, 1);
   assert.equal(result.observations.length, 501);
-  assert.equal(calls.length, 5);
+  assert.equal(calls.length, 6);
 });
 
 test("search uses owner data once and fails if that owner is unavailable", async () => {
   const row = { id: 142724, name: "Eden", external_shop_id: "238345847", external_product_id: "50659961134" };
-  const fetcher = async url => Response.json(url.includes("product_database_directory") ? [assigned] : [{ ...row, name: url.startsWith(env.SUPABASE_DB2_URL) ? "Eden fresh" : "Eden stale" }]);
+  const fetcher = async url => Response.json(url.includes('/rpc/list_product_database_owners') ? [{database_id:'db2'}] : url.includes("product_database_directory") ? [assigned] : [{ ...row, name: url.startsWith(env.SUPABASE_DB2_URL) ? "Eden fresh" : "Eden stale" }]);
   const results = await searchCatalog(env, { nameFilter: "ilike.%Eden%", limit: 5 }, fetcher);
   assert.equal(results.length, 1);
   assert.equal(results[0].name, "Eden fresh");
