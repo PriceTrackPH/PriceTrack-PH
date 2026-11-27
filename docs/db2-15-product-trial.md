@@ -1,44 +1,50 @@
-# Fifteen-product migration trial
+# Fifteen-product DB2 trial — November 28, 2026 Philippine time
 
-Scope: exactly the IDs in `server/product-migration.js`: 142734, 142732, 142731,
-142730, 142729, 142728, 142727, 142726, 142724, 142723, 142722, 142721,
-142720, 142719, 142718. The original three-product pilot is separate.
+## Current live state
+Website/API implementation is deployed at production commit 09a5f8a.
+DB1 directory/control-plane and DB1/DB2 physical-row backup RPCs are installed.
+DB1 record-price v35 and scheduled collector v2 are deployed; DB2's signed
+record-price-owned v1 is deployed. General routing remains OFF. Existing
+three-product pilot behavior is unchanged.
 
-## Preparation checkpoint, November 28, 2026 Philippine time
+The selected 15 products are COPIED and fully field-verified in DB2, but are
+NOT reassigned. Their DB1 originals remain authoritative. DB2 currently has
+18 products: three original pilot products plus 15 temporary trial copies.
+All 15 temporary migration freezes were released after the cutover confirmation
+expired. No full DB1 products were deleted; zero remote scheduling entries exist.
+New recordings therefore still follow existing DB1/pilot behavior.
 
-DB1 directory/control-plane and physical-row backup functions are installed.
-DB2 owned-recorder dependencies and backup functions are installed. DB1 recorder
-v35 supports ownership forwarding; the switch remains off. Scheduled recorder
-v2 uses the central check marker. DB2 owned recorder v1 requires signed routing
-headers. No selected product has been copied, reassigned or deleted at this
-checkpoint. DB1 has 25,019 original products, 25,019 directory entries, zero
-remote scheduling entries, and zero destinations accepting new assignments.
-DB2 has the original three pilot products only.
+## Selection and verification
+IDs: 142734,142732,142731,142730,142729,142728,142727,142726,142724,142723,
+142722,142721,142720,142719,142718.
 
-## Verification
+Snapshot: 15 products,25 variations,25 observations,15 daily checks; zero
+extension-visit,favorite,backlog rows. All seven table snapshots matched by full
+field SHA256 verification after copy, and the frozen source was unchanged.
+A recovery ZIP with snapshot and manifest was saved before copying.
 
-Build and Edge TypeScript checks pass. Tests cover 15,000-product capacity,
-rollover, stable ownership, original global IDs, write guards, remote recording
-receipts, queue handoffs, central claims/leases/outcomes/favorites/backlogs,
-owner history/search, and multiple-database physical backups. Four unrelated
-legacy test failures also reproduce on production commit 24aa324; no collection
-rules were changed to alter those expectations.
+Build, Edge TypeScript checks, owned-recording/directory/history/search tests,
+PGlite capacity/central-queue integration, and inherited physical backup tests
+passed. Four older unrelated test failures reproduce on production 24aa324.
+Actual live rollback/cutover SQL was NOT confirmed: Supabase's required
+confirmation expired. Do not claim the live queue cutover passed.
 
-## Cutover requirements
+## Resume safely
+1. Confirm the Supabase cutover prompt while the user is present.
+2. Re-freeze only these 15 DB1 directory entries; drain writes and recheck leases.
+3. Re-export source and compare with DB2. Since freezes were released, source
+   data may have changed. Refresh target rows and recovery backup if necessary;
+   never delete newly recorded observations to force a match.
+4. Run the rollback-only queue/summary/status test and observe its result.
+5. Prepare production routing flags and DB2 capacity (three reserved pilot
+   slots); verify owner-aware runtime paths before permanent source removal.
+6. Atomically assign these 15 to DB2, remove their full DB1 rows, and create
+   central scheduling/check markers. Verify zero full source duplicates.
+7. Activate and verify direct extensions, API captures, admin/community and
+   scheduled collectors, reports, watchlists, search, sitemap and backup.
+8. Record final evidence and counts. Leave original three pilot originals alone.
 
-1. Publish the complete website/API implementation with routing enabled only
-   after destination credentials and recorder dependencies are ready.
-2. Recheck the selected rows, active leases and all related table counts. Freeze
-   their directory entries and drain writes before creating a durable export.
-3. Copy original full rows and IDs to DB2. Compare all field values and SHA256
-   manifests, not just counts; verify the frozen source remains unchanged.
-4. Test central claims/summary/status and membership survival inside a DB1
-   transaction that rolls back before the permanent cutover.
-5. Atomically change the selected owners, remove their full DB1 records and seed
-   their central scheduling/check markers. Preserve original timestamps and
-   memberships. Confirm 15 products only in DB2 and zero full DB1 duplicates.
-6. Verify deployed reports, search, watchlist, backup, extension recording and
-   admin/community/scheduled paths. Keep the original pilot untouched.
-
-`verifyMigrationCopy` and `requireCutoverEvidence` reject incomplete cutovers.
-Do not claim migration is complete from this preparation checkpoint alone.
+Capacity is 15,000 new assigned products per database including reserved slots.
+Existing DB1 products above the cap are grandfathered until separately migrated.
+DB3+ must be configured/prepared before accepting rollover; no silent fallback.
+See database-routing.md for configuration and rollback requirements.
