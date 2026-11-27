@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { normalizeDiscoveredProducts, normalizeShopeeStoreUrl } from "../server/store-import-contract.js";
 import { skipNextDayForUnchangedPrice } from "../server/shopee-sale-window.js";
+import { collectorProductDatabase } from "../server/product-owner.js";
 
 const MAX_BODY_BYTES = 512_000;
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -399,6 +400,7 @@ export async function saveCollectorRun(supabaseUrl, secret, run) {
 }
 
 async function releaseProduct(supabaseUrl, secret, productId) {
+  ({ url: supabaseUrl, secret } = await collectorProductDatabase(process.env, supabaseUrl, secret, { id: productId }));
   const response = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${productId}`, {
     method: "PATCH",
     headers: adminHeaders(secret, {
@@ -441,6 +443,7 @@ async function applyUnchangedPriceSkip(supabaseUrl, secret, productId, check, me
 }
 
 async function productCheckStatus(supabaseUrl, secret, productId, skipUnchangedDay = false, skipSoldOut = true, checkedDate = null) {
+  ({ url: supabaseUrl, secret } = await collectorProductDatabase(process.env, supabaseUrl, secret, { id: productId }));
   const currentManilaDate = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date());
@@ -482,6 +485,7 @@ async function productCheckStatus(supabaseUrl, secret, productId, skipUnchangedD
 }
 
 export async function productCheckStatusByIdentity(supabaseUrl, secret, shopId, externalProductId, skipUnchangedDay = false, skipSoldOut = true, checkedDate = null) {
+  ({ url: supabaseUrl, secret } = await collectorProductDatabase(process.env, supabaseUrl, secret, { shopId, productId: externalProductId }));
   const params = new URLSearchParams({
     platform: "eq.shopee",
     external_shop_id: `eq.${shopId}`,

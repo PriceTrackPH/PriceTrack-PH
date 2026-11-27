@@ -40,7 +40,7 @@ delete the original products as an activation or rollback shortcut.
 
 The server asks DB1's private `assign_product_database` RPC for an identity's
 owner, then sends the unchanged payload to that owner's `record-price` function.
-Only server-configured DB1–DB5 endpoints and public recorder keys are accepted.
+Only server-configured database endpoints and public recorder keys are accepted.
 A directory failure, invalid owner, or missing destination stops the request;
 there is no fallback that could create the same product in another database.
 Existing preview-only three-product pilot behavior remains when routing is off.
@@ -51,6 +51,11 @@ Existing preview-only three-product pilot behavior remains when routing is off.
   backfills existing identities as DB1 and implements private atomic assignments,
   migration blocking, and capacity checks. No database accepts new identities
   until an operator explicitly enables its accepts_new/capacity_available flags.
+  The product cap is 15,000 per database. Configured destinations fill in numeric
+  order; a full destination closes to new assignments and the next configured,
+  available database receives the next new identity. Existing identities retain
+  their owner. DB1–DB5 are pre-registered; later DB numbers can be registered
+  without editing application routing code.
   RPC retries preserve the owner even when that database is full or unavailable.
   Capacity monitoring must consider bytes/history growth as well as product count.
 - Deploy the full recording dependencies on the destination. The restricted

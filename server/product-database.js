@@ -35,7 +35,7 @@ export async function recordingDestination(env, body, fetcher = fetch) {
   const owner = await response.json();
   // Database identifiers are mapped to configured server credentials, never URLs
   // or credentials supplied by a browser or by the directory response.
-  if (typeof owner !== "string" || !/^db[1-5]$/.test(owner)) throw new Error("Invalid product database assignment");
+  if (typeof owner !== "string" || !/^db[1-9]\d{0,2}$/.test(owner)) throw new Error("Invalid product database assignment");
   const number = Number(owner.slice(2));
   const url = (number === 1 ? directoryUrl : env[`SUPABASE_DB${number}_URL`] || "").replace(/\/$/, "");
   const publishableKey = number === 1

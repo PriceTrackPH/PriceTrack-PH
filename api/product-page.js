@@ -1,7 +1,11 @@
 import { pilotReadsActive } from "../server/db2-pilot.js";
+import { productOwner } from "../server/product-owner.js";
 const SITE_ORIGIN = "https://pricetrackph.com";
 
 async function productDatabase(shopId, productId) {
+  const owner = await productOwner(process.env, { shopId, productId });
+  if (owner?.missing) throw Error("Product ownership is missing");
+  if (owner && owner.owner !== "db1") return owner;
   const pilot = await pilotReadsActive(process.env, shopId, productId);
   return {
     url: (pilot ? process.env.SUPABASE_DB2_URL || "" : process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").replace(/\/$/, ""),

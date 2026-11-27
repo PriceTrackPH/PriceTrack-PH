@@ -8,6 +8,7 @@ const env = {
   SUPABASE_SECRET_KEY: "server-only", VITE_SUPABASE_PUBLISHABLE_KEY: "public-db1",
   SUPABASE_DB2_URL: "https://db2.example", SUPABASE_DB2_PUBLISHABLE_KEY: "public-db2",
   SUPABASE_DB5_URL: "https://db5.example", SUPABASE_DB5_PUBLISHABLE_KEY: "public-db5",
+  SUPABASE_DB12_URL: "https://db12.example", SUPABASE_DB12_PUBLISHABLE_KEY: "public-db12",
 };
 const identity = { shopId: "123", productId: "456" };
 
@@ -15,7 +16,7 @@ test("disabled directory leaves the existing route untouched", async () => {
   assert.equal(await recordingDestination({}, identity, () => { throw Error("Unexpected lookup"); }), null);
 });
 test("the assigned owner selects exactly one configured database, including DB5", async () => {
-  for (const owner of ["db1", "db2", "db5"]) {
+  for (const owner of ["db1", "db2", "db5", "db12"]) {
     const calls = [];
     const target = await recordingDestination(env, identity, async (url, options) => {
       calls.push({ url, options });

@@ -1,9 +1,17 @@
 import { pilotReadsActive } from "./db2-pilot.js";
+import { ownedProductHistory } from "./product-history.js";
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
   const { shopId, productId } = req.query || {};
+  if (process.env.PRICETRACK_DATABASE_ROUTING === "1") {
+    try {
+      const history = await ownedProductHistory(process.env, shopId, productId);
+      if (history?.missing) return res.status(404).json({ error: "Product is not recorded" });
+      if (history) return res.status(200).json(history);
+    } catch { return res.status(503).json({ error: "Unable to load the assigned product database" }); }
+  }
   try {
     if (typeof shopId !== "string" || typeof productId !== "string" ||
         !await pilotReadsActive(process.env, shopId, productId)) return res.status(404).json({ error: "Not in pilot" });

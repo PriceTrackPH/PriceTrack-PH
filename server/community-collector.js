@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { ownedProductRows } from './owned-product-rows.js';
 import { claimRandomProduct, markCollectorProductOutcome } from '../api/admin-pc-collector.js';
 const sign = (value, secret) => crypto.createHmac('sha256', secret).update(value).digest('base64url');
 export function encodeClaim(claim, secret) {
@@ -22,6 +23,8 @@ export default async function communityCollector(req, res) {
   if (!url || !secret) return res.status(503).json({error:'Collector is not configured.'});
   const headers = {apikey:secret,'Content-Type':'application/json', ...(secret.startsWith('ey') ? {Authorization:`Bearer ${secret}`} : {})};
   async function rest(path, options = {}) {
+    const owned = await ownedProductRows(process.env, path, options);
+    if (owned !== null) return owned;
     const response = await fetch(`${url}/rest/v1/${path}`, {signal:AbortSignal.timeout(15000), ...options, headers:{...headers,...options.headers}});
     if (!response.ok) throw Error('Unable to contact the collection service.');
     return response.status===204 ? [] : response.json();

@@ -577,14 +577,19 @@ function ReportApp() {
   useEffect(() => {
     if (initialProductRoute || initialProductUrl || !supabase) return;
     let active = true;
-    void supabase.from("products")
+    const discovery = import.meta.env.VITE_PRICETRACK_DATABASE_ROUTING === "1"
+      ? fetch("/api/find-product-by-title?catalog=1&mode=discover", { cache: "no-store" }).then(async response => {
+        if (!response.ok) throw Error("Product discovery unavailable");
+        return { data: await response.json() as DiscoverReport[], error: null };
+      }).catch(() => ({ data: null, error: true }))
+      : supabase.from("products")
       .select("id,name,external_shop_id,external_product_id")
       .eq("platform", "shopee")
       .eq("is_active", true)
       .not("price_drop_at", "is", null)
       .order("price_drop_at", { ascending: false })
-      .limit(6)
-      .then(({ data, error }) => {
+      .limit(6);
+    void Promise.resolve(discovery).then(({ data, error }) => {
         if (!error && active) setDiscoverReports(data ?? []);
       });
     return () => { active = false; };
@@ -715,7 +720,13 @@ function ReportApp() {
           throw lastError;
         }
 
-        const { data, error: featuredError } = await supabase
+        const { data, error: featuredError } = import.meta.env.VITE_PRICETRACK_DATABASE_ROUTING === "1"
+          ? await fetch("/api/find-product-by-title?catalog=1&mode=featured", { cache: "no-store" }).then(async response => {
+            if (!response.ok) throw Error("Featured product unavailable");
+            const rows = await response.json() as Array<{external_shop_id:string;external_product_id:string}>;
+            return { data: rows[0] || null, error: null };
+          })
+          : await supabase
           .from("products")
           .select("external_shop_id,external_product_id")
           .eq("platform", "shopee")

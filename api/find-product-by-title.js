@@ -1,9 +1,23 @@
+import { searchCatalog } from "../server/product-catalog.js";
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).json({ error: 'Method not allowed.' });
+  }
+
+  if (req.query?.catalog === "1") {
+    const mode = req.query.mode || "search";
+    const text = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    if (!["search", "discover", "featured"].includes(mode) || (mode === "search" && (text.length < 2 || text.length > 150))) {
+      return res.status(400).json({ error: "Invalid product search" });
+    }
+    const pattern = "%" + text.split(/\s+/).map(word => word.replace(/[\\%_]/g, "\\$&")).join("%") + "%";
+    try {
+      return res.status(200).json(await searchCatalog(process.env, { nameFilter: `ilike.${pattern}`, limit: mode === "featured" ? 1 : mode === "discover" ? 6 : 5, mode }));
+    } catch { return res.status(502).json({ error: "Product search is unavailable" }); }
   }
 
   const title = typeof req.query?.title === 'string' ? req.query.title.trim() : '';
@@ -27,6 +41,7 @@ export default async function handler(req, res) {
 
   try {
     const searchProducts = async (nameFilter, limit) => {
+      if (process.env.PRICETRACK_DATABASE_ROUTING === "1") return searchCatalog(process.env, { nameFilter, limit });
       const endpoint = new URL('/rest/v1/products', supabaseUrl);
       endpoint.searchParams.set('select', 'external_shop_id,external_product_id,product_url,name');
       endpoint.searchParams.set('platform', 'eq.shopee');

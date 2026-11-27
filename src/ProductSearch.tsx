@@ -34,12 +34,18 @@ export default function ProductSearch({ query, onChange, loading, onSubmit, onSe
       const pattern = "%" + text.slice(0, 150).split(/\s+/)
         .map((word) => word.replace(/[\\%_]/g, "\\$&")).join("%") + "%";
       try {
-        const { data, error } = await supabase!.from("products")
+        const result = import.meta.env.VITE_PRICETRACK_DATABASE_ROUTING === "1"
+          ? await fetch(`/api/find-product-by-title?catalog=1&${new URLSearchParams({ q: text.slice(0, 150) })}`, { signal: controller.signal, cache: "no-store" }).then(async response => {
+            if (!response.ok) throw Error("Product search unavailable");
+            return { data: await response.json() as SearchSuggestion[], error: null };
+          })
+          : await supabase!.from("products")
           .select("id,name,shop_name,external_shop_id,external_product_id")
           .eq("platform", "shopee").eq("is_active", true)
           .not("last_checked_at", "is", null)
           .ilike("name", pattern).order("name").order("id").limit(5)
           .abortSignal(controller.signal);
+        const { data, error } = result;
         if (controller.signal.aborted) return;
         setSuggestions(error ? [] : data ?? []);
         setUnavailable(Boolean(error));

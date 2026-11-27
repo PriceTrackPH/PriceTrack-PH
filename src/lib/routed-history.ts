@@ -7,8 +7,10 @@ export type RoutedHistory = {
 };
 
 export async function routedHistory(shopId: string, productId: string): Promise<RoutedHistory | null> {
-  if (import.meta.env.VITE_PRICETRACK_DB2_PILOT !== "1" ||
-      !(import.meta.env.VITE_PRICETRACK_DB2_PRODUCTS || "").split(",").includes(`${shopId}:${productId}`)) return null;
+  const directoryEnabled = import.meta.env.VITE_PRICETRACK_DATABASE_ROUTING === "1";
+  const pilotEnabled = import.meta.env.VITE_PRICETRACK_DB2_PILOT === "1" &&
+    (import.meta.env.VITE_PRICETRACK_DB2_PRODUCTS || "").split(",").includes(`${shopId}:${productId}`);
+  if (!directoryEnabled && !pilotEnabled) return null;
   const response = await fetch(`/api/observations?db2Pilot=1&${new URLSearchParams({shopId, productId})}`, {cache:"no-store"});
   const data = await response.json();
   // Only a disabled pilot allows the original DB1 path. An assigned product
