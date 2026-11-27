@@ -21,6 +21,17 @@ export default async function handler(req, res) {
   try {
     const [product] = await read("products", { platform: "eq.shopee", external_shop_id: `eq.${shopId}`, external_product_id: `eq.${productId}`, limit: "1" });
     if (!product) return res.status(502).json({ error: "Assigned product is missing from DB2" });
+    if (process.env.VERCEL_ENV === "production") {
+      const controlUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").replace(/\/$/,"");
+      const controlKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+      const params = new URLSearchParams({platform:"eq.shopee",external_shop_id:`eq.${shopId}`,external_product_id:`eq.${productId}`,
+        select:"collector_page_outcome,last_check_attempt_at,last_check_status",limit:"1"});
+      const control = await fetch(`${controlUrl}/rest/v1/products?${params}`, {headers:{apikey:controlKey,...(controlKey.startsWith("ey") ? {Authorization:`Bearer ${controlKey}`} : {})}});
+      if (!control.ok) throw Error("Unable to read pilot collection status");
+      const [status] = await control.json();
+      if (!status) throw Error("Pilot collection status is missing");
+      Object.assign(product,status);
+    }
     const variations = await read("product_variations", { product_id: `eq.${product.id}`, order: "name" });
     const real = variations.filter(row => String(row.external_variation_id ?? "").trim().toLowerCase() !== "default");
     const selected = real.length ? real : variations;
