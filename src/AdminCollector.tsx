@@ -608,6 +608,9 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
     localStorage.setItem(nqCycleStorageKey, JSON.stringify(nqCycle.current));
   }
 
+  const singleTest = useRef(false);
+  const singleClaimed = useRef(false);
+
   function reservationPayload(urgentOnly = false) {
     const queued = reservedProducts.current;
     let projectedCycle = nqCycle.current;
@@ -650,6 +653,11 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
   }
 
   async function claimWithStoreRotation(urgentOnly = false) {
+    if (singleTest.current) {
+      if (urgentOnly || singleClaimed.current) return {product: null};
+      singleClaimed.current = true;
+      return api<{ product: CollectorProduct | null }>("claim-db2-test", {skipSoldOut});
+    }
     const result = await api<{ product: CollectorProduct | null }>("claim", reservationPayload(urgentOnly));
     if (result.product?.claimSource === "random") {
       if (result.product.storeRoundReset) {
@@ -663,7 +671,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
   }
 
   function refillReservations() {
-    if (reservationFill.current || stopped.current || stopRequested.current || pauseCollectionRequested.current) return;
+    if (singleTest.current || reservationFill.current || stopped.current || stopRequested.current || pauseCollectionRequested.current) return;
     const generation = reservationGeneration.current;
     reservationFill.current = (async () => {
       while (!stopped.current && !stopRequested.current && !pauseCollectionRequested.current && generation === reservationGeneration.current
@@ -724,7 +732,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
       try {
         // Apply Batch changes between products, preserving the current product's
         // backlog association until its outcome has been recorded.
-        const batchEnabled = localStorage.getItem(finishDueProductsStorageKey) === "true";
+        const batchEnabled = !singleTest.current && localStorage.getItem(finishDueProductsStorageKey) === "true";
         if (batchEnabled && includeNormalQueue && !backlogId.current) {
           await clearReservations();
           const { backlog: saved } = await api<{ backlog: CollectorBacklog | null }>("backlog-begin");
@@ -744,7 +752,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
         await wait(2_000);
         continue;
       }
-      if (!claim.product && pageErrorRetries.current.length) {
+      if (!singleTest.current && !claim.product && pageErrorRetries.current.length) {
         const retryProduct = pageErrorRetries.current.shift();
         if (retryProduct) claim = await api<{ product: CollectorProduct | null }>("reclaim", { product: retryProduct });
       }
@@ -763,7 +771,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
           setBacklog(progress);
           setMessage(progress?.finished || progress?.remaining === 0
             ? "Saved backlog finished" : "Backlog paused: no eligible products available now");
-        } else setMessage("No more available due products");
+        } else setMessage(singleTest.current ? (attemptedProductIds.current.size ? "Single-product test finished" : "Test product unavailable: already checked, not due, or reserved") : "No more available due products");
         await finishRun("stopped_safely");
         break;
       }
@@ -944,7 +952,14 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
 
   async function startCollection(mode: CollectionMode = "normal") {
     if (mode === "normal" && cooldownSeconds > 0) return;
-    if (localStorage.getItem(finishDueProductsStorageKey) === "true" && !includeNormalQueue) {
+    const testUrl = new URL(window.location.href);
+    singleTest.current = testUrl.searchParams.get("db2test") === "142720";
+    singleClaimed.current = false;
+    if (singleTest.current) {
+      testUrl.searchParams.delete("db2test");
+      window.history.replaceState(window.history.state, "", testUrl);
+    }
+    if (!singleTest.current && localStorage.getItem(finishDueProductsStorageKey) === "true" && !includeNormalQueue) {
       setMessage("Turn on Normal Queue to finish the saved backlog.");
       return;
     }
@@ -975,7 +990,7 @@ export default function AdminCollector({ visible = true }: { visible?: boolean }
     checkpointRun();
     setSucceeded(0); setFailed(0); setRunning(true); setMessage("Starting");
     try {
-      if (localStorage.getItem(finishDueProductsStorageKey) === "true") {
+      if (!singleTest.current && localStorage.getItem(finishDueProductsStorageKey) === "true") {
         const { backlog: saved } = await api<{ backlog: CollectorBacklog }>("backlog-begin");
         backlogId.current = saved.id;
         setBacklog(saved);

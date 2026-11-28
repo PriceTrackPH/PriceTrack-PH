@@ -791,6 +791,11 @@ export default async function handler(req, res) {
       return send(res, 200, { ok: true });
     }
 
+    if (action === "claim-db2-test") {
+      const row = await rpc(supabaseUrl, secret, "claim_admin_db2_single_check", { p_skip_sold_out: req.body?.skipSoldOut !== false });
+      return send(res, 200, {ok: true, product: row ? {claimSource: "random", queueRequestId: null, productId: Number(row.product_id), shopId: String(row.shop_id), externalProductId: String(row.external_product_id), productUrl: row.product_url, leaseUntil: row.lease_until} : null});
+    }
+
     if (action === "claim") {
       const backlogId = UUID_V4.test(String(req.body?.backlogId || "")) ? req.body.backlogId : null;
       const attemptedProductIds = Array.isArray(req.body?.attemptedProductIds)
